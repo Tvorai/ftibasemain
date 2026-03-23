@@ -10,6 +10,7 @@ type TrainerProfile = {
   city: string | null;
   images: any[] | null;
   brands: any[] | null;
+  services: Record<string, boolean> | null;
   profiles: {
     full_name: string | null;
   } | null;
@@ -59,6 +60,16 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
     : [];
   const reviews: any[] = [];   // Tu budú recenzie z DB (zatiaľ prázdne pre test skrytia)
   const results: string[] = []; // Tu budú výsledky z DB (zatiaľ prázdne pre test skrytia)
+  const defaultServices = {
+    personal_training: true,
+    online_consultation: true,
+    meal_plan: true,
+    brands: true
+  };
+  const services =
+    trainer?.services && typeof trainer.services === "object"
+      ? { ...defaultServices, ...trainer.services }
+      : defaultServices;
 
   useEffect(() => {
     if (images.length === 0) {
@@ -233,16 +244,22 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
 
         {/* 4. SLUŽBY (TLAČIDLÁ) */}
         <div className="mt-8 space-y-3">
-          <button className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 px-6 rounded-[20px] text-lg transition-colors shadow-lg shadow-emerald-500/10 uppercase tracking-wide">
-            Rezervovať osobný tréning
-          </button>
-          <button className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 px-6 rounded-[20px] text-lg transition-colors shadow-lg shadow-emerald-500/10 uppercase tracking-wide">
-            Rezervovať online konzultáciu
-          </button>
-          <button className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 px-6 rounded-[20px] text-lg transition-colors shadow-lg shadow-emerald-500/10 uppercase tracking-wide">
-            Objednať jedálniček
-          </button>
-          {trainer.brands && trainer.brands.length > 0 && (
+          {services.personal_training && (
+            <button className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 px-6 rounded-[20px] text-lg transition-colors shadow-lg shadow-emerald-500/10 uppercase tracking-wide">
+              Rezervovať osobný tréning
+            </button>
+          )}
+          {services.online_consultation && (
+            <button className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 px-6 rounded-[20px] text-lg transition-colors shadow-lg shadow-emerald-500/10 uppercase tracking-wide">
+              Rezervovať online konzultáciu
+            </button>
+          )}
+          {services.meal_plan && (
+            <button className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 px-6 rounded-[20px] text-lg transition-colors shadow-lg shadow-emerald-500/10 uppercase tracking-wide">
+              Objednať jedálniček
+            </button>
+          )}
+          {services.brands && trainer.brands && trainer.brands.length > 0 && (
             <button className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 px-6 rounded-[20px] text-lg transition-colors shadow-lg shadow-emerald-500/10 uppercase tracking-wide">
               Moje odporúčané značky
             </button>

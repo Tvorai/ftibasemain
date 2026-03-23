@@ -16,6 +16,16 @@ type Brand = {
   code: string;
 };
 
+type ServiceKey = "personal_training" | "online_consultation" | "meal_plan" | "brands";
+type ServicesVisibility = Record<ServiceKey, boolean>;
+
+const defaultServicesVisibility: ServicesVisibility = {
+  personal_training: true,
+  online_consultation: true,
+  meal_plan: true,
+  brands: true
+};
+
 // Helper pre slugifikáciu
 function toSlug(input: string) {
   return input
@@ -46,6 +56,7 @@ export default function TrainerDashboardPage() {
   const [newBrandCode, setNewBrandCode] = useState("");
   const [brands, setBrands] = useState<Brand[]>([]);
   const brandLogoInputRef = useRef<HTMLInputElement>(null);
+  const [servicesVisibility, setServicesVisibility] = useState<ServicesVisibility>(defaultServicesVisibility);
 
   const siteUrl = "https://fitbasemain.vercel.app/";
   const profileUrl = `${siteUrl}${toSlug(username)}`;
@@ -71,6 +82,14 @@ export default function TrainerDashboardPage() {
         setCity(trainer.city || "");
         setBio(trainer.bio || "");
         setBrands(trainer.brands || []);
+        if (trainer.services && typeof trainer.services === "object") {
+          setServicesVisibility({
+            ...defaultServicesVisibility,
+            ...(trainer.services as Partial<ServicesVisibility>)
+          });
+        } else {
+          setServicesVisibility(defaultServicesVisibility);
+        }
         // Načítanie fotiek
         if (trainer.images && Array.isArray(trainer.images)) {
           const loadedImages = [...trainer.images];
@@ -279,6 +298,38 @@ export default function TrainerDashboardPage() {
     }
   };
 
+  const persistServicesVisibility = async (next: ServicesVisibility) => {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from("trainers")
+        .update({ services: next })
+        .eq("profile_id", user.id);
+
+      if (error) throw error;
+    } catch (err: any) {
+      console.error(err);
+      alert(`Chyba pri ukladaní služieb: ${err?.message || "Skontrolujte, či v databáze existuje stĺpec 'services' (JSONB)."}`);
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleService = async (key: ServiceKey) => {
+    const prev = servicesVisibility;
+    const next = { ...servicesVisibility, [key]: !servicesVisibility[key] };
+    setServicesVisibility(next);
+    try {
+      await persistServicesVisibility(next);
+    } catch {
+      setServicesVisibility(prev);
+    }
+  };
+
   const renderTabContent = () => {
     if (loading) return <div className="flex items-center justify-center h-full text-zinc-500">Načítavam...</div>;
 
@@ -348,6 +399,36 @@ export default function TrainerDashboardPage() {
             <button onClick={handleSaveProfile} disabled={saving} className="self-end bg-emerald-500 text-black font-display text-xl px-10 py-2 rounded-full uppercase disabled:opacity-50">
               {saving ? "Ukladám..." : "Uložiť"}
             </button>
+          </div>
+        );
+
+      case "sluzby":
+        return (
+          <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
+            {[
+              { key: "personal_training" as const, label: "Rezervovať osobný tréning" },
+              { key: "online_consultation" as const, label: "Rezervovať online konzultáciu" },
+              { key: "meal_plan" as const, label: "Objednať jedálniček" },
+              { key: "brands" as const, label: "Moje odporúčané značky" }
+            ].map((item) => (
+              <div key={item.key} className="flex items-center gap-6">
+                <div className="flex-1 border border-emerald-500 rounded-xl px-6 py-3 text-white text-xl font-display tracking-wide">
+                  {item.label}
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={servicesVisibility[item.key]}
+                  onClick={() => toggleService(item.key)}
+                  disabled={saving}
+                  className={`relative w-24 h-12 rounded-full transition-colors ${servicesVisibility[item.key] ? "bg-emerald-500" : "bg-zinc-700"} disabled:opacity-60 disabled:cursor-not-allowed`}
+                >
+                  <span
+                    className={`absolute top-1 left-1 w-10 h-10 bg-white rounded-full transition-transform ${servicesVisibility[item.key] ? "translate-x-12" : "translate-x-0"}`}
+                  />
+                </button>
+              </div>
+            ))}
           </div>
         );
 

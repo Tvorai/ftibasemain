@@ -21,11 +21,24 @@ export async function GET(
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const { data, error } = await supabase
+  const primary = await supabase
     .from("trainers")
-    .select("slug,bio,headline,city,images,brands,profiles(full_name)")
+    .select("slug,bio,headline,city,images,brands,services,profiles(full_name)")
     .eq("slug", params.trainerSlug)
     .maybeSingle();
+
+  let data = primary.data;
+  let error = primary.error;
+
+  if (error && (error.code === "42703" || error.message.includes("services"))) {
+    const fallback = await supabase
+      .from("trainers")
+      .select("slug,bio,headline,city,images,brands,profiles(full_name)")
+      .eq("slug", params.trainerSlug)
+      .maybeSingle();
+    data = fallback.data ? { ...fallback.data, services: null } : fallback.data;
+    error = fallback.error;
+  }
 
   if (error) {
     return NextResponse.json(
@@ -43,4 +56,3 @@ export async function GET(
 
   return NextResponse.json({ ok: true, trainer: data });
 }
-
