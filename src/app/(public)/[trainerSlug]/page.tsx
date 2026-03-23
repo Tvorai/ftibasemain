@@ -207,7 +207,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
         </div>
       )}
 
-      <div className="px-6 -mt-10 relative z-10">
+      <div className="px-6 mt-6 relative z-10">
         {/* 2. MENO A BIO */}
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">{trainer.profiles?.full_name || "Bez mena"}</h1>
