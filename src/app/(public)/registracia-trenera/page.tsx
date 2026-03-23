@@ -111,30 +111,7 @@ export default function TrainerRegistrationPage() {
                   return;
                 }
 
-                const ensure = await fetch("/api/trainer-registration", {
-                  method: "POST",
-                  headers: { "content-type": "application/json" },
-                  body: JSON.stringify({
-                    userId,
-                    email: safeEmail,
-                    fullName: safeFullName,
-                    locale: "sk"
-                  })
-                });
-
-                const ensureJson = (await ensure.json().catch(() => null)) as
-                  | { ok: boolean; message?: string; slug?: string }
-                  | null;
-
                 setLoading(false);
-
-                if (!ensure.ok || !ensureJson?.ok) {
-                  setStatus({
-                    type: "error",
-                    text: ensureJson?.message || "Nepodarilo sa dokončiť registráciu."
-                  });
-                  return;
-                }
 
                 if (signup.data.session) {
                   router.push("/ucet-trenera");
