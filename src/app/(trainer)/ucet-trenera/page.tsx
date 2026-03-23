@@ -320,6 +320,13 @@ export default function TrainerDashboardPage() {
     }
   };
 
+  const handleSaveServices = async () => {
+    try {
+      await persistServicesVisibility(servicesVisibility);
+      window.location.reload();
+    } catch {}
+  };
+
   const toggleService = async (key: ServiceKey) => {
     if (servicesPersistLockRef.current) return;
     setServicesVisibility((prev) => {
@@ -435,6 +442,15 @@ export default function TrainerDashboardPage() {
                 </button>
               </div>
             ))}
+            <div className="pt-6 self-end">
+              <button
+                onClick={handleSaveServices}
+                disabled={saving}
+                className="bg-emerald-500 hover:bg-emerald-400 text-black font-display text-2xl px-12 py-2 rounded-full tracking-wider transition-colors uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? "Ukladám..." : "ULOŽIŤ"}
+              </button>
+            </div>
           </div>
         );
 

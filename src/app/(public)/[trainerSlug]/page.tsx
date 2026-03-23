@@ -37,7 +37,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
   const loadTrainer = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/public-trainer/${params.trainerSlug}`, {
+      const res = await fetch(`/api/public-trainer/${params.trainerSlug}?t=${Date.now()}`, {
         cache: "no-store",
       });
       const json = await res.json();
