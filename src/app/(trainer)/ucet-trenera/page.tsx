@@ -71,6 +71,12 @@ export default function TrainerDashboardPage() {
         setCity(trainer.city || "");
         setBio(trainer.bio || "");
         setBrands(trainer.brands || []);
+        // Načítanie fotiek
+        if (trainer.images && Array.isArray(trainer.images)) {
+          const loadedImages = [...trainer.images];
+          while (loadedImages.length < 4) loadedImages.push(null);
+          setImages(loadedImages.slice(0, 4));
+        }
       }
     } catch (err) {
       console.error("Error loading profile:", err);
@@ -100,13 +106,14 @@ export default function TrainerDashboardPage() {
       
       if (profileError) throw profileError;
 
-      // 2. Update tabuľky trainers (slug, bio, mesto)
+      // 2. Update tabuľky trainers (slug, bio, mesto, fotky)
       const { error: trainerError } = await supabase
         .from("trainers")
         .update({ 
           slug, 
           bio,
-          city: city 
+          city: city,
+          images: images 
         })
         .eq("profile_id", user.id);
 
@@ -120,6 +127,53 @@ export default function TrainerDashboardPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 1024 * 1024) {
+        alert("Fotka je príliš veľká. Prosím nahrajte obrázok do 1MB.");
+        return;
+      }
+
+      const firstEmptyIndex = images.findIndex(img => img === null);
+      if (firstEmptyIndex === -1) {
+        alert("Môžete nahrať maximálne 4 fotky.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const img = new (window as any).Image();
+        img.src = reader.result;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 800;
+          const scale = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scale;
+          
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          const compressedBase64 = canvas.toDataURL("image/webp", 0.7);
+          const newImages = [...images];
+          newImages[firstEmptyIndex] = compressedBase64;
+          setImages(newImages);
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const newImages = [...images];
+    newImages[index] = null;
+    // Posunúť ostatné fotky dopredu, aby nezostali diery
+    const filtered = newImages.filter(img => img !== null);
+    while (filtered.length < 4) filtered.push(null);
+    setImages(filtered);
   };
 
   const handleSaveBrand = async () => {
@@ -268,14 +322,26 @@ export default function TrainerDashboardPage() {
               </div>
               <textarea placeholder="Bio" value={bio} onChange={(e) => setBio(e.target.value.slice(0, 100))} maxLength={100} className="w-full bg-transparent border border-emerald-500 rounded-3xl px-6 py-3 text-white outline-none min-h-[80px] resize-none" />
             </div>
-            <div onClick={() => fileInputRef.current?.click()} className="w-full aspect-[16/9] border border-emerald-500 rounded-[40px] flex flex-col items-center justify-center cursor-pointer">
-              <div className="text-emerald-500 text-5xl font-light">+</div>
+            <div onClick={() => fileInputRef.current?.click()} className="w-full aspect-[16/9] border border-emerald-500 rounded-[40px] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-500/5 transition-colors group overflow-hidden relative">
+              <div className="text-emerald-500 text-5xl font-light mb-1">+</div>
               <div className="text-zinc-500 text-sm uppercase tracking-widest">Nahrajte váš profilové fotky</div>
             </div>
-            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" />
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
             <div className="flex justify-center gap-3 w-full">
               {images.map((img, idx) => (
-                <div key={idx} className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border border-emerald-500 overflow-hidden shrink-0" />
+                <div key={idx} className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border border-emerald-500 overflow-hidden shrink-0 bg-zinc-900/50">
+                  {img && (
+                    <>
+                      <Image src={img} alt={`Profile ${idx}`} fill className="object-cover" />
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
+                        className="absolute top-1 right-1 bg-black/70 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px] hover:bg-black transition-colors z-20"
+                      >
+                        ✕
+                      </button>
+                    </>
+                  )}
+                </div>
               ))}
             </div>
             <button onClick={handleSaveProfile} disabled={saving} className="self-end bg-emerald-500 text-black font-display text-xl px-10 py-2 rounded-full uppercase disabled:opacity-50">
