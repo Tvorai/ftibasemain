@@ -1,0 +1,130 @@
+"use client";
+
+import Image from "next/image";
+import { useI18n } from "@/providers/i18n";
+
+export default function TrainerRegistrationPage() {
+  const { messages } = useI18n();
+
+  return (
+    <div className="min-h-screen bg-black text-white">
+      <div className="w-full px-4 py-6 md:px-12 md:py-10 lg:px-20">
+        <div className="mb-6 md:mb-10">
+          <Image
+            src="/Fitbase logo.png"
+            alt="Fitbase"
+            width={190}
+            height={44}
+            priority
+            className="h-auto w-[150px] md:w-[190px]"
+          />
+        </div>
+
+        <div className="grid gap-10 md:grid-cols-[minmax(380px,520px)_1fr] md:items-center md:gap-16">
+          <div className="max-w-xl md:max-w-none">
+            <h1 className="font-display text-5xl leading-[0.9] tracking-wide md:text-6xl">
+              {messages.pages.trainerRegistration.title.toUpperCase()}
+            </h1>
+            <p className="mt-3 text-sm italic text-white/70 md:text-base">
+              {messages.pages.trainerRegistration.subtitle}
+            </p>
+
+            <form
+              className="mt-7 space-y-3 md:mt-8"
+              onSubmit={(e) => {
+                e.preventDefault();
+              }}
+            >
+              <div>
+                <label className="sr-only" htmlFor="fullName">
+                  {messages.pages.trainerRegistration.fields.fullName}
+                </label>
+                <input
+                  id="fullName"
+                  name="fullName"
+                  type="text"
+                  placeholder={messages.pages.trainerRegistration.fields.fullName}
+                  className="h-12 w-full rounded-full border border-emerald-500/80 bg-transparent px-5 text-white placeholder-white/70 outline-none ring-emerald-400 focus:ring-2"
+                  autoComplete="name"
+                />
+              </div>
+
+              <div>
+                <label className="sr-only" htmlFor="email">
+                  {messages.pages.trainerRegistration.fields.email}
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder={messages.pages.trainerRegistration.fields.email}
+                  className="h-12 w-full rounded-full border border-emerald-500/80 bg-transparent px-5 text-white placeholder-white/70 outline-none ring-emerald-400 focus:ring-2"
+                  autoComplete="email"
+                />
+              </div>
+
+              <div>
+                <label className="sr-only" htmlFor="password">
+                  {messages.pages.trainerRegistration.fields.password}
+                </label>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  placeholder={messages.pages.trainerRegistration.fields.password}
+                  className="h-12 w-full rounded-full border border-emerald-500/80 bg-transparent px-5 text-white placeholder-white/70 outline-none ring-emerald-400 focus:ring-2"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <div>
+                <label className="sr-only" htmlFor="passwordRepeat">
+                  {messages.pages.trainerRegistration.fields.passwordRepeat}
+                </label>
+                <input
+                  id="passwordRepeat"
+                  name="passwordRepeat"
+                  type="password"
+                  placeholder={messages.pages.trainerRegistration.fields.passwordRepeat}
+                  className="h-12 w-full rounded-full border border-emerald-500/80 bg-transparent px-5 text-white placeholder-white/70 outline-none ring-emerald-400 focus:ring-2"
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="font-display mt-4 h-12 w-full rounded-full bg-emerald-500 text-center text-2xl tracking-wide text-black hover:bg-emerald-400"
+              >
+                {messages.pages.trainerRegistration.submit.toUpperCase()}
+              </button>
+            </form>
+          </div>
+
+          <div className="hidden md:block">
+            <div className="relative ml-auto h-[560px] w-full max-w-[720px]">
+              <Image
+                src="/Fitbase register.png"
+                alt=""
+                fill
+                priority
+                className="object-contain object-right"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-10 md:hidden">
+          <div className="relative mx-auto h-[320px] w-full max-w-[380px]">
+            <Image
+              src="/Fitbase register.png"
+              alt=""
+              fill
+              priority
+              className="object-contain object-bottom"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
