@@ -104,7 +104,6 @@ export default function TrainerDashboardPage() {
     }
   };
 
-  // Uloženie novej značky
   const handleSaveBrand = async () => {
     if (!newBrandLogo || !newBrandCode.trim()) {
       alert("Nahrajte logo a zadajte kód.");
@@ -114,7 +113,10 @@ export default function TrainerDashboardPage() {
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        alert("Chyba: Používateľ nie je prihlásený.");
+        return;
+      }
 
       const newBrand: Brand = {
         id: Math.random().toString(36).substr(2, 9),
@@ -129,15 +131,18 @@ export default function TrainerDashboardPage() {
         .update({ brands: updatedBrands })
         .eq("profile_id", user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw new Error(error.message);
+      }
 
       setBrands(updatedBrands);
       setNewBrandLogo(null);
       setNewBrandCode("");
-      alert("Značka pridaná.");
-    } catch (err) {
-      console.error(err);
-      alert("Chyba pri pridávaní značky.");
+      alert("Značka úspešne pridaná.");
+    } catch (err: any) {
+      console.error("Save error:", err);
+      alert(`Chyba pri pridávaní značky: ${err.message || "Skontrolujte, či v databáze existuje stĺpec 'brands' (JSONB)."}`);
     } finally {
       setSaving(false);
     }
@@ -173,8 +178,30 @@ export default function TrainerDashboardPage() {
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Základná kontrola veľkosti (max 1MB pre base64 v JSON)
+      if (file.size > 1024 * 1024) {
+        alert("Logo je príliš veľké. Prosím nahrajte obrázok do 1MB.");
+        return;
+      }
+
       const reader = new FileReader();
-      reader.onloadend = () => setNewBrandLogo(reader.result as string);
+      reader.onloadend = () => {
+        const img = new (window as any).Image();
+        img.src = reader.result;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 400;
+          const scale = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scale;
+          
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          const compressedBase64 = canvas.toDataURL("image/webp", 0.7);
+          setNewBrandLogo(compressedBase64);
+        };
+      };
       reader.readAsDataURL(file);
     }
   };
