@@ -2,10 +2,37 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 import { useI18n } from "@/providers/i18n";
+import { featureFlags, supabaseAnonKey, supabaseUrl } from "@/lib/config";
+
+const supabase = featureFlags.supabaseEnabled
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
+
+function mapSignupErrorToSk(message: string) {
+  const m = message.toLowerCase();
+  if (m.includes("already registered") || m.includes("user already registered")) {
+    return "Tento email je už zaregistrovaný.";
+  }
+  if (m.includes("password") && m.includes("length")) {
+    return "Heslo je príliš krátke.";
+  }
+  return "Registrácia zlyhala. Skúste to prosím znova.";
+}
 
 export default function TrainerRegistrationPage() {
   const { messages } = useI18n();
+  const router = useRouter();
+
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordRepeat, setPasswordRepeat] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -32,8 +59,92 @@ export default function TrainerRegistrationPage() {
 
             <form
               className="mt-7 space-y-3 md:mt-8"
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
+                if (loading) return;
+                setStatus(null);
+
+                if (!supabase) {
+                  setStatus({
+                    type: "error",
+                    text: "Registrácia momentálne nie je dostupná. Skúste to neskôr."
+                  });
+                  return;
+                }
+
+                const safeFullName = fullName.trim();
+                const safeEmail = email.trim().toLowerCase();
+
+                if (!safeFullName || !safeEmail || !password || !passwordRepeat) {
+                  setStatus({ type: "error", text: "Vyplňte prosím všetky polia." });
+                  return;
+                }
+
+                if (password !== passwordRepeat) {
+                  setStatus({ type: "error", text: "Heslá sa nezhodujú." });
+                  return;
+                }
+
+                setLoading(true);
+                const signup = await supabase.auth.signUp({
+                  email: safeEmail,
+                  password,
+                  options: {
+                    data: {
+                      full_name: safeFullName,
+                      role: "trainer",
+                      locale: "sk"
+                    }
+                  }
+                });
+
+                if (signup.error) {
+                  setLoading(false);
+                  setStatus({ type: "error", text: mapSignupErrorToSk(signup.error.message) });
+                  return;
+                }
+
+                const userId = signup.data.user?.id;
+                if (!userId) {
+                  setLoading(false);
+                  setStatus({ type: "error", text: "Registrácia zlyhala. Skúste to prosím znova." });
+                  return;
+                }
+
+                const ensure = await fetch("/api/trainer-registration", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({
+                    userId,
+                    email: safeEmail,
+                    fullName: safeFullName,
+                    locale: "sk"
+                  })
+                });
+
+                const ensureJson = (await ensure.json().catch(() => null)) as
+                  | { ok: boolean; message?: string; slug?: string }
+                  | null;
+
+                setLoading(false);
+
+                if (!ensure.ok || !ensureJson?.ok) {
+                  setStatus({
+                    type: "error",
+                    text: ensureJson?.message || "Nepodarilo sa dokončiť registráciu."
+                  });
+                  return;
+                }
+
+                if (signup.data.session) {
+                  router.push("/ucet-trenera");
+                  return;
+                }
+
+                setStatus({
+                  type: "success",
+                  text: "Registrácia prebehla úspešne. Skontrolujte e-mail pre potvrdenie účtu."
+                });
               }}
             >
               <div>
@@ -47,6 +158,8 @@ export default function TrainerRegistrationPage() {
                   placeholder={messages.pages.trainerRegistration.fields.fullName}
                   className="h-12 w-full rounded-full border border-emerald-500/80 bg-transparent px-5 text-white placeholder-white/70 outline-none ring-emerald-400 focus:ring-2"
                   autoComplete="name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                 />
               </div>
 
@@ -61,6 +174,8 @@ export default function TrainerRegistrationPage() {
                   placeholder={messages.pages.trainerRegistration.fields.email}
                   className="h-12 w-full rounded-full border border-emerald-500/80 bg-transparent px-5 text-white placeholder-white/70 outline-none ring-emerald-400 focus:ring-2"
                   autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
 
@@ -75,6 +190,8 @@ export default function TrainerRegistrationPage() {
                   placeholder={messages.pages.trainerRegistration.fields.password}
                   className="h-12 w-full rounded-full border border-emerald-500/80 bg-transparent px-5 text-white placeholder-white/70 outline-none ring-emerald-400 focus:ring-2"
                   autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
 
@@ -89,15 +206,30 @@ export default function TrainerRegistrationPage() {
                   placeholder={messages.pages.trainerRegistration.fields.passwordRepeat}
                   className="h-12 w-full rounded-full border border-emerald-500/80 bg-transparent px-5 text-white placeholder-white/70 outline-none ring-emerald-400 focus:ring-2"
                   autoComplete="new-password"
+                  value={passwordRepeat}
+                  onChange={(e) => setPasswordRepeat(e.target.value)}
                 />
               </div>
 
               <button
                 type="submit"
-                className="font-display mt-4 h-12 w-full rounded-full bg-emerald-500 text-center text-2xl tracking-wide text-black hover:bg-emerald-400"
+                disabled={loading}
+                className="font-display mt-4 h-12 w-full rounded-full bg-emerald-500 text-center text-2xl tracking-wide text-black hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {messages.pages.trainerRegistration.submit.toUpperCase()}
               </button>
+
+              {status ? (
+                <div
+                  className={
+                    status.type === "success"
+                      ? "mt-3 text-center text-sm text-emerald-300"
+                      : "mt-3 text-center text-sm text-red-300"
+                  }
+                >
+                  {status.text}
+                </div>
+              ) : null}
 
               <div className="mt-3 text-center text-sm text-white/80">
                 <span>Máte účet? </span>
