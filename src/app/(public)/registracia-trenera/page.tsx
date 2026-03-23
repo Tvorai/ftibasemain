@@ -2,30 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { useI18n } from "@/providers/i18n";
-import { featureFlags, supabaseAnonKey, supabaseUrl } from "@/lib/config";
-
-const supabase = featureFlags.supabaseEnabled
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
-
-function mapSignupErrorToSk(message: string) {
-  const m = message.toLowerCase();
-  if (m.includes("already registered") || m.includes("user already registered")) {
-    return "Tento email je už zaregistrovaný.";
-  }
-  if (m.includes("password") && m.includes("length")) {
-    return "Heslo je príliš krátke.";
-  }
-  return "Registrácia zlyhala. Skúste to prosím znova.";
-}
 
 export default function TrainerRegistrationPage() {
   const { messages } = useI18n();
-  const router = useRouter();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -64,14 +45,6 @@ export default function TrainerRegistrationPage() {
                 if (loading) return;
                 setStatus(null);
 
-                if (!supabase) {
-                  setStatus({
-                    type: "error",
-                    text: "Registrácia momentálne nie je dostupná. Skúste to neskôr."
-                  });
-                  return;
-                }
-
                 const safeFullName = fullName.trim();
                 const safeEmail = email.trim().toLowerCase();
 
@@ -86,41 +59,35 @@ export default function TrainerRegistrationPage() {
                 }
 
                 setLoading(true);
-                const signup = await supabase.auth.signUp({
-                  email: safeEmail,
-                  password,
-                  options: {
-                    data: {
-                      full_name: safeFullName,
-                      role: "trainer",
-                      locale: "sk"
-                    }
-                  }
+                const res = await fetch("/api/trainer-registration", {
+                  method: "POST",
+                  headers: { "content-type": "application/json" },
+                  body: JSON.stringify({
+                    fullName: safeFullName,
+                    email: safeEmail,
+                    password,
+                    passwordRepeat,
+                    locale: "sk"
+                  })
                 });
 
-                if (signup.error) {
-                  setLoading(false);
-                  setStatus({ type: "error", text: mapSignupErrorToSk(signup.error.message) });
-                  return;
-                }
-
-                const userId = signup.data.user?.id;
-                if (!userId) {
-                  setLoading(false);
-                  setStatus({ type: "error", text: "Registrácia zlyhala. Skúste to prosím znova." });
-                  return;
-                }
+                const json = (await res.json().catch(() => null)) as
+                  | { ok: boolean; message?: string }
+                  | null;
 
                 setLoading(false);
 
-                if (signup.data.session) {
-                  router.push("/ucet-trenera");
+                if (!res.ok || !json?.ok) {
+                  setStatus({
+                    type: "error",
+                    text: json?.message || "Registrácia zlyhala. Skúste to prosím znova."
+                  });
                   return;
                 }
 
                 setStatus({
                   type: "success",
-                  text: "Registrácia prebehla úspešne. Skontrolujte e-mail pre potvrdenie účtu."
+                  text: json.message || "Registrácia prebehla úspešne. Skontrolujte e-mail pre potvrdenie účtu."
                 });
               }}
             >

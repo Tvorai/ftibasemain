@@ -5,20 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { featureFlags, supabaseAnonKey, supabaseUrl } from "@/lib/config";
-import { ensureTrainerRowAfterLogin } from "@/lib/trainerBootstrap";
 
-const supabase = featureFlags.supabaseEnabled
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
-
-function mapLoginErrorToSk(message: string) {
-  const m = message.toLowerCase();
-  if (m.includes("invalid login credentials")) return "Nesprávny email alebo heslo.";
-  if (m.includes("email not confirmed") || m.includes("confirm") || m.includes("not confirmed")) {
-    return "Email ešte nie je potvrdený. Skontrolujte si poštu.";
-  }
-  return "Prihlásenie zlyhalo. Skúste to prosím znova.";
-}
+const supabase = featureFlags.supabaseEnabled ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 export default function TrainerLoginPage() {
   const router = useRouter();
@@ -27,7 +15,6 @@ export default function TrainerLoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [errorText, setErrorText] = useState<string | null>(null);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -59,7 +46,6 @@ export default function TrainerLoginPage() {
                 if (loading) return;
 
                 setShowForgotPassword(false);
-                setErrorText(null);
 
                 if (!supabase) return;
                 if (!email.trim() || !password) return;
@@ -69,27 +55,10 @@ export default function TrainerLoginPage() {
                   email: email.trim(),
                   password
                 });
-
-                if (error) {
-                  setLoading(false);
-                  setShowForgotPassword(true);
-                  setErrorText(mapLoginErrorToSk(error.message));
-                  return;
-                }
-
-                const userRes = await supabase.auth.getUser();
-                const userId = userRes.data.user?.id;
-                if (!userId) {
-                  setLoading(false);
-                  setErrorText("Prihlásenie zlyhalo. Skúste to prosím znova.");
-                  return;
-                }
-
-                const ensured = await ensureTrainerRowAfterLogin(supabase, userId);
                 setLoading(false);
 
-                if (!ensured.ok) {
-                  setErrorText(ensured.message);
+                if (error) {
+                  setShowForgotPassword(true);
                   return;
                 }
 
@@ -140,10 +109,6 @@ export default function TrainerLoginPage() {
                 <div className="mt-3 text-center text-sm text-white/80">
                   Zabudli ste heslo?
                 </div>
-              ) : null}
-
-              {errorText ? (
-                <div className="mt-2 text-center text-sm text-red-300">{errorText}</div>
               ) : null}
             </form>
           </div>
