@@ -8,6 +8,13 @@ import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 type TabId = "profil" | "rezervacie" | "sluzby" | "kalendar" | "recenzie" | "vysledky" | "znacky" | "nastavenia";
+type BrandSubTabId = "pridat" | "zoznam";
+
+type Brand = {
+  id: string;
+  logo: string;
+  code: string;
+};
 
 // Helper pre slugifikáciu
 function toSlug(input: string) {
@@ -26,11 +33,17 @@ export default function TrainerDashboardPage() {
   const [saving, setSaving] = useState(false);
   
   // State pre "Môj profil"
-  const [trainerId, setTrainerId] = useState<string | null>(null);
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
   const [images, setImages] = useState<(string | null)[]>([null, null, null, null]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // State pre "Moje značky"
+  const [activeBrandSubTab, setActiveBrandSubTab] = useState<BrandSubTabId>("pridat");
+  const [newBrandLogo, setNewBrandLogo] = useState<string | null>(null);
+  const [newBrandCode, setNewBrandCode] = useState("");
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const brandLogoInputRef = useRef<HTMLInputElement>(null);
 
   const siteUrl = "https://fitbasemain.vercel.app/";
   const profileUrl = `${siteUrl}${toSlug(username)}`;
@@ -51,10 +64,10 @@ export default function TrainerDashboardPage() {
       if (error) throw error;
 
       if (trainer) {
-        setTrainerId(trainer.id);
         setUsername(trainer.slug || "");
         setBio(trainer.bio || "");
-        // Tu by sa v budúcnosti načítavali fotky zo Storage/JSON stĺpca
+        // Načítanie značiek (ak existujú v JSONB stĺpci, inak [] )
+        setBrands(trainer.brands || []);
       }
     } catch (err) {
       console.error("Error loading profile:", err);
@@ -67,171 +80,227 @@ export default function TrainerDashboardPage() {
     loadProfile();
   }, [loadProfile]);
 
-  // Uloženie dát do Supabase
-  const handleSave = async () => {
+  // Uloženie dát profilu
+  const handleSaveProfile = async () => {
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        alert("Nie ste prihlásený.");
-        return;
-      }
+      if (!user) return;
 
       const slug = toSlug(username);
-      if (!slug) {
-        alert("Prosím zadajte platné používateľské meno.");
-        return;
-      }
-
       const { error } = await supabase
         .from("trainers")
-        .update({
-          slug: slug,
-          bio: bio,
-          // images by sa ukladali samostatne alebo do JSONB
-        })
+        .update({ slug, bio })
         .eq("profile_id", user.id);
 
       if (error) throw error;
-      
-      setUsername(slug); // Aktualizujeme UI na vyčistený slug
-      alert("Profil bol úspešne uložený.");
+      setUsername(slug);
+      alert("Profil bol uložený.");
     } catch (err) {
-      console.error("Error saving profile:", err);
-      alert("Nepodarilo sa uložiť profil.");
+      console.error(err);
+      alert("Chyba pri ukladaní.");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleImageUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  // Uloženie novej značky
+  const handleSaveBrand = async () => {
+    if (!newBrandLogo || !newBrandCode.trim()) {
+      alert("Nahrajte logo a zadajte kód.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const newBrand: Brand = {
+        id: Math.random().toString(36).substr(2, 9),
+        logo: newBrandLogo,
+        code: newBrandCode.trim()
+      };
+
+      const updatedBrands = [...brands, newBrand];
+
+      const { error } = await supabase
+        .from("trainers")
+        .update({ brands: updatedBrands })
+        .eq("profile_id", user.id);
+
+      if (error) throw error;
+
+      setBrands(updatedBrands);
+      setNewBrandLogo(null);
+      setNewBrandCode("");
+      alert("Značka pridaná.");
+    } catch (err) {
+      console.error(err);
+      alert("Chyba pri pridávaní značky.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Vymazanie značky
+  const handleDeleteBrand = async (id: string) => {
+    if (!confirm("Naozaj chcete vymazať túto značku?")) return;
+
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const updatedBrands = brands.filter(b => b.id !== id);
+
+      const { error } = await supabase
+        .from("trainers")
+        .update({ brands: updatedBrands })
+        .eq("profile_id", user.id);
+
+      if (error) throw error;
+
+      setBrands(updatedBrands);
+    } catch (err) {
+      console.error(err);
+      alert("Chyba pri mazaní.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const newImages = [...images];
-        newImages[index] = reader.result as string;
-        setImages(newImages);
-      };
+      reader.onloadend = () => setNewBrandLogo(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  const removeImage = (index: number) => {
-    const newImages = [...images];
-    newImages[index] = null;
-    setImages(newImages);
-  };
-
   const renderTabContent = () => {
-    if (loading) return <div className="flex items-center justify-center h-full text-zinc-500">Načítavam dáta...</div>;
+    if (loading) return <div className="flex items-center justify-center h-full text-zinc-500">Načítavam...</div>;
 
     switch (activeTab) {
       case "profil":
         return (
           <div className="flex flex-col gap-6 w-full max-w-[520px] ml-auto">
-            {/* Link sekcia */}
             <div className="flex items-center gap-2 bg-emerald-500 rounded-full px-4 py-2 w-full overflow-hidden">
               <span className="text-black text-xs font-medium truncate flex-1">
                 Link vášho profilu: <span className="font-bold">{profileUrl}</span>
               </span>
-              <button 
-                onClick={() => navigator.clipboard.writeText(profileUrl)}
-                className="bg-black text-white text-[10px] px-3 py-1 rounded-full hover:bg-zinc-800 transition-colors shrink-0"
-              >
-                Kopírovať
-              </button>
+              <button onClick={() => navigator.clipboard.writeText(profileUrl)} className="bg-black text-white text-[10px] px-3 py-1 rounded-full shrink-0">Kopírovať</button>
             </div>
-
-            {/* Form sekcia */}
             <div className="space-y-4">
-              <div className="relative w-full">
-                <input
-                  type="text"
-                  placeholder="Používateľské meno"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-transparent border border-emerald-500 rounded-full px-6 py-3 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
-                />
-              </div>
-              <div className="relative w-full">
-                <textarea
-                  placeholder="Bio"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value.slice(0, 100))}
-                  maxLength={100}
-                  className="w-full bg-transparent border border-emerald-500 rounded-3xl px-6 py-3 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all min-h-[80px] resize-none"
-                />
-                <div className="absolute right-4 bottom-2 text-[10px] text-emerald-500/50">
-                  {bio.length}/100
-                </div>
-              </div>
+              <input type="text" placeholder="Používateľské meno" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full bg-transparent border border-emerald-500 rounded-full px-6 py-3 text-white outline-none" />
+              <textarea placeholder="Bio" value={bio} onChange={(e) => setBio(e.target.value.slice(0, 100))} maxLength={100} className="w-full bg-transparent border border-emerald-500 rounded-3xl px-6 py-3 text-white outline-none min-h-[80px] resize-none" />
             </div>
-
-            {/* Galéria sekcia */}
-            <div className="relative w-full group">
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full aspect-[16/9] border border-emerald-500 rounded-[40px] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-500/5 transition-colors group"
-              >
-                <div className="text-emerald-500 text-5xl font-light mb-1">+</div>
-                <div className="text-zinc-500 text-sm font-medium uppercase tracking-widest text-center px-4">
-                  Nahrajte váš profilové fotky
-                </div>
-              </div>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept="image/*"
-                onChange={(e) => {
-                  const firstEmptyIndex = images.findIndex(img => img === null);
-                  if (firstEmptyIndex !== -1) {
-                    handleImageUpload(firstEmptyIndex, e);
-                  }
-                }}
-              />
+            <div onClick={() => fileInputRef.current?.click()} className="w-full aspect-[16/9] border border-emerald-500 rounded-[40px] flex flex-col items-center justify-center cursor-pointer">
+              <div className="text-emerald-500 text-5xl font-light">+</div>
+              <div className="text-zinc-500 text-sm uppercase tracking-widest">Nahrajte váš profilové fotky</div>
             </div>
-
-            {/* Náhľady fotiek */}
+            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" />
             <div className="flex justify-center gap-3 w-full">
               {images.map((img, idx) => (
-                <div key={idx} className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border border-emerald-500 overflow-hidden shrink-0">
-                  {img ? (
-                    <>
-                      <Image src={img} alt={`Profile ${idx}`} fill className="object-cover" />
-                      <button 
-                        onClick={() => removeImage(idx)}
-                        className="absolute top-1 right-1 bg-black/70 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px] hover:bg-black transition-colors"
-                      >
-                        ✕
-                      </button>
-                    </>
-                  ) : (
-                    <div className="w-full h-full bg-transparent" />
-                  )}
-                </div>
+                <div key={idx} className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border border-emerald-500 overflow-hidden shrink-0" />
               ))}
             </div>
+            <button onClick={handleSaveProfile} disabled={saving} className="self-end bg-emerald-500 text-black font-display text-xl px-10 py-2 rounded-full uppercase disabled:opacity-50">
+              {saving ? "Ukladám..." : "Uložiť"}
+            </button>
+          </div>
+        );
 
-            {/* Uložiť tlačidlo */}
-            <div className="mt-4 self-end">
+      case "znacky":
+        return (
+          <div className="flex flex-col gap-8 w-full max-w-[520px] ml-auto">
+            {/* Sub-tabs */}
+            <div className="flex justify-end gap-8 mb-4">
               <button 
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-emerald-500 hover:bg-emerald-400 text-black font-display text-xl px-10 py-2 rounded-full tracking-wider transition-colors uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setActiveBrandSubTab("pridat")}
+                className={`text-lg transition-colors ${activeBrandSubTab === "pridat" ? "text-emerald-500" : "text-white"}`}
               >
-                {saving ? "Ukladám..." : "Uložiť"}
+                + Pridať značku
+              </button>
+              <button 
+                onClick={() => setActiveBrandSubTab("zoznam")}
+                className={`text-lg transition-colors ${activeBrandSubTab === "zoznam" ? "text-emerald-500" : "text-white"}`}
+              >
+                Moje značky
               </button>
             </div>
+
+            {activeBrandSubTab === "pridat" ? (
+              <div className="flex flex-col gap-6 items-center">
+                <div className="w-full flex flex-col items-center gap-2">
+                  <span className="text-white font-display text-xl uppercase tracking-wider">Nahrajte logo</span>
+                  <div 
+                    onClick={() => brandLogoInputRef.current?.click()}
+                    className="w-full aspect-[3/1] border border-emerald-500 rounded-[30px] flex items-center justify-center cursor-pointer overflow-hidden relative"
+                  >
+                    {newBrandLogo ? (
+                      <Image src={newBrandLogo} alt="Logo" fill className="object-contain p-4" />
+                    ) : (
+                      <span className="text-emerald-500 text-6xl font-light">+</span>
+                    )}
+                  </div>
+                  <input type="file" ref={brandLogoInputRef} className="hidden" accept="image/*" onChange={handleLogoUpload} />
+                </div>
+
+                <div className="w-full flex flex-col items-center gap-2">
+                  <span className="text-white font-display text-xl uppercase tracking-wider">Váš promo kód:</span>
+                  <input 
+                    type="text" 
+                    value={newBrandCode} 
+                    onChange={(e) => setNewBrandCode(e.target.value)}
+                    className="w-1/2 bg-transparent border border-emerald-500 rounded-xl px-4 py-2 text-white text-center outline-none" 
+                  />
+                </div>
+
+                <button 
+                  onClick={handleSaveBrand}
+                  disabled={saving}
+                  className="mt-8 self-end bg-emerald-500 text-black font-display text-xl px-12 py-2 rounded-full uppercase tracking-widest disabled:opacity-50"
+                >
+                  {saving ? "Ukladám..." : "ULOŽIŤ"}
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-8">
+                {brands.length === 0 ? (
+                  <div className="text-zinc-500 italic text-center py-10">Zatiaľ nemáte žiadne značky.</div>
+                ) : (
+                  brands.map((brand) => (
+                    <div key={brand.id} className="flex items-center gap-4">
+                      <div className="flex-1 flex flex-col items-center gap-1">
+                        <span className="text-white font-display text-xs uppercase tracking-tighter">Vaše logo</span>
+                        <div className="w-full aspect-[2/1] border border-emerald-500 rounded-2xl overflow-hidden relative">
+                          <Image src={brand.logo} alt="Logo" fill className="object-contain p-2" />
+                        </div>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center gap-1">
+                        <span className="text-white font-display text-xs uppercase tracking-tighter">Váš promo kód:</span>
+                        <div className="w-full bg-transparent border border-emerald-500 rounded-xl py-2 text-white text-center font-bold">
+                          {brand.code}
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => handleDeleteBrand(brand.id)}
+                        className="bg-emerald-500 text-black font-display text-sm px-6 py-2 rounded-full uppercase tracking-widest hover:bg-emerald-400 transition-colors"
+                      >
+                        Vymazať
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         );
+
       default:
-        return (
-          <div className="flex items-center justify-center h-full text-zinc-500 italic">
-            Obsah sa pripravuje...
-          </div>
-        );
+        return <div className="flex items-center justify-center h-full text-zinc-500 italic">Obsah sa pripravuje...</div>;
     }
   };
 
@@ -248,44 +317,20 @@ export default function TrainerDashboardPage() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col md:flex-row">
-      {/* Sidebar */}
       <aside className="w-full md:w-[280px] p-6 md:p-10 flex flex-col gap-16 shrink-0">
-        <div className="mb-4">
-          <Image
-            src="/Fitbase logo.png"
-            alt="Fitbase"
-            width={150}
-            height={35}
-            priority
-            className="h-auto w-[120px] md:w-[150px]"
-          />
-        </div>
-        
+        <Image src="/Fitbase logo.png" alt="Fitbase" width={150} height={35} priority className="h-auto w-[120px] md:w-[150px]" />
         <nav className="flex flex-col gap-4">
           {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`text-left text-2xl font-display tracking-wide transition-colors ${
-                activeTab === tab.id ? "text-emerald-500" : "text-white hover:text-emerald-500/70"
-              }`}
-            >
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`text-left text-2xl font-display tracking-wide transition-colors ${activeTab === tab.id ? "text-emerald-500" : "text-white hover:text-emerald-500/70"}`}>
               {tab.label}
             </button>
           ))}
         </nav>
       </aside>
-
-      {/* Main Content */}
       <main className="flex-1 p-6 md:p-10 flex flex-col">
-        <div className="md:mt-[4px]">
-          {renderTabContent()}
-        </div>
+        <div className="md:mt-[4px]">{renderTabContent()}</div>
       </main>
-
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=League+Gothic&display=swap');
-      `}</style>
+      <style jsx global>{`@import url('https://fonts.googleapis.com/css2?family=League+Gothic&display=swap');`}</style>
     </div>
   );
 }
