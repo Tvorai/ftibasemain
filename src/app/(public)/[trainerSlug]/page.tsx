@@ -59,22 +59,49 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
   const results: string[] = []; // Tu budú výsledky z DB (zatiaľ prázdne pre test skrytia)
 
   return (
-    <div className="min-h-screen bg-black text-white pb-20 max-w-md mx-auto">
+    <div className="min-h-screen bg-black text-white pb-20 max-w-md mx-auto overflow-x-hidden relative">
       {/* 1. BANNER / SLIDER - Zobrazí sa len ak sú fotky */}
       {images.length > 0 ? (
-        <div className="relative w-full aspect-[3/4] overflow-hidden group">
-          <Image 
-            src={images[activeImageIndex]} 
-            alt="Trainer banner" 
-            fill 
-            className="object-cover transition-opacity duration-500"
-          />
+        <div className="relative w-full aspect-[3/4] overflow-hidden group touch-none">
+          {images.map((img, idx) => (
+            <div 
+              key={idx}
+              className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${activeImageIndex === idx ? "opacity-100 z-10" : "opacity-0 z-0"}`}
+            >
+              <Image 
+                src={img} 
+                alt={`Trainer banner ${idx + 1}`} 
+                fill 
+                className="object-cover"
+                priority={idx === 0}
+              />
+            </div>
+          ))}
+          
+          {/* Klikateľné zóny pre prepínanie (vľavo/vpravo) */}
           {images.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+            <>
+              <div 
+                className="absolute inset-y-0 left-0 w-1/2 z-20 cursor-pointer" 
+                onClick={() => setActiveImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
+              />
+              <div 
+                className="absolute inset-y-0 right-0 w-1/2 z-20 cursor-pointer" 
+                onClick={() => setActiveImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
+              />
+            </>
+          )}
+
+          {/* Slider indikátory */}
+          {images.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-30">
               {images.map((_, idx) => (
                 <button 
                   key={idx}
-                  onClick={() => setActiveImageIndex(idx)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImageIndex(idx);
+                  }}
                   className={`w-2.5 h-2.5 rounded-full transition-all ${activeImageIndex === idx ? "bg-white scale-110" : "bg-white/40"}`}
                 />
               ))}
