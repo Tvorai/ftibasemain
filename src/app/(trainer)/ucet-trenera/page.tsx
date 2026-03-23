@@ -54,23 +54,23 @@ export default function TrainerDashboardPage() {
     switch (activeTab) {
       case "profil":
         return (
-          <div className="flex flex-col gap-6 max-w-2xl ml-auto pr-4 md:pr-10">
+          <div className="flex flex-col gap-6 w-full max-w-[520px] ml-auto">
             {/* Link sekcia */}
-            <div className="flex items-center gap-2 bg-emerald-500 rounded-full px-4 py-2 self-end">
-              <span className="text-black text-sm font-medium whitespace-nowrap">
+            <div className="flex items-center gap-2 bg-emerald-500 rounded-full px-4 py-2 w-full overflow-hidden">
+              <span className="text-black text-xs font-medium truncate flex-1">
                 Link vášho profilu: <span className="font-bold">{profileUrl}</span>
               </span>
               <button 
                 onClick={() => navigator.clipboard.writeText(profileUrl)}
-                className="bg-black text-white text-xs px-4 py-1 rounded-full hover:bg-zinc-800 transition-colors"
+                className="bg-black text-white text-[10px] px-3 py-1 rounded-full hover:bg-zinc-800 transition-colors shrink-0"
               >
                 Kopírovať
               </button>
             </div>
 
             {/* Form sekcia */}
-            <div className="space-y-4 mt-4">
-              <div className="relative">
+            <div className="space-y-4">
+              <div className="relative w-full">
                 <input
                   type="text"
                   placeholder="Používateľské meno"
@@ -79,13 +79,13 @@ export default function TrainerDashboardPage() {
                   className="w-full bg-transparent border border-emerald-500 rounded-full px-6 py-3 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
                 />
               </div>
-              <div className="relative">
+              <div className="relative w-full">
                 <textarea
                   placeholder="Bio"
                   value={bio}
                   onChange={(e) => setBio(e.target.value.slice(0, 100))}
                   maxLength={100}
-                  className="w-full bg-transparent border border-emerald-500 rounded-3xl px-6 py-3 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all min-h-[60px] resize-none"
+                  className="w-full bg-transparent border border-emerald-500 rounded-3xl px-6 py-3 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all min-h-[80px] resize-none"
                 />
                 <div className="absolute right-4 bottom-2 text-[10px] text-emerald-500/50">
                   {bio.length}/100
@@ -94,13 +94,13 @@ export default function TrainerDashboardPage() {
             </div>
 
             {/* Galéria sekcia */}
-            <div className="relative group">
+            <div className="relative w-full group">
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full aspect-[2/1] border border-emerald-500 rounded-[40px] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-500/5 transition-colors group"
+                className="w-full aspect-[16/9] border border-emerald-500 rounded-[40px] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-500/5 transition-colors group"
               >
-                <div className="text-emerald-500 text-6xl font-light mb-2">+</div>
-                <div className="text-zinc-500 text-xl font-medium uppercase tracking-tight">
+                <div className="text-emerald-500 text-5xl font-light mb-1">+</div>
+                <div className="text-zinc-500 text-sm font-medium uppercase tracking-widest text-center px-4">
                   Nahrajte váš profilové fotky
                 </div>
               </div>
@@ -119,15 +119,15 @@ export default function TrainerDashboardPage() {
             </div>
 
             {/* Náhľady fotiek */}
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center gap-3 w-full">
               {images.map((img, idx) => (
-                <div key={idx} className="relative w-20 h-20 md:w-24 md:h-24 rounded-full border border-emerald-500 overflow-hidden group">
+                <div key={idx} className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border border-emerald-500 overflow-hidden shrink-0">
                   {img ? (
                     <>
                       <Image src={img} alt={`Profile ${idx}`} fill className="object-cover" />
                       <button 
                         onClick={() => removeImage(idx)}
-                        className="absolute top-1 right-1 bg-black/50 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-black transition-colors"
+                        className="absolute top-1 right-1 bg-black/70 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px] hover:bg-black transition-colors"
                       >
                         ✕
                       </button>
@@ -140,8 +140,8 @@ export default function TrainerDashboardPage() {
             </div>
 
             {/* Uložiť tlačidlo */}
-            <div className="mt-8 self-end">
-              <button className="bg-emerald-500 hover:bg-emerald-400 text-black font-display text-2xl px-12 py-2 rounded-full tracking-wider transition-colors uppercase">
+            <div className="mt-4 self-end">
+              <button className="bg-emerald-500 hover:bg-emerald-400 text-black font-display text-xl px-10 py-2 rounded-full tracking-wider transition-colors uppercase">
                 Uložiť
               </button>
             </div>
