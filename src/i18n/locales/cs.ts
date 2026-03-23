@@ -29,6 +29,27 @@ const cs: Messages = {
       },
       submit: "Registrovat"
     },
+    userRegistration: {
+      title: "Registrace",
+      subtitle: "Vytvořte si účet a začněte trénovat",
+      fields: {
+        fullName: "Jméno a příjmení",
+        email: "Email",
+        password: "Heslo",
+        passwordRepeat: "Zopakovat heslo"
+      },
+      submit: "Registrovat"
+    },
+    userLogin: {
+      title: "Přihlášení",
+      subtitle: "Přihlaste se do svého účtu",
+      fields: {
+        email: "Email",
+        password: "Heslo"
+      },
+      submit: "Přihlásit se",
+      forgotPasswordHint: "Zapomněli jste heslo?"
+    },
     userDashboard: {
       title: "Uživatelský dashboard",
       description: "Přehled tréninků, rezervací a plateb."

@@ -29,6 +29,27 @@ const sk: Messages = {
       },
       submit: "Registrovať"
     },
+    userRegistration: {
+      title: "Registrácia",
+      subtitle: "Vytvorte si účet a začnite trénovať",
+      fields: {
+        fullName: "Meno a priezvisko",
+        email: "Email",
+        password: "Heslo",
+        passwordRepeat: "Opakovať heslo"
+      },
+      submit: "Registrovať"
+    },
+    userLogin: {
+      title: "Prihlásenie",
+      subtitle: "Prihláste sa do svojho účtu",
+      fields: {
+        email: "Email",
+        password: "Heslo"
+      },
+      submit: "Prihlásiť sa",
+      forgotPasswordHint: "Zabudli ste heslo?"
+    },
     userDashboard: {
       title: "Používateľský dashboard",
       description: "Prehľad tréningov, rezervácií a platieb."

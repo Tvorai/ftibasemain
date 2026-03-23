@@ -29,6 +29,27 @@ export type Messages = {
       };
       submit: string;
     };
+    userRegistration: {
+      title: string;
+      subtitle: string;
+      fields: {
+        fullName: string;
+        email: string;
+        password: string;
+        passwordRepeat: string;
+      };
+      submit: string;
+    };
+    userLogin: {
+      title: string;
+      subtitle: string;
+      fields: {
+        email: string;
+        password: string;
+      };
+      submit: string;
+      forgotPasswordHint: string;
+    };
     userDashboard: {
       title: string;
       description: string;

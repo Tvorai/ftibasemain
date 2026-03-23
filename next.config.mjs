@@ -3,6 +3,22 @@ const config = {
   async rewrites() {
     return [
       {
+        source: "/registrácia",
+        destination: "/registracia"
+      },
+      {
+        source: "/registr%C3%A1cia",
+        destination: "/registracia"
+      },
+      {
+        source: "/prihlásenie",
+        destination: "/prihlasenie"
+      },
+      {
+        source: "/prihl%C3%A1senie",
+        destination: "/prihlasenie"
+      },
+      {
         source: "/registrácia-trénera",
         destination: "/registracia-trenera"
       },
