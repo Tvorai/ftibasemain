@@ -51,9 +51,9 @@ export async function getAvailableSlots(
   lookaheadDate.setDate(now.getDate() + lookaheadDays);
 
   // 1. Načítanie aktívnych pravidiel dostupnosti pre trénera
-  const { data: availabilityRules, error: rulesError } = await supabase
+  const { data: rawAvailabilityRules, error: rulesError } = await supabase
     .from("availability_slots")
-    .select<any, Slot>("*")
+    .select("*")
     .eq("trainer_id", trainerId)
     .eq("is_active", true);
 
@@ -61,15 +61,13 @@ export async function getAvailableSlots(
     console.error("Chyba pri načítaní pravidiel dostupnosti:", rulesError);
     return null;
   }
-  if (!availabilityRules) {
-    return []; // Žiadne pravidlá, žiadne termíny
-  }
+  const availabilityRules = (rawAvailabilityRules || []) as Slot[];
 
   // 2. Načítanie existujúcich aktívnych rezervácií v danom časovom rozsahu
   const activeBookingStatuses: BookingStatus[] = ["confirmed", "pending", "pending_payment"];
-  const { data: bookings, error: bookingsError } = await supabase
+  const { data: rawBookings, error: bookingsError } = await supabase
     .from("bookings")
-    .select<"*, Booking">("starts_at, ends_at")
+    .select("starts_at, ends_at")
     .eq("trainer_id", trainerId)
     .in("booking_status", activeBookingStatuses)
     .gte("starts_at", now.toISOString())
@@ -80,7 +78,8 @@ export async function getAvailableSlots(
     return null;
   }
 
-  const occupiedRanges = (bookings || []).map(b => ({
+  const bookings = (rawBookings || []) as { starts_at: string; ends_at: string }[];
+  const occupiedRanges = bookings.map(b => ({
     start: new Date(b.starts_at),
     end: new Date(b.ends_at),
   }));
