@@ -52,7 +52,7 @@ export async function getAvailableSlots(
   // 1. Načítanie aktívnych pravidiel dostupnosti pre trénera
   const { data: availabilityRules, error: rulesError } = await supabase
     .from("availability_slots")
-    .select<"*, Slot">("*")
+    .select<any, Slot>("*")
     .eq("trainer_id", trainerId)
     .eq("is_active", true);
 
