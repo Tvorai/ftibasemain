@@ -62,16 +62,16 @@ const AvailableSlots: React.FC<AvailableSlotsProps> = ({ trainerId }) => {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {slots.map((slot) => (
           <SlotCard
-            key={slot.id + new Date(slot.start_time).toISOString()} // Use slot ID and actual start time for unique key
+            key={slot.source_availability_slot_id + slot.starts_at} // Kombinácia pre unikátny kľúč
             slot={slot}
-            isSelected={selectedSlot?.id === slot.id && selectedSlot?.start_time === slot.start_time}
+            isSelected={selectedSlot?.starts_at === slot.starts_at}
             onSelect={handleSlotSelect}
           />
         ))}
       </div>
       {selectedSlot && (
         <div className="mt-4 p-4 bg-green-100 border border-green-300 rounded-lg">
-          Vybraný slot: {new Date(selectedSlot.start_time).toLocaleString('sk-SK', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} - {new Date(selectedSlot.end_time).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })}
+          Vybraný slot: {new Date(selectedSlot.starts_at).toLocaleString('sk-SK', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} - {new Date(selectedSlot.ends_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })}
         </div>
       )}
     </div>

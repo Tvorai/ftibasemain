@@ -13,8 +13,8 @@ const SlotCard: React.FC<SlotCardProps> = ({
   isSelected,
   onSelect,
 }) => {
-  const startTime = new Date(slot.start_time).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
-  const endTime = new Date(slot.end_time).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
+  const startTime = new Date(slot.starts_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
+  const endTime = new Date(slot.ends_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <button
@@ -25,7 +25,7 @@ const SlotCard: React.FC<SlotCardProps> = ({
       `}
     >
       <p className="font-medium">{startTime} - {endTime}</p>
-      <p className="text-sm opacity-80">{new Date(slot.start_time).toLocaleDateString('sk-SK', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+      <p className="text-sm opacity-80">{new Date(slot.starts_at).toLocaleDateString('sk-SK', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
     </button>
   );
 };
