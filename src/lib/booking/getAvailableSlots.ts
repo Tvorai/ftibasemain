@@ -65,7 +65,7 @@ export async function getAvailableSlots(
 
   // 2. Načítanie existujúcich aktívnych rezervácií v danom časovom rozsahu
   const activeBookingStatuses: BookingStatus[] = ["confirmed", "pending", "pending_payment"];
-  const { data: rawBookings, error: bookingsError } = await supabase
+  const { data: bookings, error: bookingsError } = await supabase
     .from("bookings")
     .select("starts_at, ends_at")
     .eq("trainer_id", trainerId)
@@ -78,8 +78,8 @@ export async function getAvailableSlots(
     return null;
   }
 
-  const bookings = (rawBookings || []) as { starts_at: string; ends_at: string }[];
-  const occupiedRanges = bookings.map(b => ({
+  const typedBookings = (bookings || []) as { starts_at: string; ends_at: string }[];
+  const occupiedRanges = typedBookings.map(b => ({
     start: new Date(b.starts_at),
     end: new Date(b.ends_at),
   }));
