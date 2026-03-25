@@ -1,6 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 import { Slot, Booking } from "@/lib/types";
 
+// Definícia typu pre dostupný slot s konkrétnymi dátumami a časmi
+export type AvailableSlot = Slot & {
+  start_time: string; // Plný ISO string dátumu a času
+  end_time: string;   // Plný ISO string dátumu a času
+};
+
+
 // Pomocná funkcia pre získanie najbližšieho výskytu dňa v týždni s časom
 function getNextOccurrence(dayOfWeek: number, timeString: string, currentRefDate: Date): Date {
   const now = new Date(currentRefDate);
@@ -34,7 +41,7 @@ function doTimesOverlap(
   return slotStart < bookingEnd && bookingStart < slotEnd;
 }
 
-export async function getAvailableSlots(trainerId: string): Promise<Slot[] | null> {
+export async function getAvailableSlots(trainerId: string): Promise<AvailableSlot[] | null> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -84,7 +91,7 @@ export async function getAvailableSlots(trainerId: string): Promise<Slot[] | nul
     end: new Date(b.ends_at),
   }));
 
-  const availableFutureSlots: Slot[] = [];
+  const availableFutureSlots: AvailableSlot[] = [];
   const now = new Date();
   const lookAheadDays = 14; // Pozeráme sa dopredu na 14 dní
 

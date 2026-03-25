@@ -3,8 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import SlotCard from './SlotCard';
-import { getAvailableSlots } from '@/lib/booking/getAvailableSlots';
-import { AvailableSlot } from '@/lib/types';
+import { getAvailableSlots, AvailableSlot } from '@/lib/booking/getAvailableSlots';
 
 interface AvailableSlotsProps {
   trainerId: string;
