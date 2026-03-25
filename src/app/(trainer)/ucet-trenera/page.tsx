@@ -434,10 +434,10 @@ export default function TrainerDashboardPage() {
                   aria-checked={servicesVisibility[item.key]}
                   onClick={() => toggleService(item.key)}
                   disabled={saving}
-                  className={`relative w-24 h-12 rounded-full transition-colors ${servicesVisibility[item.key] ? "bg-emerald-500" : "bg-zinc-700"} disabled:opacity-60 disabled:cursor-not-allowed`}
+                  className={`relative w-20 h-10 rounded-full transition-colors ${servicesVisibility[item.key] ? "bg-emerald-500" : "bg-zinc-700"} disabled:opacity-60 disabled:cursor-not-allowed`}
                 >
                   <span
-                    className={`absolute top-1 left-1 w-10 h-10 bg-white rounded-full transition-transform ${servicesVisibility[item.key] ? "translate-x-12" : "translate-x-0"}`}
+                    className={`absolute top-1 left-1 w-8 h-8 bg-white rounded-full transition-transform ${servicesVisibility[item.key] ? "translate-x-10" : "translate-x-0"}`}
                   />
                 </button>
               </div>
