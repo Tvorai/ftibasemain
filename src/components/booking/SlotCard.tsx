@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AvailableSlot } from '@/lib/types';
+import { AvailableSlot } from '@/lib/booking/getAvailableSlots';
 
 interface SlotCardProps {
   slot: AvailableSlot;
