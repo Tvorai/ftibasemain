@@ -4,12 +4,14 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
-import TrainerCalendar from "@/components/booking/TrainerCalendar";
+import TrainerCalendar from "@/components/trainer/TrainerCalendar";
+import CalendarSettings from "@/components/trainer/CalendarSettings";
 import TrainerBookings from "@/components/booking/TrainerBookings";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 type TabId = "profil" | "rezervacie" | "sluzby" | "kalendar" | "recenzie" | "vysledky" | "znacky" | "nastavenia";
+type CalendarTabId = "moj_kalendar" | "nastavenia_kalendara";
 type BrandSubTabId = "pridat" | "zoznam";
 
 type Brand = {
@@ -41,6 +43,7 @@ function toSlug(input: string) {
 
 export default function TrainerDashboardPage() {
   const [activeTab, setActiveTab] = useState<TabId>("profil");
+  const [activeCalendarTab, setActiveCalendarTab] = useState<CalendarTabId>("moj_kalendar");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const servicesPersistLockRef = useRef(false);
@@ -461,8 +464,36 @@ export default function TrainerDashboardPage() {
       case "kalendar":
         return (
           <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
-            <h2 className="text-4xl font-display uppercase tracking-wider mb-4">Môj kalendár</h2>
-            <TrainerCalendar trainerId={trainerId} />
+            <h2 className="text-4xl font-display uppercase tracking-wider mb-4 text-emerald-400">Kalendár</h2>
+            
+            <div className="flex gap-4 mb-6 border-b border-zinc-900 pb-4">
+              <button
+                onClick={() => setActiveCalendarTab("moj_kalendar")}
+                className={`px-6 py-2 rounded-full font-bold uppercase tracking-widest text-xs transition-all ${
+                  activeCalendarTab === "moj_kalendar" 
+                    ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20" 
+                    : "text-zinc-500 hover:text-white"
+                }`}
+              >
+                Môj kalendár
+              </button>
+              <button
+                onClick={() => setActiveCalendarTab("nastavenia_kalendara")}
+                className={`px-6 py-2 rounded-full font-bold uppercase tracking-widest text-xs transition-all ${
+                  activeCalendarTab === "nastavenia_kalendara" 
+                    ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20" 
+                    : "text-zinc-500 hover:text-white"
+                }`}
+              >
+                Nastavenia kalendára
+              </button>
+            </div>
+
+            {activeCalendarTab === "moj_kalendar" ? (
+              <TrainerCalendar trainerId={trainerId} />
+            ) : (
+              <CalendarSettings trainerId={trainerId} />
+            )}
           </div>
         );
 
