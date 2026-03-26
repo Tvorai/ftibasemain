@@ -35,7 +35,15 @@ const NAME_TO_DAY_ID: Record<string, number> = {
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 5); // 05:00 - 21:00
 
 export default function CalendarSettings({ trainerId }: CalendarSettingsProps) {
-  const [availability, setAvailability] = useState<Record<number, { isDayActive: boolean; activeHours: number[] }>>({});
+  // Inicializujeme stav s prázdnymi dňami, aby sme predišli undefined chybám pri prvom renderi
+  const [availability, setAvailability] = useState<Record<number, { isDayActive: boolean; activeHours: number[] }>>(() => {
+    const initial: Record<number, { isDayActive: boolean; activeHours: number[] }> = {};
+    DAYS.forEach(day => {
+      initial[day.id] = { isDayActive: false, activeHours: [] };
+    });
+    return initial;
+  });
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -52,9 +60,10 @@ export default function CalendarSettings({ trainerId }: CalendarSettingsProps) {
 
         if (error) throw error;
 
-        const initialAvailability: Record<number, { isDayActive: boolean; activeHours: number[] }> = {};
+        // Reset na čistý stav pred naplnením dátami z DB
+        const currentAvailability: Record<number, { isDayActive: boolean; activeHours: number[] }> = {};
         DAYS.forEach(day => {
-          initialAvailability[day.id] = { isDayActive: false, activeHours: [] };
+          currentAvailability[day.id] = { isDayActive: false, activeHours: [] };
         });
 
         data?.forEach(slot => {
@@ -64,17 +73,17 @@ export default function CalendarSettings({ trainerId }: CalendarSettingsProps) {
           const startH = parseInt(slot.start_time.split(":")[0]);
           const endH = parseInt(slot.end_time.split(":")[0]);
           
-          initialAvailability[dayId].isDayActive = true;
+          currentAvailability[dayId].isDayActive = true;
           for (let h = startH; h < endH; h++) {
             if (HOURS.includes(h)) {
-              if (!initialAvailability[dayId].activeHours.includes(h)) {
-                initialAvailability[dayId].activeHours.push(h);
+              if (!currentAvailability[dayId].activeHours.includes(h)) {
+                currentAvailability[dayId].activeHours.push(h);
               }
             }
           }
         });
 
-        setAvailability(initialAvailability);
+        setAvailability(currentAvailability);
       } catch (err) {
         console.error("Chyba pri načítaní dostupnosti:", err);
       } finally {
@@ -85,28 +94,31 @@ export default function CalendarSettings({ trainerId }: CalendarSettingsProps) {
   }, [trainerId]);
 
   const toggleDay = (dayId: number) => {
-    setAvailability(prev => ({
-      ...prev,
-      [dayId]: {
-        ...prev[dayId],
-        isDayActive: !prev[dayId].isDayActive,
-        activeHours: !prev[dayId].isDayActive ? [...HOURS] : [] // Defaultly all hours active if turning ON
-      }
-    }));
+    setAvailability(prev => {
+      const currentDay = prev[dayId] || { isDayActive: false, activeHours: [] };
+      return {
+        ...prev,
+        [dayId]: {
+          isDayActive: !currentDay.isDayActive,
+          activeHours: !currentDay.isDayActive ? [...HOURS] : []
+        }
+      };
+    });
   };
 
   const toggleHour = (dayId: number, hour: number) => {
-    if (!availability[dayId].isDayActive) return;
-
     setAvailability(prev => {
-      const currentHours = prev[dayId].activeHours;
+      const currentDay = prev[dayId] || { isDayActive: false, activeHours: [] };
+      if (!currentDay.isDayActive) return prev;
+
+      const currentHours = currentDay.activeHours;
       const newHours = currentHours.includes(hour)
         ? currentHours.filter(h => h !== hour)
         : [...currentHours, hour].sort((a, b) => a - b);
       
       return {
         ...prev,
-        [dayId]: { ...prev[dayId], activeHours: newHours }
+        [dayId]: { ...currentDay, activeHours: newHours }
       };
     });
   };
