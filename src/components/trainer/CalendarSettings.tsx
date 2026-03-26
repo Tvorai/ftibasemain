@@ -4,7 +4,6 @@ import React, { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
 import { saveAvailabilityAction } from "@/lib/availability/saveAvailability";
-import { DayName } from "@/lib/types";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
