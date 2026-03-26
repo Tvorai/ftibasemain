@@ -35,14 +35,19 @@ export async function getAvailableSlots(
   lookaheadDays: number = 14,
   slotDurationMinutes: number = 60
 ): Promise<AvailableSlot[] | null> {
+  console.log(`[getAvailableSlots] Start pre trainerId: ${trainerId}`);
+  
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    console.error("Chyba: Supabase URL alebo Service Role Key nie je nakonfigurovaný.");
-    return null;
+  if (!supabaseUrl) {
+    throw new Error("SUPABASE_URL missing");
+  }
+  if (!serviceRoleKey) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY missing");
   }
 
+  console.log(`[getAvailableSlots] Inicializácia Supabase klienta...`);
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -51,19 +56,23 @@ export async function getAvailableSlots(
   const lookaheadDate = new Date(now);
   lookaheadDate.setDate(now.getDate() + lookaheadDays);
 
+  console.log(`[getAvailableSlots] Načítanie availability_slots pre trainerId: ${trainerId}...`);
   // 1. Načítanie aktívnych pravidiel dostupnosti pre trénera
   const { data: rawAvailabilityRules, error: rulesError } = await supabase
     .from("availability_slots")
-    .select("*")
+    .select("id, trainer_id, day_of_week, start_time, end_time, is_active")
     .eq("trainer_id", trainerId)
     .eq("is_active", true);
 
   if (rulesError) {
-    console.error("Chyba pri načítaní pravidiel dostupnosti:", rulesError);
-    return null;
+    console.error("[getAvailableSlots] Chyba pri dopyte na availability_slots:", rulesError);
+    throw new Error(`DB Error (availability_slots): ${rulesError.message}`);
   }
+  
   const availabilityRules = (rawAvailabilityRules || []) as Slot[];
+  console.log(`[getAvailableSlots] Počet nájdených pravidiel: ${availabilityRules.length}`);
 
+  console.log(`[getAvailableSlots] Načítanie bookings...`);
   // 2. Načítanie existujúcich aktívnych rezervácií v danom časovom rozsahu
   const activeBookingStatuses: BookingStatus[] = ["confirmed", "pending", "pending_payment"];
   const { data: bookings, error: bookingsError } = await supabase
@@ -75,18 +84,20 @@ export async function getAvailableSlots(
     .lte("starts_at", lookaheadDate.toISOString());
 
   if (bookingsError) {
-    console.error("Chyba pri načítaní rezervácií:", bookingsError);
-    return null;
+    console.error("[getAvailableSlots] Chyba pri dopyte na bookings:", bookingsError);
+    throw new Error(`DB Error (bookings): ${bookingsError.message}`);
   }
 
   const typedBookings = (bookings || []) as { starts_at: string; ends_at: string }[];
+  console.log(`[getAvailableSlots] Počet nájdených rezervácií: ${typedBookings.length}`);
+
   const occupiedRanges = typedBookings.map(b => ({
     start: new Date(b.starts_at),
     end: new Date(b.ends_at),
   }));
 
   // --- Generovanie a filtrovanie termínov ---
-
+  console.log(`[getAvailableSlots] Generovanie termínov...`);
   const finalAvailableSlots: AvailableSlot[] = [];
   const slotDurationMs = slotDurationMinutes * 60 * 1000;
 
@@ -143,6 +154,7 @@ export async function getAvailableSlots(
 
   // Zoradenie finálnych termínov
   finalAvailableSlots.sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+  console.log(`[getAvailableSlots] Hotovo. Vraciam ${finalAvailableSlots.length} slotov.`);
 
   return finalAvailableSlots;
 }
