@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { createClient } from "@supabase/supabase-js";
 import { featureFlags, supabaseAnonKey, supabaseUrl } from "@/lib/config";
+import ClientBookings from "@/components/booking/ClientBookings";
 
 const supabase = featureFlags.supabaseEnabled ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
@@ -15,6 +16,7 @@ type TabId = "profil" | "sluzby" | "historia";
 export default function UserAccountPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>("profil");
+  const [userId, setUserId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const vantaElRef = useRef<HTMLDivElement | null>(null);
@@ -64,6 +66,7 @@ export default function UserAccountPage() {
         return;
       }
 
+      setUserId(user.id);
       setEmail(user.email || "");
 
       const prof = await supabase
@@ -155,7 +158,7 @@ export default function UserAccountPage() {
       case "sluzby":
         return (
           <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
-            <div className="text-zinc-500 italic text-center py-10 text-xl">Zatiaľ nemáte žiadne zakúpené služby.</div>
+            <ClientBookings userId={userId} />
           </div>
         );
 

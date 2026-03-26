@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
+import TrainerCalendar from "@/components/booking/TrainerCalendar";
+import TrainerBookings from "@/components/booking/TrainerBookings";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -44,6 +46,7 @@ export default function TrainerDashboardPage() {
   const servicesPersistLockRef = useRef(false);
   
   // State pre "Môj profil"
+  const [trainerId, setTrainerId] = useState<string>("");
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [city, setCity] = useState("");
@@ -78,6 +81,7 @@ export default function TrainerDashboardPage() {
       if (error) throw error;
 
       if (trainer) {
+        setTrainerId(trainer.id);
         setUsername(trainer.slug || "");
         setFullName((trainer as any).profiles?.full_name || "");
         setCity(trainer.city || "");
@@ -451,6 +455,22 @@ export default function TrainerDashboardPage() {
                 {saving ? "Ukladám..." : "ULOŽIŤ"}
               </button>
             </div>
+          </div>
+        );
+
+      case "kalendar":
+        return (
+          <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
+            <h2 className="text-4xl font-display uppercase tracking-wider mb-4">Môj kalendár</h2>
+            <TrainerCalendar trainerId={trainerId} />
+          </div>
+        );
+
+      case "rezervacie":
+        return (
+          <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
+            <h2 className="text-4xl font-display uppercase tracking-wider mb-4">Moje rezervácie</h2>
+            <TrainerBookings trainerId={trainerId} />
           </div>
         );
 
