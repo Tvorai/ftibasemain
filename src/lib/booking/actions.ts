@@ -2,7 +2,6 @@
 
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { 
   sendEmail, 
   getClientConfirmationEmailHtml, 
@@ -35,46 +34,6 @@ function getErrorMessage(error: unknown): string {
   return "Unknown error";
 }
 
-type ResolvedService = { id: string; name: string | null };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function getStringOrNull(value: unknown): string | null {
-  return typeof value === "string" ? value : null;
-}
-
-function pickServiceFromRow(value: unknown): ResolvedService | null {
-  if (!isRecord(value)) return null;
-  const id = value.id;
-  if (typeof id !== "string") return null;
-
-  const name = getStringOrNull(value.name) ?? getStringOrNull(value.title) ?? getStringOrNull(value.service_name);
-  return { id, name };
-}
-
-async function resolveServiceForBooking(supabase: SupabaseClient, trainerId: string): Promise<ResolvedService | null> {
-  const primary = await supabase
-    .from("services")
-    .select("id, name")
-    .eq("trainer_id", trainerId)
-    .limit(1);
-
-  if (!primary.error) {
-    const payload: unknown = primary.data;
-    if (Array.isArray(payload) && payload.length > 0) return pickServiceFromRow(payload[0]);
-  }
-
-  const fallback = await supabase.from("services").select("id, name").limit(1);
-  if (!fallback.error) {
-    const payload: unknown = fallback.data;
-    if (Array.isArray(payload) && payload.length > 0) return pickServiceFromRow(payload[0]);
-  }
-
-  return null;
-}
-
 /**
  * Server Action pre vytvorenie rezervácie.
  */
@@ -104,17 +63,6 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
   });
 
   try {
-    const resolvedService: ResolvedService | null = service_id
-      ? { id: service_id, name: null }
-      : await resolveServiceForBooking(supabase, trainer_id);
-
-    if (!resolvedService) {
-      return {
-        status: "error",
-        message: "Chýba služba pre rezerváciu (service_id). Skontroluj tabuľku services alebo doplň service_id.",
-      };
-    }
-
     // 2. Kontrola, či slot už nie je obsadený (Race condition protection na serveri)
     // Hľadáme aktívne rezervácie (nie zrušené), ktoré sa prekrývajú s vybraným časom.
     // POZNÁMKA: "pending_payment" vynechaný, kým nebude pridaný do DB enumu
@@ -134,9 +82,18 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
     }
 
     // 3. Vytvorenie záznamu v 'bookings' tabuľke
-    const insertPayload = {
+    const insertPayload: {
+      trainer_id: string;
+      service_id?: string;
+      starts_at: string;
+      ends_at: string;
+      client_name: string;
+      client_email: string;
+      client_phone: string | null | undefined;
+      client_note: string | null | undefined;
+      booking_status: BookingStatus;
+    } = {
       trainer_id,
-      service_id: resolvedService.id,
       starts_at,
       ends_at,
       client_name,
@@ -145,15 +102,25 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
       client_note: note,
       booking_status: "pending" as BookingStatus,
     };
+    if (service_id) insertPayload.service_id = service_id;
 
     let insertResult = await supabase.from("bookings").insert(insertPayload).select("id").maybeSingle();
 
     if (insertResult.error) {
       const message = insertResult.error.message || "";
       if (message.toLowerCase().includes("client_note") || message.toLowerCase().includes("column")) {
-        const fallbackPayload = {
+        const fallbackPayload: {
+          trainer_id: string;
+          service_id?: string;
+          starts_at: string;
+          ends_at: string;
+          client_name: string;
+          client_email: string;
+          client_phone: string | null | undefined;
+          note: string | null | undefined;
+          booking_status: BookingStatus;
+        } = {
           trainer_id,
-          service_id: resolvedService.id,
           starts_at,
           ends_at,
           client_name,
@@ -162,6 +129,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
           note,
           booking_status: "pending" as BookingStatus,
         };
+        if (service_id) fallbackPayload.service_id = service_id;
         insertResult = await supabase.from("bookings").insert(fallbackPayload).select("id").maybeSingle();
       }
     }
@@ -190,7 +158,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
         dateFormatted,
         trainer_name || "Tréner",
         trainer_email || null,
-        resolvedService.name
+        undefined
       )
     }).catch((err: unknown) => console.error("Chyba pri odosielaní emailu klientovi:", getErrorMessage(err)));
 
@@ -199,7 +167,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
       sendEmail({
         to: trainer_email,
         subject: `Nová rezervácia - ${client_name}`,
-        html: getAdminNotificationEmailHtml(client_name, client_email, client_phone || null, dateFormatted, note || null, resolvedService.name)
+        html: getAdminNotificationEmailHtml(client_name, client_email, client_phone || null, dateFormatted, note || null, undefined)
       }).catch((err: unknown) => console.error("Chyba pri odosielaní emailu adminovi:", getErrorMessage(err)));
     }
 
