@@ -124,7 +124,7 @@ function getDbDayOfWeek(parts: DateParts): number {
  */
 export async function getAvailableSlots(
   trainerId: string,
-  lookaheadDays: number = 14,
+  lookaheadDays: number = 7,
   slotDurationMinutes: number = 60,
   maxSlots: number = 30
 ): Promise<AvailableSlot[] | null> {
