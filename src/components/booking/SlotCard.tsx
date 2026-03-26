@@ -20,12 +20,16 @@ const SlotCard: React.FC<SlotCardProps> = ({
     <button
       type="button"
       onClick={() => onSelect(slot)}
-      className={`p-4 border rounded-lg shadow-sm text-center transition-colors duration-200
-        ${isSelected ? 'bg-blue-500 text-white border-blue-600' : 'bg-white text-gray-800 border-gray-300 hover:bg-gray-50'}
+      className={`p-4 border rounded-[15px] shadow-sm text-center transition-all duration-200
+        ${isSelected 
+          ? 'bg-emerald-500 text-black border-emerald-400 scale-105 font-bold' 
+          : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:border-emerald-500/50 hover:bg-zinc-700'}
       `}
     >
-      <p className="font-medium">{startTime} - {endTime}</p>
-      <p className="text-sm opacity-80">{new Date(slot.starts_at).toLocaleDateString('sk-SK', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
+      <p className="text-lg leading-none">{startTime} - {endTime}</p>
+      <p className={`text-[10px] mt-1 uppercase tracking-widest ${isSelected ? 'text-black/70' : 'text-zinc-500'}`}>
+        {new Date(slot.starts_at).toLocaleDateString('sk-SK', { weekday: 'short', month: 'short', day: 'numeric' })}
+      </p>
     </button>
   );
 };

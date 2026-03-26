@@ -1,5 +1,6 @@
 
 import { createClient } from "@supabase/supabase-js";
+// Force Vercel redeploy again
 // Force Vercel redeploy
 import { Booking, BookingStatus, Slot } from "@/lib/types";
 
@@ -68,8 +69,8 @@ export async function getAvailableSlots(
   const { data: bookings, error: bookingsError } = await supabase
     .from("bookings")
     .select("starts_at, ends_at")
-    .eq("trainer_id", trainerId)
-    .in("booking_status", activeBookingStatuses)
+    .eq("admin_id", trainerId)
+    .in("status", activeBookingStatuses)
     .gte("starts_at", now.toISOString())
     .lte("starts_at", lookaheadDate.toISOString());
 

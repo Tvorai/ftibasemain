@@ -7,41 +7,51 @@ import { getAvailableSlots, AvailableSlot } from '@/lib/booking/getAvailableSlot
 
 interface AvailableSlotsProps {
   trainerId: string;
+  onSlotSelect?: (slot: AvailableSlot) => void;
+  selectedSlot?: AvailableSlot | null;
 }
 
-const AvailableSlots: React.FC<AvailableSlotsProps> = ({ trainerId }) => {
+const AvailableSlots: React.FC<AvailableSlotsProps> = ({ 
+  trainerId, 
+  onSlotSelect,
+  selectedSlot: externalSelectedSlot 
+}) => {
   const [slots, setSlots] = useState<AvailableSlot[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
+  const [internalSelectedSlot, setInternalSelectedSlot] = useState<AvailableSlot | null>(null);
+
+  const selectedSlot = externalSelectedSlot !== undefined ? externalSelectedSlot : internalSelectedSlot;
 
   useEffect(() => {
     const fetchSlots = async () => {
       setLoading(true);
-      setError(null);
       try {
-        // Assuming getAvailableSlots can take trainerId as an argument if it's not globally available
-        const fetchedSlots = await getAvailableSlots(trainerId);
-        if (fetchedSlots) {
-          setSlots(fetchedSlots);
+        const res = await fetch(`/api/public-trainer/slots?trainerId=${trainerId}`);
+        const data = await res.json();
+        if (data.ok) {
+          setSlots(data.slots);
         } else {
-          setSlots([]);
+          setError(data.message);
         }
       } catch (err) {
-        console.error("Failed to fetch available slots:", err);
-        setError("Nepodarilo sa načítať dostupné sloty. Skúste to prosím neskôr.");
+        setError('Nepodarilo sa načítať voľné termíny.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSlots();
+    if (trainerId) {
+      fetchSlots();
+    }
   }, [trainerId]);
 
   const handleSlotSelect = (slot: AvailableSlot) => {
-    setSelectedSlot(slot);
-    // In a real scenario, you might want to pass this selected slot up to a parent component
-    // or trigger some other action, but for now, we just update the local state.
+    if (onSlotSelect) {
+      onSlotSelect(slot);
+    } else {
+      setInternalSelectedSlot(slot);
+    }
   };
 
   if (loading) {
@@ -57,9 +67,8 @@ const AvailableSlots: React.FC<AvailableSlotsProps> = ({ trainerId }) => {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Dostupné časy</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {slots.map((slot) => (
           <SlotCard
             key={slot.source_availability_slot_id + slot.starts_at} // Kombinácia pre unikátny kľúč
@@ -69,9 +78,15 @@ const AvailableSlots: React.FC<AvailableSlotsProps> = ({ trainerId }) => {
           />
         ))}
       </div>
+      
       {selectedSlot && (
-        <div className="mt-4 p-4 bg-green-100 border border-green-300 rounded-lg">
-          Vybraný slot: {new Date(selectedSlot.starts_at).toLocaleString('sk-SK', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} - {new Date(selectedSlot.ends_at).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' })}
+        <div className="mt-2 text-center animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-2 font-bold">Vybraný termín:</p>
+          <div className="inline-block px-6 py-2 bg-emerald-500/10 border border-emerald-500/50 rounded-full text-emerald-400 font-bold">
+            {new Date(selectedSlot.starts_at).toLocaleString('sk-SK', { 
+              weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' 
+            })}
+          </div>
         </div>
       )}
     </div>

@@ -5,11 +5,14 @@ import Image from "next/image";
 import Script from "next/script";
 import { Modal } from "@/components/Modal";
 import AvailableSlots from "@/components/booking/AvailableSlots";
+import BookingForm from "@/components/booking/BookingForm";
+import { AvailableSlot } from "@/lib/booking/getAvailableSlots";
 
 type ServiceKey = "personal_training" | "online_consultation" | "meal_plan" | "brands";
 type ServicesVisibility = Record<ServiceKey, boolean>;
 
 type TrainerProfile = {
+  id: string;
   slug: string;
   bio: string | null;
   headline: string | null;
@@ -19,6 +22,7 @@ type TrainerProfile = {
   services: unknown;
   profiles: {
     full_name: string | null;
+    email?: string | null;
   } | null;
 };
 
@@ -42,6 +46,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
 
   // States for popups
   const [isPersonalTrainingModalOpen, setIsPersonalTrainingModalOpen] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
   const [isOnlineConsultationModalOpen, setIsOnlineConsultationModalModalOpen] = useState(false);
   const [isMealPlanModalOpen, setIsMealPlanModalOpen] = useState(false);
   const [isBrandsModalOpen, setIsBrandsModalOpen] = useState(false);
@@ -404,10 +409,32 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
 
       <Modal
         isOpen={isPersonalTrainingModalOpen}
-        onClose={() => setIsPersonalTrainingModalOpen(false)}
+        onClose={() => {
+          setIsPersonalTrainingModalOpen(false);
+          setSelectedSlot(null);
+        }}
         title="Rezervovať osobný tréning"
       >
-        <AvailableSlots trainerId={params.trainerSlug} />
+        {!selectedSlot ? (
+          <div className="text-gray-800">
+            <AvailableSlots 
+              trainerId={trainer.id} 
+              onSlotSelect={(slot) => setSelectedSlot(slot)}
+              selectedSlot={selectedSlot}
+            />
+          </div>
+        ) : (
+          <BookingForm 
+            selectedSlot={selectedSlot}
+            trainerName={trainer.profiles?.full_name || "Tréner"}
+            trainerEmail={trainer.profiles?.email || undefined}
+            onSuccess={() => {
+              setIsPersonalTrainingModalOpen(false);
+              setSelectedSlot(null);
+            }}
+            onCancel={() => setSelectedSlot(null)}
+          />
+        )}
       </Modal>
 
       <Modal

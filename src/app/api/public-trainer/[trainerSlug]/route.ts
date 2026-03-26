@@ -29,7 +29,7 @@ export async function GET(
 
   const primary = await supabase
     .from("trainers")
-    .select("slug,bio,headline,city,images,brands,services,profiles(full_name)")
+    .select("id,slug,bio,headline,city,images,brands,services,profiles(full_name,email)")
     .eq("slug", params.trainerSlug)
     .maybeSingle();
 
@@ -39,7 +39,7 @@ export async function GET(
   if (error && (error.code === "42703" || error.message.includes("services"))) {
     const fallback = await supabase
       .from("trainers")
-      .select("slug,bio,headline,city,images,brands,profiles(full_name)")
+      .select("id,slug,bio,headline,city,images,brands,profiles(full_name,email)")
       .eq("slug", params.trainerSlug)
       .maybeSingle();
     data = fallback.data ? { ...fallback.data, services: null } : fallback.data;

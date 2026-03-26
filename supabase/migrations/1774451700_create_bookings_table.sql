@@ -16,6 +16,8 @@ CREATE TABLE bookings (
   client_email TEXT NOT NULL,
   client_phone TEXT, -- Voliteľné pole
   note TEXT, -- Voliteľná poznámka
+  starts_at TIMESTAMP WITH TIME ZONE NOT NULL, -- Začiatok rezervácie
+  ends_at TIMESTAMP WITH TIME ZONE NOT NULL, -- Koniec rezervácie
   status booking_status_enum NOT NULL DEFAULT 'pending', -- Predvolený status
   payment_status payment_status_enum NOT NULL DEFAULT 'unpaid', -- Predvolený status platby
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(), -- Automatické nastavenie pri vytvorení

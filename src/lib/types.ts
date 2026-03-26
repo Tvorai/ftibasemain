@@ -20,21 +20,22 @@ export type Slot = {
 
 // Nové typy pre statusy rezervácie a platby (upravené podľa existujúcej DB schémy bookings)
 export type BookingStatus = "pending" | "pending_payment" | "confirmed" | "cancelled";
+export type PaymentStatus = "unpaid" | "paid" | "failed" | "refunded";
 
 export type Booking = {
   id: string;
-  trainer_id: string; // ID trénera
-  client_profile_id: string; // ID profilu klienta
-  service_id: string; // ID služby
-  booking_status: BookingStatus; // Status rezervácie
-  starts_at: string; // ISO string začiatku rezervácie
-  ends_at: string; // ISO string konca rezervácie
-  client_note: string | null; // Poznámka od klienta
-  trainer_note: string | null; // Poznámka od trénera
-  cancelled_by: string | null; // ID toho, kto rezerváciu zrušil
-  cancelled_reason: string | null; // Dôvod zrušenia
-  created_at: string; // ISO string dátumu vytvorenia
-  updated_at: string; // ISO string dátumu poslednej aktualizácie
+  slot_id: string; // ID slotu (z availability_slots alebo manuálne vytvorený)
+  admin_id: string; // ID trénera/admina
+  client_name: string;
+  client_email: string;
+  client_phone: string | null;
+  note: string | null;
+  starts_at: string; // ISO string
+  ends_at: string; // ISO string
+  status: BookingStatus;
+  payment_status: PaymentStatus;
+  created_at: string; // ISO string
+  updated_at: string; // ISO string
 };
 
 export type Payment = {
