@@ -13,6 +13,7 @@ import { BookingStatus } from "@/lib/types";
 const bookingSchema = z.object({
   trainer_id: z.string().uuid(),
   service_id: z.string().uuid().optional(),
+  access_token: z.string().min(1),
   starts_at: z.string().datetime(),
   ends_at: z.string().datetime(),
   client_name: z.string().min(2, "Meno musí mať aspoň 2 znaky"),
@@ -45,7 +46,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
   }
 
   const { 
-    trainer_id, service_id, starts_at, ends_at, 
+    trainer_id, service_id, access_token, starts_at, ends_at, 
     client_name, client_email, client_phone, note,
     trainer_name, trainer_email
   } = validatedFields.data;
@@ -63,6 +64,44 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
   });
 
   try {
+    const userResult = await supabase.auth.getUser(access_token);
+    const authUser = userResult.data.user;
+    if (!authUser) {
+      console.error("createBookingAction: user not authenticated", userResult.error);
+      return { status: "error", message: "Pre dokončenie rezervácie sa musíte prihlásiť." };
+    }
+
+    const profileResult = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("id", authUser.id)
+      .maybeSingle();
+
+    const profileRow = profileResult.data;
+    if (!profileRow) {
+      const insertProfile = await supabase
+        .from("profiles")
+        .insert({ id: authUser.id, full_name: client_name })
+        .select("id")
+        .maybeSingle();
+      if (insertProfile.error) {
+        console.warn("createBookingAction: profile insert failed", insertProfile.error);
+      }
+    } else {
+      const fullName = typeof (profileRow as Record<string, unknown>).full_name === "string"
+        ? ((profileRow as Record<string, unknown>).full_name as string)
+        : null;
+      if (!fullName || !fullName.trim()) {
+        const updateProfile = await supabase
+          .from("profiles")
+          .update({ full_name: client_name })
+          .eq("id", authUser.id);
+        if (updateProfile.error) {
+          console.warn("createBookingAction: profile update failed", updateProfile.error);
+        }
+      }
+    }
+
     // 2. Kontrola, či slot už nie je obsadený (Race condition protection na serveri)
     // Hľadáme aktívne rezervácie (nie zrušené), ktoré sa prekrývajú s vybraným časom.
     // POZNÁMKA: "pending_payment" vynechaný, kým nebude pridaný do DB enumu
@@ -85,6 +124,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
     const insertPayload: {
       trainer_id: string;
       service_id?: string;
+      client_profile_id: string;
       starts_at: string;
       ends_at: string;
       client_name: string;
@@ -94,6 +134,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
       booking_status: BookingStatus;
     } = {
       trainer_id,
+      client_profile_id: authUser.id,
       starts_at,
       ends_at,
       client_name,
@@ -112,6 +153,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
         const fallbackPayload: {
           trainer_id: string;
           service_id?: string;
+          client_profile_id: string;
           starts_at: string;
           ends_at: string;
           client_name: string;
@@ -121,6 +163,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
           booking_status: BookingStatus;
         } = {
           trainer_id,
+          client_profile_id: authUser.id,
           starts_at,
           ends_at,
           client_name,

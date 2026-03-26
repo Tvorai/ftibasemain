@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { AvailableSlot } from "@/lib/booking/getAvailableSlots";
 import { createBookingAction, BookingFormState } from "@/lib/booking/actions";
+import { createClient } from "@supabase/supabase-js";
+import { featureFlags, supabaseAnonKey, supabaseUrl } from "@/lib/config";
+import BookingAuthModal from "@/components/booking/BookingAuthModal";
 
 // Validácia formulára pomocou Zod (musi sa zhodovat s tym v server action)
 const bookingFormSchema = z.object({
@@ -21,61 +24,176 @@ interface BookingFormProps {
   selectedSlot: AvailableSlot;
   trainerName: string;
   trainerEmail?: string;
+  initialValues?: Partial<BookingFormValues>;
   onSuccess?: () => void;
   onCancel?: () => void;
+}
+
+type PendingBookingPayload = {
+  slot: AvailableSlot;
+  form: BookingFormValues;
+  trainerName: string;
+  trainerEmail?: string;
+  createdAt: number;
+};
+
+const PENDING_KEY = "fitbase_pending_booking";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function parsePendingBooking(raw: string): PendingBookingPayload | null {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed)) return null;
+    const slot = parsed.slot;
+    const form = parsed.form;
+    const trainerName = parsed.trainerName;
+    const createdAt = parsed.createdAt;
+
+    if (!isRecord(slot)) return null;
+    if (typeof slot.trainer_id !== "string" || typeof slot.starts_at !== "string" || typeof slot.ends_at !== "string" || typeof slot.source_availability_slot_id !== "string") {
+      return null;
+    }
+    if (!isRecord(form)) return null;
+    if (typeof form.client_name !== "string" || typeof form.client_email !== "string") return null;
+
+    return {
+      slot: slot as AvailableSlot,
+      form: {
+        client_name: form.client_name as string,
+        client_email: form.client_email as string,
+        client_phone: typeof form.client_phone === "string" ? (form.client_phone as string) : "",
+        note: typeof form.note === "string" ? (form.note as string) : "",
+      },
+      trainerName: typeof trainerName === "string" ? trainerName : "Tréner",
+      trainerEmail: typeof parsed.trainerEmail === "string" ? parsed.trainerEmail : undefined,
+      createdAt: typeof createdAt === "number" ? createdAt : Date.now(),
+    };
+  } catch {
+    return null;
+  }
 }
 
 export default function BookingForm({
   selectedSlot,
   trainerName,
   trainerEmail,
+  initialValues,
   onSuccess,
   onCancel,
 }: BookingFormProps) {
   const [formState, setFormState] = useState<BookingFormState>({ status: "idle" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+
+  const supabase = useMemo(() => {
+    return featureFlags.supabaseEnabled ? createClient(supabaseUrl, supabaseAnonKey) : null;
+  }, []);
+
+  const defaultValues = useMemo(() => {
+    return {
+      client_name: initialValues?.client_name || "",
+      client_email: initialValues?.client_email || "",
+      client_phone: initialValues?.client_phone || "",
+      note: initialValues?.note || "",
+    };
+  }, [initialValues?.client_email, initialValues?.client_name, initialValues?.client_phone, initialValues?.note]);
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<BookingFormValues>({
     resolver: zodResolver(bookingFormSchema),
-    defaultValues: {
-      client_name: "",
-      client_email: "",
-      client_phone: "",
-      note: "",
-    },
+    defaultValues,
   });
 
-  const onSubmit = async (values: BookingFormValues) => {
+  useEffect(() => {
+    reset(defaultValues);
+  }, [defaultValues, reset]);
+
+  const finalizeBooking = async (payload: PendingBookingPayload, accessToken: string) => {
     setIsSubmitting(true);
     setFormState({ status: "idle" });
 
     try {
       const result = await createBookingAction({
-        trainer_id: selectedSlot.trainer_id,
-        starts_at: selectedSlot.starts_at,
-        ends_at: selectedSlot.ends_at,
-        client_name: values.client_name,
-        client_email: values.client_email,
-        client_phone: values.client_phone || null,
-        note: values.note || null,
-        trainer_name: trainerName,
-        trainer_email: trainerEmail,
+        trainer_id: payload.slot.trainer_id,
+        starts_at: payload.slot.starts_at,
+        ends_at: payload.slot.ends_at,
+        client_name: payload.form.client_name,
+        client_email: payload.form.client_email,
+        client_phone: payload.form.client_phone || null,
+        note: payload.form.note || null,
+        trainer_name: payload.trainerName,
+        trainer_email: payload.trainerEmail,
+        access_token: accessToken,
       });
 
       setFormState(result);
-      if (result.status === "success" && onSuccess) {
-        // Po úspechu môžeme zavrieť formulár alebo zobraziť success stav
-        // Ak chceme zobraziť success správu, necháme ju tam a voláme onSuccess s oneskorením
-        setTimeout(() => onSuccess(), 3000);
+      if (result.status === "success") {
+        sessionStorage.removeItem(PENDING_KEY);
+        if (onSuccess) setTimeout(() => onSuccess(), 3000);
       }
-    } catch (err) {
+    } catch {
       setFormState({ status: "error", message: "Nastala neočakávaná chyba pri komunikácii so serverom." });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!supabase) return;
+    const raw = sessionStorage.getItem(PENDING_KEY);
+    if (!raw) return;
+
+    const pending = parsePendingBooking(raw);
+    if (!pending) {
+      sessionStorage.removeItem(PENDING_KEY);
+      return;
+    }
+
+    if (pending.slot.trainer_id !== selectedSlot.trainer_id || pending.slot.starts_at !== selectedSlot.starts_at) {
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      const session = data.session;
+      if (!session?.access_token) return;
+      void finalizeBooking(pending, session.access_token);
+    });
+  }, [selectedSlot.starts_at, selectedSlot.trainer_id, supabase]);
+
+  const onSubmit = async (values: BookingFormValues) => {
+    if (!supabase) {
+      setFormState({ status: "error", message: "Auth nie je dostupný." });
+      return;
+    }
+
+    try {
+      const sessionResult = await supabase.auth.getSession();
+      const session = sessionResult.data.session;
+
+      const pending: PendingBookingPayload = {
+        slot: selectedSlot,
+        form: values,
+        trainerName,
+        trainerEmail,
+        createdAt: Date.now(),
+      };
+
+      if (!session?.access_token) {
+        sessionStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+        setAuthOpen(true);
+        return;
+      }
+
+      await finalizeBooking(pending, session.access_token);
+    } catch {
+      setFormState({ status: "error", message: "Nastala neočakávaná chyba pri komunikácii so serverom." });
     }
   };
 
@@ -100,6 +218,22 @@ export default function BookingForm({
 
   return (
     <div className="p-0 bg-transparent rounded-xl max-w-md mx-auto">
+      <BookingAuthModal
+        isOpen={authOpen}
+        onClose={() => setAuthOpen(false)}
+        initialEmail={defaultValues.client_email}
+        onAuthed={async () => {
+          if (!supabase) return;
+          const raw = sessionStorage.getItem(PENDING_KEY);
+          if (!raw) return;
+          const pending = parsePendingBooking(raw);
+          if (!pending) return;
+          const session = (await supabase.auth.getSession()).data.session;
+          if (!session?.access_token) return;
+          setAuthOpen(false);
+          await finalizeBooking(pending, session.access_token);
+        }}
+      />
       <div className="mb-6 p-4 bg-zinc-800/50 border border-zinc-700 rounded-lg">
         <p className="text-xs text-zinc-400 font-medium uppercase tracking-wider">Vybraný termín:</p>
         <p className="text-emerald-400 font-bold text-lg">{slotDateStr}</p>

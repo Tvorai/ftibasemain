@@ -47,6 +47,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
   // States for popups
   const [isPersonalTrainingModalOpen, setIsPersonalTrainingModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
+  const [pendingFormValues, setPendingFormValues] = useState<{ client_name: string; client_email: string; client_phone: string; note: string } | null>(null);
   const [isOnlineConsultationModalOpen, setIsOnlineConsultationModalModalOpen] = useState(false);
   const [isMealPlanModalOpen, setIsMealPlanModalOpen] = useState(false);
   const [isBrandsModalOpen, setIsBrandsModalOpen] = useState(false);
@@ -73,6 +74,41 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
   useEffect(() => {
     loadTrainer();
   }, [loadTrainer]);
+
+  useEffect(() => {
+    if (!trainer) return;
+    if (typeof window === "undefined") return;
+
+    const raw = sessionStorage.getItem("fitbase_pending_booking");
+    if (!raw) return;
+
+    const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
+
+    let parsed: unknown = null;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      sessionStorage.removeItem("fitbase_pending_booking");
+      return;
+    }
+
+    if (!isRecord(parsed)) return;
+    const slot = parsed.slot;
+    const form = parsed.form;
+    if (!isRecord(slot) || !isRecord(form)) return;
+    if (typeof slot.trainer_id !== "string" || slot.trainer_id !== trainer.id) return;
+    if (typeof slot.starts_at !== "string" || typeof slot.ends_at !== "string" || typeof slot.source_availability_slot_id !== "string") return;
+    if (typeof form.client_name !== "string" || typeof form.client_email !== "string") return;
+
+    setSelectedSlot(slot as AvailableSlot);
+    setPendingFormValues({
+      client_name: form.client_name,
+      client_email: form.client_email,
+      client_phone: typeof form.client_phone === "string" ? form.client_phone : "",
+      note: typeof form.note === "string" ? form.note : "",
+    });
+    setIsPersonalTrainingModalOpen(true);
+  }, [trainer]);
 
   // Ak sú polia prázdne, v UI ich skryjeme
   const images: string[] = trainer?.images && Array.isArray(trainer.images)
@@ -412,6 +448,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
         onClose={() => {
           setIsPersonalTrainingModalOpen(false);
           setSelectedSlot(null);
+          setPendingFormValues(null);
         }}
         title="Rezervovať osobný tréning"
       >
@@ -428,11 +465,16 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
             selectedSlot={selectedSlot}
             trainerName={trainer.profiles?.full_name || "Tréner"}
             trainerEmail={trainer.profiles?.email || undefined}
+            initialValues={pendingFormValues || undefined}
             onSuccess={() => {
               setIsPersonalTrainingModalOpen(false);
               setSelectedSlot(null);
+              setPendingFormValues(null);
             }}
-            onCancel={() => setSelectedSlot(null)}
+            onCancel={() => {
+              setSelectedSlot(null);
+              setPendingFormValues(null);
+            }}
           />
         )}
       </Modal>
