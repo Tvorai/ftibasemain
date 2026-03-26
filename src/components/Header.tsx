@@ -8,12 +8,12 @@ import { useI18n } from "@/providers/i18n";
 export function Header() {
   const { messages } = useI18n();
   return (
-    <header className="border-b bg-white">
+    <header className="border-b border-zinc-800 bg-black text-white">
       <Container className="flex h-14 items-center justify-between">
         <Link href="/" className="font-bold text-brand">
           {messages.common.brand}
         </Link>
-        <nav className="flex items-center gap-3 text-sm">
+        <nav className="flex items-center gap-3 text-sm text-zinc-200">
           <Link href="/ucet" className="hover:text-brand">
             {messages.common.menu.userDashboard}
           </Link>

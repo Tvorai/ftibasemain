@@ -6,7 +6,7 @@ export function LanguageSwitcher() {
   const { locale, setLocale, messages } = useI18n();
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-gray-600">{messages.common.language}</span>
+      <span className="text-sm text-zinc-400">{messages.common.language}</span>
       <div className="flex gap-1">
         <Button
           size="sm"

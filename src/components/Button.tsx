@@ -16,8 +16,8 @@ export function Button({ className, variant = "primary", size = "md", ...props }
   };
   const variants = {
     primary: "bg-brand text-white hover:bg-brand-dark",
-    secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
-    ghost: "bg-transparent hover:bg-gray-100"
+    secondary: "bg-zinc-800 text-white hover:bg-zinc-700",
+    ghost: "bg-transparent text-white hover:bg-zinc-900"
   };
   return <button className={clsx(base, sizes[size], variants[variant], className)} {...props} />;
 }

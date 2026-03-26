@@ -33,7 +33,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pathname === "/prihlásenie-trénera" ||
     pathname === "/prihlasenie-trenera" ||
     pathname === "/prihl%C3%A1senie-tr%C3%A9nera" ||
+    pathname === "/ucet" ||
     pathname === "/ucet-trenera" ||
+    pathname === "/nadstavenia" ||
+    pathname === "/historia-rezervacii" ||
+    pathname === "/historia-platieb" ||
     isPublicTrainerProfile;
 
   if (hideChrome) {
