@@ -82,6 +82,53 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
     async function fetchBookings() {
       setLoading(true);
       try {
+        console.log("[ClientBookings] userId:", userId, "userEmail:", userEmail);
+
+        const sessionRes = await supabase.auth.getSession();
+        const accessToken = sessionRes.data.session?.access_token;
+        console.log("[ClientBookings] has session:", Boolean(sessionRes.data.session), "has accessToken:", Boolean(accessToken));
+
+        if (!accessToken) {
+          setBookings([]);
+          setError("Pre zobrazenie rezervácií sa musíte prihlásiť.");
+          return;
+        }
+
+        const apiRes = await fetch("/api/user/bookings", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        const apiPayload: unknown = await apiRes.json().catch(() => null);
+        console.log("[ClientBookings] /api/user/bookings status:", apiRes.status, "payload:", apiPayload);
+
+        if (!apiRes.ok) {
+          const message =
+            isRecord(apiPayload) && typeof apiPayload.message === "string"
+              ? apiPayload.message
+              : "Nepodarilo sa načítať vaše služby.";
+          console.warn("[ClientBookings] API failed, falling back to direct Supabase query:", message);
+          setError(null);
+        } else {
+          const mappedFromApi = Array.isArray(apiPayload)
+            ? apiPayload.filter((x): x is ClientBookingItem => {
+                return (
+                  isRecord(x) &&
+                  typeof x.id === "string" &&
+                  typeof x.trainerId === "string" &&
+                  typeof x.startsAt === "string" &&
+                  typeof x.endsAt === "string" &&
+                  typeof x.status === "string" &&
+                  typeof x.trainerName === "string" &&
+                  (typeof x.trainerEmail === "string" || x.trainerEmail === null)
+                );
+              })
+            : [];
+
+          setBookings(mappedFromApi);
+          setError(null);
+          return;
+        }
+
         const query = supabase
           .from("bookings")
           .select("id, trainer_id, starts_at, ends_at, booking_status, client_profile_id, client_email")
@@ -96,9 +143,10 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
 
         if (error) throw error;
         const payload: unknown = data;
-        const rows = Array.isArray(payload) ? payload.map(toBookingRow).filter((x): x is BookingRow => x !== null) : [];
+        const rowsMaybe = Array.isArray(payload) ? (payload as unknown[]).map(toBookingRow) : [];
+        const rows = rowsMaybe.filter((x): x is BookingRow => x !== null);
 
-        const trainerIds = Array.from(new Set(rows.map((r) => r.trainer_id))).filter((id) => id);
+        const trainerIds = Array.from(new Set(rows.map((r: BookingRow) => r.trainer_id))).filter((id) => id);
 
         const contactsByTrainerId = new Map<string, TrainerContact>();
         if (trainerIds.length > 0) {
@@ -109,14 +157,14 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
 
           const trainerPayload: unknown = trainerRes.data;
           if (!trainerRes.error && Array.isArray(trainerPayload)) {
-            for (const item of trainerPayload) {
+            for (const item of trainerPayload as unknown[]) {
               const parsed = toTrainerContact(item);
-              if (parsed) contactsByTrainerId.set(parsed.trainerId, parsed.contact);
+              if (parsed !== null) contactsByTrainerId.set(parsed.trainerId, parsed.contact);
             }
           }
         }
 
-        const mapped: ClientBookingItem[] = rows.map((r) => {
+        const mappedFromDb: ClientBookingItem[] = rows.map((r: BookingRow) => {
           const contact = contactsByTrainerId.get(r.trainer_id);
           return {
             id: r.id,
@@ -129,8 +177,9 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
           };
         });
 
-        setBookings(mapped);
+        setBookings(mappedFromDb);
       } catch (err: unknown) {
+        console.error("[ClientBookings] error:", err);
         setError(err instanceof Error ? err.message : "Nepodarilo sa načítať vaše služby.");
       } finally {
         setLoading(false);
