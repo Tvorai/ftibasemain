@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
+import { BookingStatus } from "@/lib/types";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -15,10 +16,11 @@ type ClientBookingItem = {
   id: string;
   startsAt: string;
   endsAt: string;
-  status: string;
+  status: BookingStatus;
   trainerId: string;
   trainerName: string;
   trainerEmail: string | null;
+  trainerSlug: string | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -36,6 +38,12 @@ type BookingRow = {
   ends_at: string;
   booking_status: string;
 };
+
+const bookingStatuses: readonly BookingStatus[] = ["pending", "confirmed", "completed", "cancelled"];
+
+function isBookingStatus(value: unknown): value is BookingStatus {
+  return typeof value === "string" && (bookingStatuses as readonly string[]).includes(value);
+}
 
 function toBookingRow(value: unknown): BookingRow | null {
   if (!isRecord(value)) return null;
@@ -56,20 +64,21 @@ function toBookingRow(value: unknown): BookingRow | null {
   return { id, trainer_id: trainerId, starts_at: startsAt, ends_at: endsAt, booking_status: status };
 }
 
-type TrainerContact = { name: string; email: string | null };
+type TrainerContact = { name: string; email: string | null; slug: string | null };
 
 function toTrainerContact(value: unknown): { trainerId: string; contact: TrainerContact } | null {
   if (!isRecord(value)) return null;
   const trainerId = value.id;
   if (typeof trainerId !== "string") return null;
 
+  const slug = typeof value.slug === "string" ? value.slug : null;
   const profiles = getNested(value, "profiles");
   const fullName = isRecord(profiles) && typeof profiles.full_name === "string" ? profiles.full_name : null;
   const email = isRecord(profiles) && typeof profiles.email === "string" ? profiles.email : null;
 
   return {
     trainerId,
-    contact: { name: fullName && fullName.trim() ? fullName : "Neznámy tréner", email },
+    contact: { name: fullName && fullName.trim() ? fullName : "Neznámy tréner", email, slug },
   };
 }
 
@@ -110,21 +119,53 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
           setError(null);
         } else {
           const mappedFromApi = Array.isArray(apiPayload)
-            ? apiPayload.filter((x): x is ClientBookingItem => {
-                return (
-                  isRecord(x) &&
-                  typeof x.id === "string" &&
-                  typeof x.trainerId === "string" &&
-                  typeof x.startsAt === "string" &&
-                  typeof x.endsAt === "string" &&
-                  typeof x.status === "string" &&
-                  typeof x.trainerName === "string" &&
-                  (typeof x.trainerEmail === "string" || x.trainerEmail === null)
-                );
-              })
+            ? apiPayload
+                .map((x): ClientBookingItem | null => {
+                  if (!isRecord(x)) return null;
+                  if (typeof x.id !== "string") return null;
+                  if (typeof x.trainerId !== "string") return null;
+                  if (typeof x.startsAt !== "string") return null;
+                  if (typeof x.endsAt !== "string") return null;
+                  if (!isBookingStatus(x.status)) return null;
+                  if (typeof x.trainerName !== "string") return null;
+                  if (!(typeof x.trainerEmail === "string" || x.trainerEmail === null)) return null;
+                  return {
+                    id: x.id,
+                    trainerId: x.trainerId,
+                    startsAt: x.startsAt,
+                    endsAt: x.endsAt,
+                    status: x.status,
+                    trainerName: x.trainerName,
+                    trainerEmail: x.trainerEmail,
+                    trainerSlug: null,
+                  };
+                })
+                .filter((x): x is ClientBookingItem => x !== null)
             : [];
 
-          setBookings(mappedFromApi);
+          const trainerIds = Array.from(new Set(mappedFromApi.map((b) => b.trainerId))).filter((id) => id);
+          const slugsByTrainerId = new Map<string, string>();
+          if (trainerIds.length > 0) {
+            const trainerRes = await supabase.from("trainers").select("id, slug").in("id", trainerIds);
+            const trainerPayload: unknown = trainerRes.data;
+            if (!trainerRes.error && Array.isArray(trainerPayload)) {
+              for (const item of trainerPayload as unknown[]) {
+                if (!isRecord(item)) continue;
+                const id = item.id;
+                const slug = item.slug;
+                if (typeof id === "string" && typeof slug === "string" && slug.trim()) {
+                  slugsByTrainerId.set(id, slug);
+                }
+              }
+            }
+          }
+
+          setBookings(
+            mappedFromApi.map((b) => ({
+              ...b,
+              trainerSlug: slugsByTrainerId.get(b.trainerId) || null,
+            }))
+          );
           setError(null);
           return;
         }
@@ -152,7 +193,7 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
         if (trainerIds.length > 0) {
           const trainerRes = await supabase
             .from("trainers")
-            .select("id, profiles(full_name,email)")
+            .select("id, slug, profiles(full_name,email)")
             .in("id", trainerIds);
 
           const trainerPayload: unknown = trainerRes.data;
@@ -171,9 +212,10 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
             trainerId: r.trainer_id,
             startsAt: r.starts_at,
             endsAt: r.ends_at,
-            status: r.booking_status,
+            status: isBookingStatus(r.booking_status) ? r.booking_status : "pending",
             trainerName: contact?.name || "Neznámy tréner",
             trainerEmail: contact?.email || null,
+            trainerSlug: contact?.slug || null,
           };
         });
 
@@ -208,7 +250,11 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                   </p>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase ${
-                  booking.status === "confirmed" ? "bg-emerald-500/20 text-emerald-500" : "bg-zinc-800 text-zinc-500"
+                  booking.status === "confirmed" ? "bg-emerald-500/20 text-emerald-500" :
+                  booking.status === "pending" ? "bg-yellow-500/20 text-yellow-500" :
+                  booking.status === "completed" ? "bg-sky-500/20 text-sky-400" :
+                  booking.status === "cancelled" ? "bg-red-500/20 text-red-400" :
+                  "bg-zinc-800 text-zinc-500"
                 }`}>
                   {booking.status}
                 </span>
@@ -237,6 +283,43 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                   </div>
                   <p className="text-zinc-400">{booking.trainerEmail || "Bez kontaktu"}</p>
                 </div>
+
+                {booking.status === "completed" && (
+                  <div className="pt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={!booking.trainerEmail}
+                      onClick={() => {
+                        if (!booking.trainerEmail) return;
+                        const subject = encodeURIComponent("Recenzia - Fitbase");
+                        const body = encodeURIComponent(
+                          `Ahoj,\n\nchcem napísať recenziu na tréning dňa ${new Date(booking.startsAt).toLocaleDateString("sk-SK")}.\n\n`
+                        );
+                        window.location.href = `mailto:${booking.trainerEmail}?subject=${subject}&body=${body}`;
+                      }}
+                      className="px-4 py-2 rounded-full border border-emerald-500/60 text-emerald-300 hover:border-emerald-400 hover:text-emerald-200 transition-colors text-xs font-bold uppercase tracking-wider disabled:opacity-50 disabled:hover:border-emerald-500/60"
+                    >
+                      Napísať recenziu
+                    </button>
+
+                    {booking.trainerSlug ? (
+                      <a
+                        href={`/${booking.trainerSlug}`}
+                        className="px-4 py-2 rounded-full bg-emerald-500 text-black hover:bg-emerald-400 transition-colors text-xs font-bold uppercase tracking-wider"
+                      >
+                        Ďalší tréning
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        className="px-4 py-2 rounded-full bg-emerald-500 text-black transition-colors text-xs font-bold uppercase tracking-wider opacity-50"
+                      >
+                        Ďalší tréning
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}
