@@ -141,7 +141,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
       client_email,
       client_phone,
       client_note: note,
-      booking_status: "pending" as BookingStatus,
+      booking_status: "confirmed" as BookingStatus,
     };
     if (service_id) insertPayload.service_id = service_id;
 
@@ -170,7 +170,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
           client_email,
           client_phone,
           note,
-          booking_status: "pending" as BookingStatus,
+          booking_status: "confirmed" as BookingStatus,
         };
         if (service_id) fallbackPayload.service_id = service_id;
         insertResult = await supabase.from("bookings").insert(fallbackPayload).select("id").maybeSingle();
