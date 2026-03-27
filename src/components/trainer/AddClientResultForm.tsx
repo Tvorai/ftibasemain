@@ -68,7 +68,7 @@ export default function AddClientResultForm({ trainerId, onSuccess }: AddClientR
   const uploadToStorage = async (base64: string, path: string) => {
     const file = base64ToFile(base64, "image.webp");
     const { data, error } = await supabase.storage
-      .from("client-results")
+      .from("vysledky")
       .upload(path, file, {
         cacheControl: "3600",
         upsert: true
@@ -77,7 +77,7 @@ export default function AddClientResultForm({ trainerId, onSuccess }: AddClientR
     if (error) throw error;
     
     const { data: { publicUrl } } = supabase.storage
-      .from("client-results")
+      .from("vysledky")
       .getPublicUrl(path);
       
     return publicUrl;
@@ -94,8 +94,8 @@ export default function AddClientResultForm({ trainerId, onSuccess }: AddClientR
     try {
       // 1. Upload do Storage
       const timestamp = Date.now();
-      const beforeUrl = await uploadToStorage(beforeImage, `${trainerId}/${timestamp}_before.webp`);
-      const afterUrl = await uploadToStorage(afterImage, `${trainerId}/${timestamp}_after.webp`);
+      const beforeUrl = await uploadToStorage(beforeImage, `client-results/${trainerId}_${timestamp}_before.webp`);
+      const afterUrl = await uploadToStorage(afterImage, `client-results/${trainerId}_${timestamp}_after.webp`);
 
       // 2. Uloženie do DB
       const { error: dbError } = await supabase
@@ -114,7 +114,7 @@ export default function AddClientResultForm({ trainerId, onSuccess }: AddClientR
       onSuccess();
     } catch (err: unknown) {
       console.error("Upload error:", err);
-      alert("Chyba pri nahrávaní výsledku. Skontrolujte, či existuje bucket 'client-results' v Supabase Storage.");
+      alert("Chyba pri nahrávaní výsledku. Skontrolujte, či existuje bucket 'vysledky' v Supabase Storage.");
     } finally {
       setLoading(false);
     }

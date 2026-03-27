@@ -66,7 +66,7 @@ export default function ClientResultsGallery({ trainerId }: ClientResultsGallery
       // 2. Vymazať zo storage (ak je to URL zo storage)
       // Skúsime extrahovať cestu zo storage URL (predpokladáme Supabase storage formát)
       const extractPath = (url: string) => {
-        const parts = url.split("/public/client-results/");
+        const parts = url.split("/public/vysledky/");
         return parts.length > 1 ? parts[1] : null;
       };
 
@@ -76,7 +76,7 @@ export default function ClientResultsGallery({ trainerId }: ClientResultsGallery
       const filesToDelete = [beforeStoragePath, afterStoragePath].filter((p): p is string => !!p);
       
       if (filesToDelete.length > 0) {
-        await supabase.storage.from("client-results").remove(filesToDelete);
+        await supabase.storage.from("vysledky").remove(filesToDelete);
       }
 
       setResults((prev) => prev.filter((r) => r.id !== id));
