@@ -6,6 +6,7 @@ import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
 import { BookingStatus } from "@/lib/types";
 import { Modal } from "@/components/Modal";
 import { createTrainerReviewAction } from "@/lib/booking/actions";
+import { useRouter } from "next/navigation";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -128,6 +129,7 @@ async function resizeImageDataUrl(dataUrl: string, maxSize: number = 1024): Prom
 }
 
 export default function ClientBookings({ userId, userEmail }: ClientBookingsProps) {
+  const router = useRouter();
   const [bookings, setBookings] = useState<ClientBookingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -364,12 +366,15 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                     </button>
 
                     {booking.trainerSlug ? (
-                      <a
-                        href={`/${booking.trainerSlug}?openBooking=1`}
-                        className="px-4 py-2 rounded-full bg-emerald-500 text-black hover:bg-emerald-400 transition-colors text-xs font-bold uppercase tracking-wider"
+                      <button
+                        type="button"
+                        onClick={() => {
+                          router.push(`/${booking.trainerSlug}?openBooking=1`);
+                        }}
+                        className="px-4 py-2 rounded-full bg-emerald-500 text-black hover:bg-emerald-400 transition-colors text-xs font-bold uppercase tracking-wider cursor-pointer"
                       >
                         Ďalší tréning
-                      </a>
+                      </button>
                     ) : (
                       <button
                         type="button"
