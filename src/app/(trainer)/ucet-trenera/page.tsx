@@ -7,6 +7,7 @@ import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
 import TrainerCalendar from "@/components/trainer/TrainerCalendar";
 import CalendarSettings from "@/components/trainer/CalendarSettings";
 import TrainerBookings from "@/components/booking/TrainerBookings";
+import TrainerClientResults from "@/components/trainer/TrainerClientResults";
 import { listTrainerReviewsForDashboardAction } from "@/lib/booking/actions";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -601,6 +602,14 @@ export default function TrainerDashboardPage() {
           <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
             <h2 className="text-4xl font-display uppercase tracking-wider mb-4">Recenzie</h2>
             <TrainerReviewsTab />
+          </div>
+        );
+
+      case "vysledky":
+        return (
+          <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
+            <h2 className="text-4xl font-display uppercase tracking-wider mb-4">Výsledky klientov</h2>
+            <TrainerClientResults trainerId={trainerId} />
           </div>
         );
 
