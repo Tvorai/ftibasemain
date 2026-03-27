@@ -159,7 +159,6 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
     setIsMealPlanModalOpen(true);
   }, [trainer]);
 
-  // Ak sú polia prázdne, v UI ich skryjeme
   const images: string[] = trainer?.images && Array.isArray(trainer.images)
     ? trainer.images.filter((img): img is string => img !== null)
     : [];
@@ -191,7 +190,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
         ];
       })
     : [];
-  const results: string[] = []; // Tu budú výsledky z DB (zatiaľ prázdne pre test skrytia)
+  const results: string[] = [];
   const defaultServices: ServicesVisibility = {
     personal_training: true,
     online_consultation: true,
@@ -369,11 +368,19 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
     }
   }, [shareBusy, trainer]);
 
-  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-emerald-500">Načítavam profil...</div>;
-  if (!trainer) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Profil sa nenašiel.</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-black flex items-center justify-center text-emerald-500">
+      Načítavam profil...
+    </div>
+  );
+  if (!trainer) return (
+    <div className="min-h-screen bg-black flex items-center justify-center text-white">
+      Profil sa nenašiel.
+    </div>
+  );
 
   return (
-    <div className="min-h-screen text-white">
+    <div className="min-h-screen bg-black text-white">
       <div ref={vantaElRef} className="fixed inset-0 bg-[#0e0e0e]" style={{ zIndex: 0 }} />
 
       <Script
@@ -394,7 +401,6 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
 
       <div className="relative z-10 min-h-screen md:px-10 md:py-10">
         <div className="min-h-screen w-full max-w-md md:max-w-xl mx-auto bg-black text-white pb-20 overflow-x-hidden relative md:rounded-2xl md:shadow-2xl md:shadow-black/40">
-      {/* 1. BANNER / SLIDER - Zobrazí sa len ak sú fotky */}
       {images.length > 0 ? (
         <div
           className="relative w-full aspect-[4/3] overflow-hidden group touch-pan-y"
@@ -429,7 +435,6 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
             </div>
           ))}
           
-          {/* Klikateľné zóny pre prepínanie (vľavo/vpravo) */}
           {images.length > 1 && (
             <>
               <div 
@@ -442,8 +447,6 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
               />
             </>
           )}
-
-          {/* Slider indikátory */}
           {images.length > 1 && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-30">
               {images.map((_, idx) => (
@@ -474,9 +477,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
           Žiadne profilové fotky
         </div>
       )}
-
       <div className="px-6 mt-6 relative z-10">
-        {/* 2. MENO A BIO */}
         <div className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">{trainer.profiles?.full_name || "Bez mena"}</h1>
           {trainer.bio && <p className="text-zinc-300 text-sm leading-relaxed mt-2">{trainer.bio}</p>}
@@ -486,7 +487,6 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
             {trainer.city || "Slovensko"}
           </div>
           
-          {/* 3. RECENZIE (SÚHRN) - Zobrazí sa len ak sú recenzie */}
           {reviews.length > 0 && (
             <div className="flex items-center gap-2 mt-2">
               <div className="flex text-yellow-400">
@@ -504,8 +504,6 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
             </div>
           )}
         </div>
-
-        {/* 4. SLUŽBY (TLAČIDLÁ) */}
         <div className="mt-8 space-y-3">
           {services.personal_training && (
             <button
@@ -540,8 +538,6 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
             </button>
           )}
         </div>
-
-        {/* 5. RECENZIE (SLIDER) - Skryté ak nie sú recenzie */}
         {reviews.length > 0 && (
           <div className="mt-12">
             <h2 className="text-3xl font-bold text-center mb-6 font-display uppercase tracking-wider">Recenzie</h2>
@@ -568,14 +564,13 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
                   </div>
                 )}
               </div>
+              <button className="w-full text-center text-[10px] text-zinc-500 mt-4 hover:text-zinc-300 transition-colors uppercase tracking-widest font-bold">
+                + Všetky recenzie
+              </button>
             </div>
-            <button className="w-full text-center text-[10px] text-zinc-500 mt-4 hover:text-zinc-300 transition-colors uppercase tracking-widest font-bold">
-              + Všetky recenzie
-            </button>
           </div>
         )}
 
-        {/* 6. VÝSLEDKY KLIENTOV - Skryté ak nie sú fotky */}
         {results.length > 0 && (
           <div className="mt-12">
             <h2 className="text-3xl font-bold text-center mb-6 font-display uppercase tracking-wider">Výsledky klientov</h2>
@@ -592,10 +587,8 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
           </div>
         )}
       </div>
-          </div>
-      </div>
-      
-
+    </div>
+  </div>
 
       <Modal
         isOpen={isPersonalTrainingModalOpen}

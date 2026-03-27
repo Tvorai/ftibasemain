@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
 import { BookingStatus } from "@/lib/types";
 import { sendBookingFollowUpEmailAction, updateBookingStatusAction } from "@/lib/booking/actions";
+import TrainerMealPlanRequests from "../trainer/TrainerMealPlanRequests";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -202,39 +203,41 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
           onPointerDown={() => setOpenMenuId(null)}
         />
       )}
-      {bookings.length > 0 ? (
+
+      <div className="inline-flex rounded-full bg-zinc-950/60 border border-zinc-800 p-1">
+        <button
+          type="button"
+          onClick={() => setActiveCategory("personal_training")}
+          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+            activeCategory === "personal_training" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+          }`}
+        >
+          Osobný tréning
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveCategory("online_consultation")}
+          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+            activeCategory === "online_consultation" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+          }`}
+        >
+          Online konzultácia
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveCategory("meal_plan")}
+          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+            activeCategory === "meal_plan" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+          }`}
+        >
+          Jedálniček na mieru
+        </button>
+      </div>
+
+      {activeCategory === "meal_plan" ? (
+        <TrainerMealPlanRequests trainerId={trainerId} />
+      ) : bookings.length > 0 ? (
         <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
-          <div className="px-4 py-4 border-b border-zinc-800">
-            <div className="inline-flex rounded-full bg-zinc-950/60 border border-zinc-800 p-1">
-              <button
-                type="button"
-                onClick={() => setActiveCategory("personal_training")}
-                className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
-                  activeCategory === "personal_training" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
-                }`}
-              >
-                Osobný tréning
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveCategory("online_consultation")}
-                className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
-                  activeCategory === "online_consultation" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
-                }`}
-              >
-                Online konzultácia
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveCategory("meal_plan")}
-                className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
-                  activeCategory === "meal_plan" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
-                }`}
-              >
-                Jedálniček na mieru
-              </button>
-            </div>
-          </div>
           {filteredBookings.length > 0 ? (
             <table className="w-full text-left text-sm">
               <thead className="bg-zinc-800/80 text-zinc-400 font-bold uppercase tracking-wider text-[10px]">
