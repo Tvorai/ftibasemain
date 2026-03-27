@@ -481,19 +481,41 @@ export async function createTrainerReviewAction(
       authUser.email ||
       "Klient";
 
-    const insertRes = await supabase
-      .from("trainer_reviews")
+    const title = "Recenzia";
+
+    let insertRes = await supabase
+      .from("reviews")
       .insert({
         trainer_id,
         booking_id,
         client_profile_id: authUser.id,
-        client_name: clientName,
         rating,
-        comment,
+        title,
+        body: comment,
+        is_public: true,
         photo_url: photo_url || null,
       })
       .select("id")
       .maybeSingle<{ id: string }>();
+
+    if (insertRes.error) {
+      const msg = insertRes.error.message || "";
+      if (msg.toLowerCase().includes("photo_url") || msg.toLowerCase().includes("column")) {
+        insertRes = await supabase
+          .from("reviews")
+          .insert({
+            trainer_id,
+            booking_id,
+            client_profile_id: authUser.id,
+            rating,
+            title,
+            body: photo_url ? `${comment}\n\n${photo_url}` : comment,
+            is_public: true,
+          })
+          .select("id")
+          .maybeSingle<{ id: string }>();
+      }
+    }
 
     if (insertRes.error) {
       const code = insertRes.error.code;
@@ -549,9 +571,10 @@ export async function listPublicTrainerReviewsAction(
   });
 
   const res = await supabase
-    .from("trainer_reviews")
-    .select("id, client_name, rating, comment, photo_url, created_at")
+    .from("reviews")
+    .select("id, client_profile_id, rating, title, body, is_public, created_at, photo_url")
     .eq("trainer_id", trainer_id)
+    .eq("is_public", true)
     .order("created_at", { ascending: false })
     .limit(limit ?? 20);
 
@@ -563,27 +586,54 @@ export async function listPublicTrainerReviewsAction(
   const rows = Array.isArray(payload) ? (payload as unknown[]) : [];
   const reviews: TrainerReviewItem[] = [];
 
+  const clientIds: string[] = [];
+  for (const item of rows) {
+    if (!item || typeof item !== "object") continue;
+    const anyItem = item as Record<string, unknown>;
+    const clientId = anyItem.client_profile_id;
+    if (typeof clientId === "string") clientIds.push(clientId);
+  }
+
+  const uniqueClientIds = Array.from(new Set(clientIds));
+  const nameByClientId = new Map<string, string>();
+  if (uniqueClientIds.length > 0) {
+    const profRes = await supabase.from("profiles").select("id, full_name").in("id", uniqueClientIds);
+    if (!profRes.error && Array.isArray(profRes.data)) {
+      for (const item of profRes.data as unknown[]) {
+        if (!item || typeof item !== "object") continue;
+        const anyItem = item as Record<string, unknown>;
+        const id = anyItem.id;
+        const fullName = anyItem.full_name;
+        if (typeof id === "string" && typeof fullName === "string" && fullName.trim()) {
+          nameByClientId.set(id, fullName);
+        }
+      }
+    }
+  }
+
   for (const item of rows) {
     if (!item || typeof item !== "object") continue;
     const anyItem = item as Record<string, unknown>;
     const id = anyItem.id;
-    const clientName = anyItem.client_name;
+    const clientId = anyItem.client_profile_id;
     const ratingValue = anyItem.rating;
-    const commentValue = anyItem.comment;
+    const bodyValue = anyItem.body;
     const photoUrl = anyItem.photo_url;
     const createdAt = anyItem.created_at;
     if (typeof id !== "string") continue;
-    if (typeof clientName !== "string") continue;
+    if (typeof clientId !== "string") continue;
     if (typeof ratingValue !== "number") continue;
-    if (typeof commentValue !== "string") continue;
-    if (!(typeof photoUrl === "string" || photoUrl === null)) continue;
+    if (typeof bodyValue !== "string") continue;
+    if (!(typeof photoUrl === "string" || photoUrl === null || typeof photoUrl === "undefined")) continue;
     if (typeof createdAt !== "string") continue;
+
+    const name = nameByClientId.get(clientId) || "Klient";
     reviews.push({
       id,
-      client_name: clientName,
+      client_name: name,
       rating: ratingValue,
-      comment: commentValue,
-      photo_url: photoUrl,
+      comment: bodyValue,
+      photo_url: typeof photoUrl === "string" ? photoUrl : null,
       created_at: createdAt,
     });
   }
