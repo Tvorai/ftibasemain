@@ -92,24 +92,20 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
     void fetchBookings();
   }, [fetchBookings]);
 
-  useEffect(() => {
-    if (!openMenuId) return;
-    const onPointerDown = () => setOpenMenuId(null);
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [openMenuId]);
-
   const updateBookingStatus = useCallback(
     async (bookingId: string, status: BookingStatus) => {
+      console.log("[TrainerBookings] action click:", { bookingId, status });
       setError(null);
       setUpdatingId(bookingId);
       try {
         const sessionRes = await supabase.auth.getSession();
         const accessToken = sessionRes.data.session?.access_token;
         if (!accessToken) {
+          console.log("[TrainerBookings] missing access token");
           throw new Error("Pre túto akciu sa musíte prihlásiť.");
         }
 
+        console.log("[TrainerBookings] sending request:", { bookingId, status });
         const updateRes = await updateBookingStatusAction({
           booking_id: bookingId,
           booking_status: status,
@@ -117,15 +113,19 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
         });
 
         if (updateRes.status !== "success") {
+          console.log("[TrainerBookings] request failed:", updateRes);
           throw new Error(updateRes.message);
         }
 
         if (status === "completed") {
+          console.log("[TrainerBookings] sending follow-up email:", { bookingId });
           await sendBookingFollowUpEmailAction({ booking_id: bookingId, access_token: accessToken });
         }
 
+        console.log("[TrainerBookings] request success:", { bookingId, status });
         await fetchBookings();
       } catch (err: unknown) {
+        console.log("[TrainerBookings] action error:", err);
         setError(err instanceof Error ? err.message : "Nepodarilo sa aktualizovať status rezervácie.");
       } finally {
         setUpdatingId(null);
@@ -140,6 +140,13 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
 
   return (
     <div className="space-y-4">
+      {openMenuId !== null && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => setOpenMenuId(null)}
+          onPointerDown={() => setOpenMenuId(null)}
+        />
+      )}
       {bookings.length > 0 ? (
         <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-zinc-900/50">
           <table className="w-full text-left text-sm">
@@ -207,6 +214,7 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
                                 disabled={updatingId === booking.id}
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  console.log("[TrainerBookings] menu item: completed", booking.id);
                                   void updateBookingStatus(booking.id, "completed");
                                 }}
                               >
@@ -221,6 +229,7 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
                                 disabled={updatingId === booking.id}
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  console.log("[TrainerBookings] menu item: cancelled", booking.id);
                                   void updateBookingStatus(booking.id, "cancelled");
                                 }}
                               >
