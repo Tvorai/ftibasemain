@@ -365,25 +365,18 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                       Napísať recenziu
                     </button>
 
-                    {booking.trainerSlug ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          router.push(`/${booking.trainerSlug}?openBooking=1`);
-                        }}
-                        className="px-4 py-2 rounded-full bg-emerald-500 text-black hover:bg-emerald-400 transition-colors text-xs font-bold uppercase tracking-wider cursor-pointer"
-                      >
-                        Ďalší tréning
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled
-                        className="px-4 py-2 rounded-full bg-emerald-500 text-black transition-colors text-xs font-bold uppercase tracking-wider opacity-50"
-                      >
-                        Ďalší tréning
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = booking.trainerSlug
+                          ? `/${booking.trainerSlug}?openBooking=1`
+                          : `/t/${booking.trainerId}?openBooking=1`;
+                        router.push(target);
+                      }}
+                      className="px-4 py-2 rounded-full bg-emerald-500 text-black hover:bg-emerald-400 transition-colors text-xs font-bold uppercase tracking-wider cursor-pointer"
+                    >
+                      Ďalší tréning
+                    </button>
                   </div>
                 )}
               </div>

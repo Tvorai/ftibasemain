@@ -4,7 +4,13 @@ import { notFound, redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export default async function TrainerIdRedirectPage({ params }: { params: { trainerId: string } }) {
+export default async function TrainerIdRedirectPage({
+  params,
+  searchParams,
+}: {
+  params: { trainerId: string };
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -24,5 +30,15 @@ export default async function TrainerIdRedirectPage({ params }: { params: { trai
 
   if (res.error || !slug) notFound();
 
-  redirect(`/${slug}`);
+  const qs = searchParams
+    ? new URLSearchParams(
+        Object.entries(searchParams).flatMap(([k, v]) => {
+          if (typeof v === "string") return [[k, v]];
+          if (Array.isArray(v)) return v.map((x) => [k, x] as [string, string]);
+          return [];
+        })
+      ).toString()
+    : "";
+
+  redirect(`/${slug}${qs ? `?${qs}` : ""}`);
 }
