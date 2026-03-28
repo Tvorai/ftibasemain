@@ -739,6 +739,16 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
                   )}
                   {brand.description && <p className="text-zinc-400 text-xs mt-1">{brand.description}</p>}
                 </div>
+                {brand.url && (
+                  <a 
+                    href={brand.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="shrink-0 p-2 hover:bg-white/5 rounded-full transition-colors"
+                  >
+                    <Image src="/urlicon.png" alt="Link" width={20} height={20} className="opacity-70 hover:opacity-100 transition-opacity" />
+                  </a>
+                )}
               </div>
             ))}
           </div>

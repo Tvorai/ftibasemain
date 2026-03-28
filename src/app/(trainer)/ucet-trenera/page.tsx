@@ -20,6 +20,7 @@ type Brand = {
   id: string;
   logo: string;
   code: string;
+  url?: string;
 };
 
 type ServiceKey = "personal_training" | "online_consultation" | "meal_plan" | "brands";
@@ -63,6 +64,7 @@ export default function TrainerDashboardPage() {
   const [activeBrandSubTab, setActiveBrandSubTab] = useState<BrandSubTabId>("pridat");
   const [newBrandLogo, setNewBrandLogo] = useState<string | null>(null);
   const [newBrandCode, setNewBrandCode] = useState("");
+  const [newBrandUrl, setNewBrandUrl] = useState("");
   const [brands, setBrands] = useState<Brand[]>([]);
   const brandLogoInputRef = useRef<HTMLInputElement>(null);
   const [servicesVisibility, setServicesVisibility] = useState<ServicesVisibility>(defaultServicesVisibility);
@@ -223,7 +225,8 @@ export default function TrainerDashboardPage() {
       const newBrand: Brand = {
         id: Math.random().toString(36).substr(2, 9),
         logo: newBrandLogo,
-        code: newBrandCode.trim()
+        code: newBrandCode.trim(),
+        url: newBrandUrl.trim()
       };
 
       const updatedBrands = [...brands, newBrand];
@@ -241,6 +244,7 @@ export default function TrainerDashboardPage() {
       setBrands(updatedBrands);
       setNewBrandLogo(null);
       setNewBrandCode("");
+      setNewBrandUrl("");
       alert("Značka úspešne pridaná.");
     } catch (err: any) {
       console.error("Save error:", err);
@@ -675,6 +679,17 @@ export default function TrainerDashboardPage() {
                       value={newBrandCode} 
                       onChange={(e) => setNewBrandCode(e.target.value)}
                       className="w-full bg-zinc-950/50 border border-emerald-500/50 rounded-xl px-6 py-4 text-white text-lg font-bold outline-none focus:ring-1 focus:ring-emerald-500 transition-all uppercase placeholder:text-zinc-700" 
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold ml-2">URL stránky proma</span>
+                    <input 
+                      type="text" 
+                      placeholder="https://www.znacka.sk/akcia"
+                      value={newBrandUrl} 
+                      onChange={(e) => setNewBrandUrl(e.target.value)}
+                      className="w-full bg-zinc-950/50 border border-emerald-500/50 rounded-xl px-6 py-4 text-white text-lg font-bold outline-none focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-zinc-700" 
                     />
                   </div>
 
