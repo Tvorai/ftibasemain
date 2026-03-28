@@ -523,28 +523,63 @@ export default function TrainerDashboardPage() {
           <div className="flex flex-col gap-4 w-full max-w-[400px] ml-auto">
             <div className="flex items-center justify-between p-4 border border-emerald-500/30 rounded-xl bg-zinc-900/30 backdrop-blur-sm">
               <span className="text-white font-medium">Rezervovať osobný tréning</span>
-              <div className="w-12 h-6 bg-emerald-500 rounded-full relative">
-                <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full" />
-              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={servicesVisibility.personal_training}
+                onClick={() => toggleService("personal_training")}
+                disabled={saving}
+                className={`relative w-12 h-6 rounded-full transition-colors ${servicesVisibility.personal_training ? "bg-emerald-500" : "bg-zinc-700"} disabled:opacity-60 disabled:cursor-not-allowed`}
+              >
+                <span
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${servicesVisibility.personal_training ? "translate-x-6" : "translate-x-0"}`}
+                />
+              </button>
             </div>
-            {/* Online konzultácia skrytá na požiadavku */}
-            <div className="hidden items-center justify-between p-4 border border-zinc-800 rounded-xl bg-zinc-900/10">
-              <span className="text-zinc-500 font-medium">Rezervovať online konzultáciu</span>
-              <div className="w-12 h-6 bg-zinc-700 rounded-full relative">
-                <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full" />
-              </div>
+            <div className="flex items-center justify-between p-4 border border-emerald-500/30 rounded-xl bg-zinc-900/30 backdrop-blur-sm">
+              <span className="text-white font-medium">Rezervovať online konzultáciu</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={servicesVisibility.online_consultation}
+                onClick={() => toggleService("online_consultation")}
+                disabled={saving}
+                className={`relative w-12 h-6 rounded-full transition-colors ${servicesVisibility.online_consultation ? "bg-emerald-500" : "bg-zinc-700"} disabled:opacity-60 disabled:cursor-not-allowed`}
+              >
+                <span
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${servicesVisibility.online_consultation ? "translate-x-6" : "translate-x-0"}`}
+                />
+              </button>
             </div>
             <div className="flex items-center justify-between p-4 border border-emerald-500/30 rounded-xl bg-zinc-900/30 backdrop-blur-sm">
               <span className="text-white font-medium">Objednať jedálniček</span>
-              <div className="w-12 h-6 bg-emerald-500 rounded-full relative">
-                <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full" />
-              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={servicesVisibility.meal_plan}
+                onClick={() => toggleService("meal_plan")}
+                disabled={saving}
+                className={`relative w-12 h-6 rounded-full transition-colors ${servicesVisibility.meal_plan ? "bg-emerald-500" : "bg-zinc-700"} disabled:opacity-60 disabled:cursor-not-allowed`}
+              >
+                <span
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${servicesVisibility.meal_plan ? "translate-x-6" : "translate-x-0"}`}
+                />
+              </button>
             </div>
             <div className="flex items-center justify-between p-4 border border-emerald-500/30 rounded-xl bg-zinc-900/30 backdrop-blur-sm">
               <span className="text-white font-medium">Moje odporúčané značky</span>
-              <div className="w-12 h-6 bg-emerald-500 rounded-full relative">
-                <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full" />
-              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={servicesVisibility.brands}
+                onClick={() => toggleService("brands")}
+                disabled={saving}
+                className={`relative w-12 h-6 rounded-full transition-colors ${servicesVisibility.brands ? "bg-emerald-500" : "bg-zinc-700"} disabled:opacity-60 disabled:cursor-not-allowed`}
+              >
+                <span
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${servicesVisibility.brands ? "translate-x-6" : "translate-x-0"}`}
+                />
+              </button>
             </div>
 
             <div className="flex justify-end mt-6">
