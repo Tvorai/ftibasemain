@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
 import { BookingStatus } from "@/lib/types";
@@ -435,9 +436,12 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Tréner</p>
-                  <p className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">
+                  <Link
+                    href={item.trainerSlug ? `/${item.trainerSlug}` : `/t/${item.trainerId}`}
+                    className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors"
+                  >
                     {item.trainerName}
-                  </p>
+                  </Link>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase ${
                   item.status === "confirmed" ? "bg-emerald-500/20 text-emerald-500" :
