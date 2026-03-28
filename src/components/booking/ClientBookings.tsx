@@ -20,6 +20,7 @@ type ClientBookingItem = {
   startsAt: string;
   endsAt: string;
   status: BookingStatus;
+  serviceType: "personal" | "online" | null;
   trainerId: string;
   trainerName: string;
   trainerEmail: string | null;
@@ -40,6 +41,7 @@ type BookingRow = {
   starts_at: string;
   ends_at: string;
   booking_status: string;
+  service_type: string | null;
 };
 
 const bookingStatuses: readonly BookingStatus[] = ["pending", "confirmed", "completed", "cancelled"];
@@ -55,16 +57,18 @@ function toBookingRow(value: unknown): BookingRow | null {
   const startsAt = value.starts_at;
   const endsAt = value.ends_at;
   const status = value.booking_status;
+  const serviceType = value.service_type;
   if (
     typeof id !== "string" ||
     typeof trainerId !== "string" ||
     typeof startsAt !== "string" ||
     typeof endsAt !== "string" ||
-    typeof status !== "string"
+    typeof status !== "string" ||
+    !(typeof serviceType === "string" || serviceType === null)
   ) {
     return null;
   }
-  return { id, trainer_id: trainerId, starts_at: startsAt, ends_at: endsAt, booking_status: status };
+  return { id, trainer_id: trainerId, starts_at: startsAt, ends_at: endsAt, booking_status: status, service_type: serviceType };
 }
 
 type TrainerContact = { name: string; email: string | null; slug: string | null };
@@ -131,6 +135,9 @@ async function resizeImageDataUrl(dataUrl: string, maxSize: number = 1024): Prom
 export default function ClientBookings({ userId, userEmail }: ClientBookingsProps) {
   const router = useRouter();
   const [bookings, setBookings] = useState<ClientBookingItem[]>([]);
+  const [activeCategory, setActiveCategory] = useState<"personal_training" | "online_consultation" | "history">(
+    "personal_training"
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -186,6 +193,9 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                   if (typeof x.startsAt !== "string") return null;
                   if (typeof x.endsAt !== "string") return null;
                   if (!isBookingStatus(x.status)) return null;
+                  const serviceTypeRaw = isRecord(x) ? x.serviceType : null;
+                  const serviceType =
+                    serviceTypeRaw === "personal" || serviceTypeRaw === "online" ? serviceTypeRaw : null;
                   if (typeof x.trainerName !== "string") return null;
                   if (!(typeof x.trainerEmail === "string" || x.trainerEmail === null)) return null;
                   return {
@@ -194,6 +204,7 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                     startsAt: x.startsAt,
                     endsAt: x.endsAt,
                     status: x.status,
+                    serviceType,
                     trainerName: x.trainerName,
                     trainerEmail: x.trainerEmail,
                     trainerSlug: null,
@@ -231,7 +242,7 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
 
         const query = supabase
           .from("bookings")
-          .select("id, trainer_id, starts_at, ends_at, booking_status, client_profile_id, client_email")
+          .select("id, trainer_id, starts_at, ends_at, booking_status, service_type, client_profile_id, client_email")
           .order("starts_at", { ascending: false });
 
         const trimmedEmail = userEmail.trim().toLowerCase();
@@ -266,12 +277,14 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
 
         const mappedFromDb: ClientBookingItem[] = rows.map((r: BookingRow) => {
           const contact = contactsByTrainerId.get(r.trainer_id);
+          const serviceType = r.service_type === "personal" || r.service_type === "online" ? r.service_type : null;
           return {
             id: r.id,
             trainerId: r.trainer_id,
             startsAt: r.starts_at,
             endsAt: r.ends_at,
             status: isBookingStatus(r.booking_status) ? r.booking_status : "pending",
+            serviceType,
             trainerName: contact?.name || "Neznámy tréner",
             trainerEmail: contact?.email || null,
             trainerSlug: contact?.slug || null,
@@ -295,11 +308,50 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
   if (loading) return <div className="text-zinc-500 animate-pulse">Načítavam služby...</div>;
   if (error) return <div className="text-red-400 text-sm">Chyba: {error}</div>;
 
+  const categorized = bookings.map((b) => {
+    const category =
+      b.serviceType === "online" ? "online_consultation" : b.serviceType === "personal" ? "personal_training" : "personal_training";
+    return { ...b, category } as const;
+  });
+
+  const filteredBookings =
+    activeCategory === "history" ? categorized : categorized.filter((b) => b.category === activeCategory);
+
   return (
     <div className="space-y-4">
+      <div className="inline-flex rounded-full bg-zinc-950/60 border border-zinc-800 p-1">
+        <button
+          type="button"
+          onClick={() => setActiveCategory("personal_training")}
+          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+            activeCategory === "personal_training" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+          }`}
+        >
+          Osobný tréning
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveCategory("online_consultation")}
+          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+            activeCategory === "online_consultation" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+          }`}
+        >
+          Online konzultácia
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveCategory("history")}
+          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+            activeCategory === "history" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+          }`}
+        >
+          História
+        </button>
+      </div>
+
       {bookings.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          {bookings.map((booking) => (
+          {filteredBookings.map((booking) => (
             <div key={booking.id} className="p-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur-sm group hover:border-emerald-500/30 transition-all">
               <div className="flex justify-between items-start mb-4">
                 <div>
@@ -383,9 +435,13 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
             </div>
           ))}
         </div>
-      ) : (
+      ) : null}
+
+      {bookings.length > 0 && filteredBookings.length === 0 ? (
+        <p className="text-zinc-500 italic text-center py-10">V tejto kategórii nemáte žiadne služby.</p>
+      ) : bookings.length === 0 ? (
         <p className="text-zinc-500 italic text-center py-10">Zatiaľ ste si nezarezervovali žiadne služby.</p>
-      )}
+      ) : null}
 
       <Modal
         isOpen={reviewOpen}

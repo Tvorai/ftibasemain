@@ -7,6 +7,7 @@ type BookingRow = {
   starts_at: string;
   ends_at: string;
   booking_status: string;
+  service_type: string | null;
 };
 
 type ClientBookingItem = {
@@ -15,6 +16,7 @@ type ClientBookingItem = {
   startsAt: string;
   endsAt: string;
   status: string;
+  serviceType: string | null;
   trainerName: string;
   trainerEmail: string | null;
 };
@@ -30,16 +32,18 @@ function toBookingRow(value: unknown): BookingRow | null {
   const startsAt = value.starts_at;
   const endsAt = value.ends_at;
   const status = value.booking_status;
+  const serviceType = value.service_type;
   if (
     typeof id !== "string" ||
     typeof trainerId !== "string" ||
     typeof startsAt !== "string" ||
     typeof endsAt !== "string" ||
-    typeof status !== "string"
+    typeof status !== "string" ||
+    !(typeof serviceType === "string" || serviceType === null)
   ) {
     return null;
   }
-  return { id, trainer_id: trainerId, starts_at: startsAt, ends_at: endsAt, booking_status: status };
+  return { id, trainer_id: trainerId, starts_at: startsAt, ends_at: endsAt, booking_status: status, service_type: serviceType };
 }
 
 type TrainerContact = { name: string; email: string | null };
@@ -99,7 +103,7 @@ export async function GET(request: Request) {
 
   const bookingsRes = await supabase
     .from("bookings")
-    .select("id, trainer_id, starts_at, ends_at, booking_status")
+    .select("id, trainer_id, starts_at, ends_at, booking_status, service_type")
     .eq("client_profile_id", user.id)
     .order("starts_at", { ascending: false });
 
@@ -139,6 +143,7 @@ export async function GET(request: Request) {
       startsAt: r.starts_at,
       endsAt: r.ends_at,
       status: r.booking_status,
+      serviceType: r.service_type,
       trainerName: contact?.name || "Neznámy tréner",
       trainerEmail: contact?.email || null,
     };
