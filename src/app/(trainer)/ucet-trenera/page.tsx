@@ -922,7 +922,7 @@ export default function TrainerDashboardPage() {
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setIsMobileNavOpen(false)}
           />
-          <div className="absolute top-0 left-0 h-full w-[82vw] max-w-[320px] bg-zinc-950 border-r border-white/10 p-6">
+          <div className="absolute top-0 left-0 h-full w-[82vw] max-w-[320px] bg-zinc-950 border-r border-white/10 p-6 flex flex-col min-h-0 overflow-hidden">
             <div className="flex items-center justify-between mb-10">
               <Image src="/Fitbase logo.png" alt="Fitbase" width={140} height={32} priority className="h-auto w-[120px]" />
               <button
@@ -942,27 +942,29 @@ export default function TrainerDashboardPage() {
               <div className="text-lg font-bold text-white truncate">{fullName || "Tréner"}</div>
             </div>
 
-            <nav className="flex flex-col gap-2">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    setIsMobileNavOpen(false);
-                  }}
-                  className={`text-left px-4 py-3 rounded-2xl font-display text-xl tracking-wide transition-colors ${
-                    activeTab === tab.id ? "bg-emerald-500 text-black" : "text-white hover:bg-white/5"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mx-2 px-2">
+              <nav className="flex flex-col gap-2 pb-6">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setIsMobileNavOpen(false);
+                    }}
+                    className={`text-left px-4 py-3 rounded-2xl font-display text-xl tracking-wide transition-colors ${
+                      activeTab === tab.id ? "bg-emerald-500 text-black" : "text-white hover:bg-white/5"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
           </div>
         </div>
       )}
 
-      <aside className="hidden md:flex w-[280px] p-10 flex-col gap-16 shrink-0">
+      <aside className="hidden md:flex w-[280px] p-10 flex-col gap-16 shrink-0 h-screen overflow-y-auto">
         <Image src="/Fitbase logo.png" alt="Fitbase" width={150} height={35} priority className="h-auto w-[150px]" />
         <nav className="flex flex-col gap-4">
           {tabs.map((tab) => (
