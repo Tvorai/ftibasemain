@@ -33,7 +33,14 @@ export default function CalendarSettings({
   type TimeSlot = { hour: number; minute: number };
   type DayAvailability = { isDayActive: boolean; activeSlots: TimeSlot[] };
   type AvailabilityState = Record<number, DayAvailability>;
-  type AvailabilitySlotRow = { day_of_week: number | null; start_time: string | null; end_time: string | null };
+  type AvailabilitySlotRow = { day_of_week: number | string | null; start_time: string | null; end_time: string | null };
+  type ExpandedRowDebug = {
+    raw: AvailabilitySlotRow;
+    normalizedDayOfWeek: number | null;
+    normalizedStart: string | null;
+    normalizedEnd: string | null;
+    generatedActiveSlots: string[];
+  };
 
   const debug = process.env.NODE_ENV !== "production";
 
@@ -59,6 +66,23 @@ export default function CalendarSettings({
     return `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
   }, []);
 
+  const normalizeDayOfWeek = useCallback((value: number | string | null): number | null => {
+    if (typeof value === "number") {
+      if (!Number.isInteger(value)) return null;
+      if (value < 1 || value > 7) return null;
+      return value;
+    }
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return null;
+      const parsed = Number.parseInt(trimmed, 10);
+      if (!Number.isFinite(parsed)) return null;
+      if (parsed < 1 || parsed > 7) return null;
+      return parsed;
+    }
+    return null;
+  }, []);
+
   const timeLabels = useMemo(() => {
     const slotsPerHour = Math.max(1, Math.floor(60 / slotDurationMinutes));
     return HOURS.flatMap((hour) =>
@@ -76,33 +100,46 @@ export default function CalendarSettings({
     const startRaw = record.start_time;
     const endRaw = record.end_time;
 
-    const day_of_week = typeof dayRaw === "number" ? dayRaw : null;
+    const day_of_week = typeof dayRaw === "number" || typeof dayRaw === "string" ? dayRaw : null;
     const start_time = typeof startRaw === "string" ? startRaw : null;
     const end_time = typeof endRaw === "string" ? endRaw : null;
     return { day_of_week, start_time, end_time };
   }, []);
 
   const buildAvailabilityFromRows = useCallback(
-    (rows: AvailabilitySlotRow[]): AvailabilityState => {
+    (rows: AvailabilitySlotRow[]): { availability: AvailabilityState; expanded: ExpandedRowDebug[] } => {
       const currentAvailability = createEmptyAvailability();
+      const expanded: ExpandedRowDebug[] = [];
 
       rows.forEach((slot) => {
-        const dayId = slot.day_of_week;
-        if (!dayId || !currentAvailability[dayId]) return;
         if (!slot.start_time || !slot.end_time) return;
+
+        const dayId = normalizeDayOfWeek(slot.day_of_week);
+        if (!dayId || !currentAvailability[dayId]) return;
 
         const start = parseDbTime(slot.start_time);
         const end = parseDbTime(slot.end_time);
-        if (!start || !end) return;
+        if (!start || !end) {
+          expanded.push({
+            raw: slot,
+            normalizedDayOfWeek: dayId,
+            normalizedStart: start ? toTimeLabel(start.hour, start.minute) : null,
+            normalizedEnd: end ? toTimeLabel(end.hour, end.minute) : null,
+            generatedActiveSlots: [],
+          });
+          return;
+        }
 
         currentAvailability[dayId].isDayActive = true;
 
         let currentH = start.hour;
         let currentM = start.minute;
+        const generatedLabels: string[] = [];
 
         while (currentH < end.hour || (currentH === end.hour && currentM < end.minute)) {
           if (HOURS.includes(currentH)) {
             currentAvailability[dayId].activeSlots.push({ hour: currentH, minute: currentM });
+            generatedLabels.push(toTimeLabel(currentH, currentM));
           }
 
           currentM += slotDurationMinutes;
@@ -111,11 +148,35 @@ export default function CalendarSettings({
             currentM = currentM % 60;
           }
         }
+
+        expanded.push({
+          raw: slot,
+          normalizedDayOfWeek: dayId,
+          normalizedStart: toTimeLabel(start.hour, start.minute),
+          normalizedEnd: toTimeLabel(end.hour, end.minute),
+          generatedActiveSlots: generatedLabels,
+        });
       });
 
-      return currentAvailability;
+      DAYS.forEach((day) => {
+        const dayState = currentAvailability[day.id];
+        if (!dayState) return;
+        const seen = new Set<string>();
+        const deduped = dayState.activeSlots
+          .slice()
+          .sort((a, b) => (a.hour !== b.hour ? a.hour - b.hour : a.minute - b.minute))
+          .filter((slot) => {
+            const key = `${slot.hour}:${slot.minute}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+        currentAvailability[day.id] = { ...dayState, activeSlots: deduped };
+      });
+
+      return { availability: currentAvailability, expanded };
     },
-    [createEmptyAvailability, parseDbTime, slotDurationMinutes]
+    [createEmptyAvailability, normalizeDayOfWeek, parseDbTime, slotDurationMinutes, toTimeLabel]
   );
 
   // Inicializujeme stav s prázdnymi dňami, aby sme predišli undefined chybám pri prvom renderi
@@ -140,7 +201,7 @@ export default function CalendarSettings({
 
         const rawRows = Array.isArray(data) ? data : [];
         const rows = rawRows.map(toAvailabilitySlotRow).filter((row): row is AvailabilitySlotRow => row !== null);
-        const nextAvailability = buildAvailabilityFromRows(rows);
+        const { availability: nextAvailability, expanded } = buildAvailabilityFromRows(rows);
 
         if (debug) {
           console.log("[CalendarSettings] loadAvailability", {
@@ -151,6 +212,7 @@ export default function CalendarSettings({
             timeLabels,
             rawRows,
             normalizedRows: rows,
+            expandedRows: expanded,
             transformedAvailability: nextAvailability,
             sampleTimeCompare: { ui: "05:00", db: "05:00:00", normalizedDb: parseDbTime("05:00:00") },
           });
