@@ -62,7 +62,7 @@ export default function UserAccountPage() {
       const { data } = await supabase.auth.getUser();
       const user = data.user;
       if (!user) {
-        router.push("/prihlasenie");
+        router.replace("/prihlasenie");
         return;
       }
 
@@ -93,7 +93,7 @@ export default function UserAccountPage() {
       const { data } = await supabase.auth.getUser();
       const user = data.user;
       if (!user) {
-        router.push("/prihlasenie");
+        router.replace("/prihlasenie");
         return;
       }
 

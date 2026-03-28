@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
 import TrainerCalendar from "@/components/trainer/TrainerCalendar";
@@ -45,6 +46,7 @@ function toSlug(input: string) {
 }
 
 export default function TrainerDashboardPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>("profil");
   const [activeCalendarTab, setActiveCalendarTab] = useState<CalendarTabId>("moj_kalendar");
   const [loading, setLoading] = useState(true);
@@ -78,7 +80,10 @@ export default function TrainerDashboardPage() {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        router.replace("/prihlasenie");
+        return;
+      }
 
       const { data: trainer, error } = await supabase
         .from("trainers")
@@ -115,7 +120,7 @@ export default function TrainerDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     loadProfile();
