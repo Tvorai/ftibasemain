@@ -16,6 +16,7 @@ interface ClientBookingsProps {
 }
 
 type ClientBookingItem = {
+  kind: "booking";
   id: string;
   startsAt: string;
   endsAt: string;
@@ -26,6 +27,19 @@ type ClientBookingItem = {
   trainerEmail: string | null;
   trainerSlug: string | null;
 };
+
+type ClientMealPlanItem = {
+  kind: "meal_plan";
+  id: string;
+  createdAt: string;
+  status: string;
+  trainerId: string;
+  trainerName: string;
+  trainerEmail: string | null;
+  trainerSlug: string | null;
+};
+
+type ClientServiceItem = ClientBookingItem | ClientMealPlanItem;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -42,6 +56,13 @@ type BookingRow = {
   ends_at: string;
   booking_status: string;
   service_type: string | null;
+};
+
+type MealPlanRow = {
+  id: string;
+  trainer_id: string;
+  created_at: string;
+  status: string;
 };
 
 const bookingStatuses: readonly BookingStatus[] = ["pending", "confirmed", "completed", "cancelled"];
@@ -69,6 +90,18 @@ function toBookingRow(value: unknown): BookingRow | null {
     return null;
   }
   return { id, trainer_id: trainerId, starts_at: startsAt, ends_at: endsAt, booking_status: status, service_type: serviceType };
+}
+
+function toMealPlanRow(value: unknown): MealPlanRow | null {
+  if (!isRecord(value)) return null;
+  const id = value.id;
+  const trainerId = value.trainer_id;
+  const createdAt = value.created_at;
+  const status = value.status;
+  if (typeof id !== "string" || typeof trainerId !== "string" || typeof createdAt !== "string" || typeof status !== "string") {
+    return null;
+  }
+  return { id, trainer_id: trainerId, created_at: createdAt, status };
 }
 
 type TrainerContact = { name: string; email: string | null; slug: string | null };
@@ -134,10 +167,10 @@ async function resizeImageDataUrl(dataUrl: string, maxSize: number = 1024): Prom
 
 export default function ClientBookings({ userId, userEmail }: ClientBookingsProps) {
   const router = useRouter();
-  const [bookings, setBookings] = useState<ClientBookingItem[]>([]);
-  const [activeCategory, setActiveCategory] = useState<"personal_training" | "online_consultation" | "history">(
-    "personal_training"
-  );
+  const [items, setItems] = useState<ClientServiceItem[]>([]);
+  const [activeCategory, setActiveCategory] = useState<
+    "personal_training" | "online_consultation" | "meal_plan" | "history"
+  >("personal_training");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -164,7 +197,7 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
         console.log("[ClientBookings] has session:", Boolean(sessionRes.data.session), "has accessToken:", Boolean(accessToken));
 
         if (!accessToken) {
-          setBookings([]);
+          setItems([]);
           setError("Pre zobrazenie rezervácií sa musíte prihlásiť.");
           return;
         }
@@ -186,31 +219,54 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
         } else {
           const mappedFromApi = Array.isArray(apiPayload)
             ? apiPayload
-                .map((x): ClientBookingItem | null => {
+                .map((x): ClientServiceItem | null => {
                   if (!isRecord(x)) return null;
-                  if (typeof x.id !== "string") return null;
-                  if (typeof x.trainerId !== "string") return null;
-                  if (typeof x.startsAt !== "string") return null;
-                  if (typeof x.endsAt !== "string") return null;
-                  if (!isBookingStatus(x.status)) return null;
-                  const serviceTypeRaw = isRecord(x) ? x.serviceType : null;
-                  const serviceType =
-                    serviceTypeRaw === "personal" || serviceTypeRaw === "online" ? serviceTypeRaw : null;
-                  if (typeof x.trainerName !== "string") return null;
-                  if (!(typeof x.trainerEmail === "string" || x.trainerEmail === null)) return null;
-                  return {
-                    id: x.id,
-                    trainerId: x.trainerId,
-                    startsAt: x.startsAt,
-                    endsAt: x.endsAt,
-                    status: x.status,
-                    serviceType,
-                    trainerName: x.trainerName,
-                    trainerEmail: x.trainerEmail,
-                    trainerSlug: null,
-                  };
+                  const kind = x.kind;
+                  if (kind === "booking") {
+                    if (typeof x.id !== "string") return null;
+                    if (typeof x.trainerId !== "string") return null;
+                    if (typeof x.startsAt !== "string") return null;
+                    if (typeof x.endsAt !== "string") return null;
+                    if (!isBookingStatus(x.status)) return null;
+                    const serviceTypeRaw = x.serviceType;
+                    const serviceType =
+                      serviceTypeRaw === "personal" || serviceTypeRaw === "online" ? serviceTypeRaw : null;
+                    if (typeof x.trainerName !== "string") return null;
+                    if (!(typeof x.trainerEmail === "string" || x.trainerEmail === null)) return null;
+                    return {
+                      kind: "booking",
+                      id: x.id,
+                      trainerId: x.trainerId,
+                      startsAt: x.startsAt,
+                      endsAt: x.endsAt,
+                      status: x.status,
+                      serviceType,
+                      trainerName: x.trainerName,
+                      trainerEmail: x.trainerEmail,
+                      trainerSlug: null,
+                    };
+                  }
+                  if (kind === "meal_plan") {
+                    if (typeof x.id !== "string") return null;
+                    if (typeof x.trainerId !== "string") return null;
+                    if (typeof x.createdAt !== "string") return null;
+                    if (typeof x.status !== "string") return null;
+                    if (typeof x.trainerName !== "string") return null;
+                    if (!(typeof x.trainerEmail === "string" || x.trainerEmail === null)) return null;
+                    return {
+                      kind: "meal_plan",
+                      id: x.id,
+                      trainerId: x.trainerId,
+                      createdAt: x.createdAt,
+                      status: x.status,
+                      trainerName: x.trainerName,
+                      trainerEmail: x.trainerEmail,
+                      trainerSlug: null,
+                    };
+                  }
+                  return null;
                 })
-                .filter((x): x is ClientBookingItem => x !== null)
+                .filter((x): x is ClientServiceItem => x !== null)
             : [];
 
           const trainerIds = Array.from(new Set(mappedFromApi.map((b) => b.trainerId))).filter((id) => id);
@@ -230,7 +286,7 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
             }
           }
 
-          setBookings(
+          setItems(
             mappedFromApi.map((b) => ({
               ...b,
               trainerSlug: slugsByTrainerId.get(b.trainerId) || null,
@@ -279,6 +335,7 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
           const contact = contactsByTrainerId.get(r.trainer_id);
           const serviceType = r.service_type === "personal" || r.service_type === "online" ? r.service_type : null;
           return {
+            kind: "booking",
             id: r.id,
             trainerId: r.trainer_id,
             startsAt: r.starts_at,
@@ -291,7 +348,7 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
           };
         });
 
-        setBookings(mappedFromDb);
+        setItems(mappedFromDb);
       } catch (err: unknown) {
         console.error("[ClientBookings] error:", err);
         setError(err instanceof Error ? err.message : "Nepodarilo sa načítať vaše služby.");
@@ -308,14 +365,27 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
   if (loading) return <div className="text-zinc-500 animate-pulse">Načítavam služby...</div>;
   if (error) return <div className="text-red-400 text-sm">Chyba: {error}</div>;
 
-  const categorized = bookings.map((b) => {
-    const category =
-      b.serviceType === "online" ? "online_consultation" : b.serviceType === "personal" ? "personal_training" : "personal_training";
-    return { ...b, category } as const;
+  const categorized = items.map((item) => {
+    if (item.kind === "meal_plan") {
+      return { ...item, category: "meal_plan" as const, isHistory: item.status === "completed" || item.status === "cancelled" };
+    }
+    const category = item.serviceType === "online" ? "online_consultation" : "personal_training";
+    const isHistory = item.status === "completed" || item.status === "cancelled";
+    return { ...item, category, isHistory } as const;
   });
 
-  const filteredBookings =
-    activeCategory === "history" ? categorized : categorized.filter((b) => b.category === activeCategory);
+  const filteredItems =
+    activeCategory === "history"
+      ? categorized.filter((x) => x.isHistory)
+      : categorized.filter((x) => x.category === activeCategory && !x.isHistory);
+
+  const sortedItems = filteredItems.slice().sort((a, b) => {
+    const aTs =
+      a.kind === "booking" ? new Date(a.startsAt).getTime() : new Date(a.createdAt).getTime();
+    const bTs =
+      b.kind === "booking" ? new Date(b.startsAt).getTime() : new Date(b.createdAt).getTime();
+    return activeCategory === "history" ? bTs - aTs : aTs - bTs;
+  });
 
   return (
     <div className="space-y-4">
@@ -340,6 +410,15 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
         </button>
         <button
           type="button"
+          onClick={() => setActiveCategory("meal_plan")}
+          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+            activeCategory === "meal_plan" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+          }`}
+        >
+          Objednávka jedálničku
+        </button>
+        <button
+          type="button"
           onClick={() => setActiveCategory("history")}
           className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
             activeCategory === "history" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
@@ -349,25 +428,25 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
         </button>
       </div>
 
-      {bookings.length > 0 ? (
+      {items.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          {filteredBookings.map((booking) => (
-            <div key={booking.id} className="p-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur-sm group hover:border-emerald-500/30 transition-all">
+          {sortedItems.map((item) => (
+            <div key={`${item.kind}-${item.id}`} className="p-5 rounded-2xl border border-zinc-800 bg-zinc-900/40 backdrop-blur-sm group hover:border-emerald-500/30 transition-all">
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Tréner</p>
                   <p className="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors">
-                    {booking.trainerName}
+                    {item.trainerName}
                   </p>
                 </div>
                 <span className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase ${
-                  booking.status === "confirmed" ? "bg-emerald-500/20 text-emerald-500" :
-                  booking.status === "pending" ? "bg-yellow-500/20 text-yellow-500" :
-                  booking.status === "completed" ? "bg-sky-500/20 text-sky-400" :
-                  booking.status === "cancelled" ? "bg-red-500/20 text-red-400" :
+                  item.status === "confirmed" ? "bg-emerald-500/20 text-emerald-500" :
+                  item.status === "pending" ? "bg-yellow-500/20 text-yellow-500" :
+                  item.status === "completed" ? "bg-sky-500/20 text-sky-400" :
+                  item.status === "cancelled" ? "bg-red-500/20 text-red-400" :
                   "bg-zinc-800 text-zinc-500"
                 }`}>
-                  {booking.status}
+                  {item.status}
                 </span>
               </div>
               
@@ -379,10 +458,19 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                     </svg>
                   </div>
                   <div>
-                    <p className="font-bold text-zinc-200">{new Date(booking.startsAt).toLocaleDateString("sk-SK")}</p>
-                    <p className="text-xs text-zinc-500">
-                      {new Date(booking.startsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })} - {new Date(booking.endsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
-                    </p>
+                    {item.kind === "booking" ? (
+                      <>
+                        <p className="font-bold text-zinc-200">{new Date(item.startsAt).toLocaleDateString("sk-SK")}</p>
+                        <p className="text-xs text-zinc-500">
+                          {new Date(item.startsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })} - {new Date(item.endsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-bold text-zinc-200">{new Date(item.createdAt).toLocaleDateString("sk-SK")}</p>
+                        <p className="text-xs text-zinc-500">Objednávka jedálničku</p>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -392,18 +480,18 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  <p className="text-zinc-400">{booking.trainerEmail || "Bez kontaktu"}</p>
+                  <p className="text-zinc-400">{item.trainerEmail || "Bez kontaktu"}</p>
                 </div>
 
-                {booking.status === "completed" && (
+                {item.kind === "booking" && item.status === "completed" && (
                   <div className="pt-3 flex flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={() => {
                         setReviewBooking({
-                          bookingId: booking.id,
-                          trainerId: booking.trainerId,
-                          trainerName: booking.trainerName,
+                          bookingId: item.id,
+                          trainerId: item.trainerId,
+                          trainerName: item.trainerName,
                         });
                         setReviewRating(0);
                         setReviewHover(0);
@@ -420,9 +508,9 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                     <button
                       type="button"
                       onClick={() => {
-                        const target = booking.trainerSlug
-                          ? `/${booking.trainerSlug}?openBooking=1`
-                          : `/t/${booking.trainerId}?openBooking=1`;
+                        const target = item.trainerSlug
+                          ? `/${item.trainerSlug}?openBooking=1`
+                          : `/t/${item.trainerId}?openBooking=1`;
                         router.push(target);
                       }}
                       className="px-4 py-2 rounded-full bg-emerald-500 text-black hover:bg-emerald-400 transition-colors text-xs font-bold uppercase tracking-wider cursor-pointer"
@@ -437,9 +525,9 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
         </div>
       ) : null}
 
-      {bookings.length > 0 && filteredBookings.length === 0 ? (
+      {items.length > 0 && sortedItems.length === 0 ? (
         <p className="text-zinc-500 italic text-center py-10">V tejto kategórii nemáte žiadne služby.</p>
-      ) : bookings.length === 0 ? (
+      ) : items.length === 0 ? (
         <p className="text-zinc-500 italic text-center py-10">Zatiaľ ste si nezarezervovali žiadne služby.</p>
       ) : null}
 
