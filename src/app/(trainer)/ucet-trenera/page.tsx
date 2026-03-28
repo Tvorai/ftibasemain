@@ -467,69 +467,120 @@ export default function TrainerDashboardPage() {
     switch (activeTab) {
       case "profil":
         return (
-          <div className="flex flex-col gap-6 w-full max-w-[520px] ml-auto">
-            <div className="flex items-center gap-2 bg-emerald-500 rounded-full px-4 py-2 w-full overflow-hidden">
-              <span className="text-black text-xs font-medium truncate flex-1">
-                Link vášho profilu: <span className="font-bold">{profileUrl}</span>
-              </span>
-              <button onClick={() => navigator.clipboard.writeText(profileUrl)} className="bg-black text-white text-[10px] px-3 py-1 rounded-full shrink-0">Kopírovať</button>
-            </div>
-            {/* Form sekcia */}
-            <div className="space-y-4">
-              <div className="relative w-full">
-                <input
-                  type="text"
-                  placeholder="Vaše meno a priezvisko"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-transparent border border-emerald-500 rounded-full px-6 py-3 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
-                />
+          <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
+            <h2 className="text-4xl font-display uppercase tracking-wider mb-2 text-emerald-400">Môj profil</h2>
+
+            <div className="flex items-center justify-between gap-3 border border-emerald-500/30 rounded-2xl bg-zinc-900/30 backdrop-blur-sm px-4 py-3">
+              <div className="min-w-0">
+                <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Link vášho profilu</div>
+                <div className="text-white font-bold truncate">{profileUrl}</div>
               </div>
-              <div className="relative w-full">
-                <input
-                  type="text"
-                  placeholder="Lokalita (napr. Bratislava)"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full bg-transparent border border-emerald-500 rounded-full px-6 py-3 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
-                />
-              </div>
-              <div className="relative w-full">
-                <input
-                  type="text"
-                  placeholder="Používateľské meno (URL slug)"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-transparent border border-emerald-500 rounded-full px-6 py-3 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
-                />
-              </div>
-              <textarea placeholder="Bio" value={bio} onChange={(e) => setBio(e.target.value.slice(0, 100))} maxLength={100} className="w-full bg-transparent border border-emerald-500 rounded-3xl px-6 py-3 text-white outline-none min-h-[80px] resize-none" />
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(profileUrl)}
+                className="shrink-0 px-4 py-2 rounded-full bg-emerald-500 text-black text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-400 transition-colors"
+              >
+                Kopírovať
+              </button>
             </div>
-            <div onClick={() => fileInputRef.current?.click()} className="w-full aspect-[16/9] border border-emerald-500 rounded-[40px] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-500/5 transition-colors group overflow-hidden relative">
-              <div className="text-emerald-500 text-5xl font-light mb-1">+</div>
-              <div className="text-zinc-500 text-sm uppercase tracking-widest">Nahrajte váš profilové fotky</div>
-            </div>
-            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-            <div className="flex justify-center gap-3 w-full">
-              {images.map((img, idx) => (
-                <div key={idx} className="relative w-16 h-16 md:w-20 md:h-20 rounded-full border border-emerald-500 overflow-hidden shrink-0 bg-zinc-900/50">
-                  {img && (
-                    <>
-                      <Image src={img} alt={`Profile ${idx}`} fill className="object-cover" />
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
-                        className="absolute top-1 right-1 bg-black/70 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px] hover:bg-black transition-colors z-20"
-                      >
-                        ✕
-                      </button>
-                    </>
-                  )}
+
+            <div className="bg-zinc-900/30 border border-emerald-500/30 rounded-[30px] p-6 md:p-8 backdrop-blur-sm">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold ml-2">Meno a priezvisko</span>
+                  <input
+                    type="text"
+                    placeholder="Vaše meno a priezvisko"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full bg-zinc-950/50 border border-emerald-500/40 rounded-xl px-5 py-4 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-zinc-700"
+                  />
                 </div>
-              ))}
+
+                <div className="space-y-2">
+                  <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold ml-2">Lokalita</span>
+                  <input
+                    type="text"
+                    placeholder="Lokalita (napr. Bratislava)"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="w-full bg-zinc-950/50 border border-emerald-500/40 rounded-xl px-5 py-4 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-zinc-700"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold ml-2">Používateľské meno (URL)</span>
+                  <input
+                    type="text"
+                    placeholder="Používateľské meno (URL slug)"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="w-full bg-zinc-950/50 border border-emerald-500/40 rounded-xl px-5 py-4 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-zinc-700"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <div className="flex items-center justify-between gap-4 px-2">
+                    <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold">Bio</span>
+                    <span className="text-[10px] text-zinc-600 font-bold">{bio.length}/100</span>
+                  </div>
+                  <textarea
+                    placeholder="Bio"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value.slice(0, 100))}
+                    maxLength={100}
+                    className="w-full bg-zinc-950/50 border border-emerald-500/40 rounded-2xl px-5 py-4 text-white outline-none min-h-[110px] resize-none focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-zinc-700"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-8 space-y-3">
+                <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold ml-2">Profilové fotky</span>
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full aspect-[16/9] border border-emerald-500/50 border-dashed rounded-[30px] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-500/5 transition-colors overflow-hidden relative"
+                >
+                  <div className="text-emerald-500 text-5xl font-light mb-2">+</div>
+                  <div className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold">Nahrať profilové fotky</div>
+                </div>
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
+
+                <div className="flex flex-wrap justify-center gap-3 pt-2">
+                  {images.map((img, idx) => (
+                    <div key={idx} className="relative w-16 h-16 md:w-20 md:h-20 rounded-2xl border border-emerald-500/30 overflow-hidden shrink-0 bg-zinc-950/40">
+                      {img ? (
+                        <>
+                          <Image src={img} alt={`Profile ${idx}`} fill className="object-cover" />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeImage(idx);
+                            }}
+                            className="absolute top-2 right-2 bg-black/70 text-white rounded-full w-6 h-6 flex items-center justify-center text-[10px] hover:bg-black transition-colors z-20"
+                            aria-label="Odstrániť fotku"
+                          >
+                            ✕
+                          </button>
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-zinc-700 text-xs font-bold">—</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-10 flex justify-end">
+                <button
+                  onClick={handleSaveProfile}
+                  disabled={saving}
+                  className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 px-10 rounded-full text-sm uppercase tracking-widest transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+                >
+                  {saving ? "Ukladám..." : "Uložiť"}
+                </button>
+              </div>
             </div>
-            <button onClick={handleSaveProfile} disabled={saving} className="self-end bg-emerald-500 text-black font-display text-xl px-10 py-2 rounded-full uppercase disabled:opacity-50">
-              {saving ? "Ukladám..." : "Uložiť"}
-            </button>
           </div>
         );
 
