@@ -464,6 +464,9 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                         <p className="text-xs text-zinc-500">
                           {new Date(item.startsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })} - {new Date(item.endsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
                         </p>
+                        <p className="text-xs text-zinc-500">
+                          {item.serviceType === "online" ? "Online konzultácia" : "Osobný tréning"}
+                        </p>
                       </>
                     ) : (
                       <>
