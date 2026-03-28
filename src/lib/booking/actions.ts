@@ -420,6 +420,133 @@ type CreateTrainerReviewState =
   | { status: "success"; message: string }
   | { status: "error"; message: string };
 
+const createTrainerMealPlanReviewSchema = z.object({
+  meal_plan_request_id: z.string().uuid(),
+  trainer_id: z.string().uuid(),
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().trim().min(1).max(2000),
+  photo_url: z.string().trim().min(1).max(400000).optional().nullable(),
+  access_token: z.string().min(1),
+});
+
+export async function createTrainerMealPlanReviewAction(
+  input: z.infer<typeof createTrainerMealPlanReviewSchema>
+): Promise<CreateTrainerReviewState> {
+  const parsed = createTrainerMealPlanReviewSchema.safeParse(input);
+  if (!parsed.success) {
+    return { status: "error", message: "Neplatné údaje." };
+  }
+
+  const { meal_plan_request_id, trainer_id, rating, comment, photo_url, access_token } = parsed.data;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) {
+    return { status: "error", message: "Chýba konfigurácia servera." };
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  try {
+    const userResult = await supabase.auth.getUser(access_token);
+    const authUser = userResult.data.user;
+    if (!authUser) {
+      return { status: "error", message: "Neautorizované." };
+    }
+
+    const mealRes = await supabase
+      .from("meal_plan_requests")
+      .select("id, trainer_id, client_profile_id, status")
+      .eq("id", meal_plan_request_id)
+      .maybeSingle<{
+        id: string;
+        trainer_id: string;
+        client_profile_id: string | null;
+        status: string;
+      }>();
+
+    if (mealRes.error) {
+      return { status: "error", message: "Nepodarilo sa načítať objednávku jedálnička." };
+    }
+    if (!mealRes.data) {
+      return { status: "error", message: "Objednávka jedálnička neexistuje." };
+    }
+
+    if (mealRes.data.trainer_id !== trainer_id) {
+      return { status: "error", message: "Objednávka jedálnička nepatrí tomuto trénerovi." };
+    }
+    if (mealRes.data.client_profile_id !== authUser.id) {
+      return { status: "error", message: "Nemáte oprávnenie." };
+    }
+    if (mealRes.data.status !== "completed") {
+      return { status: "error", message: "Recenziu je možné pridať až po dokončení jedálnička." };
+    }
+
+    const profileRes = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", authUser.id)
+      .maybeSingle<{ full_name: string | null }>();
+
+    const clientName =
+      (profileRes.data?.full_name && profileRes.data.full_name.trim()) ||
+      authUser.email ||
+      "Klient";
+
+    const title = "Recenzia";
+
+    let insertRes = await supabase
+      .from("reviews")
+      .insert({
+        trainer_id,
+        booking_id: null,
+        client_profile_id: authUser.id,
+        rating,
+        title,
+        body: comment,
+        is_public: true,
+        photo_url: photo_url || null,
+      })
+      .select("id")
+      .maybeSingle<{ id: string }>();
+
+    if (insertRes.error) {
+      const msg = insertRes.error.message || "";
+      if (msg.toLowerCase().includes("photo_url") || msg.toLowerCase().includes("column")) {
+        insertRes = await supabase
+          .from("reviews")
+          .insert({
+            trainer_id,
+            booking_id: null,
+            client_profile_id: authUser.id,
+            rating,
+            title,
+            body: photo_url ? `${comment}\n\n${photo_url}` : comment,
+            is_public: true,
+          })
+          .select("id")
+          .maybeSingle<{ id: string }>();
+      }
+    }
+
+    if (insertRes.error) {
+      const code = insertRes.error.code;
+      if (code === "23505") {
+        return { status: "error", message: "Recenzia už existuje." };
+      }
+      return { status: "error", message: insertRes.error.message };
+    }
+
+    void clientName;
+    return { status: "success", message: "Recenzia bola odoslaná." };
+  } catch (error: unknown) {
+    console.error("createTrainerMealPlanReviewAction error:", error);
+    return { status: "error", message: getErrorMessage(error) };
+  }
+}
+
 export async function createTrainerReviewAction(
   input: z.infer<typeof createTrainerReviewSchema>
 ): Promise<CreateTrainerReviewState> {

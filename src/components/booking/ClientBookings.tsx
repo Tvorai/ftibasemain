@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
 import { BookingStatus } from "@/lib/types";
 import { Modal } from "@/components/Modal";
-import { createTrainerReviewAction } from "@/lib/booking/actions";
+import { createTrainerMealPlanReviewAction, createTrainerReviewAction } from "@/lib/booking/actions";
 import { useRouter } from "next/navigation";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -174,11 +174,11 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
-  const [reviewBooking, setReviewBooking] = useState<{
-    bookingId: string;
-    trainerId: string;
-    trainerName: string;
-  } | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<
+    | { kind: "booking"; bookingId: string; trainerId: string; trainerName: string }
+    | { kind: "meal_plan"; mealPlanRequestId: string; trainerId: string; trainerName: string }
+    | null
+  >(null);
   const [reviewRating, setReviewRating] = useState<number>(0);
   const [reviewHover, setReviewHover] = useState<number>(0);
   const [reviewText, setReviewText] = useState<string>("");
@@ -488,11 +488,7 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                     <button
                       type="button"
                       onClick={() => {
-                        setReviewBooking({
-                          bookingId: item.id,
-                          trainerId: item.trainerId,
-                          trainerName: item.trainerName,
-                        });
+                        setReviewTarget({ kind: "booking", bookingId: item.id, trainerId: item.trainerId, trainerName: item.trainerName });
                         setReviewRating(0);
                         setReviewHover(0);
                         setReviewText("");
@@ -519,6 +515,44 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                     </button>
                   </div>
                 )}
+
+                {item.kind === "meal_plan" && item.status === "completed" && (
+                  <div className="pt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReviewTarget({
+                          kind: "meal_plan",
+                          mealPlanRequestId: item.id,
+                          trainerId: item.trainerId,
+                          trainerName: item.trainerName,
+                        });
+                        setReviewRating(0);
+                        setReviewHover(0);
+                        setReviewText("");
+                        setReviewPhotoUrl(null);
+                        setReviewError(null);
+                        setReviewOpen(true);
+                      }}
+                      className="px-4 py-2 rounded-full border border-emerald-500/60 text-emerald-300 hover:border-emerald-400 hover:text-emerald-200 transition-colors text-xs font-bold uppercase tracking-wider"
+                    >
+                      Napísať recenziu
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = item.trainerSlug
+                          ? `/${item.trainerSlug}?openMealPlan=1`
+                          : `/t/${item.trainerId}?openMealPlan=1`;
+                        router.push(target);
+                      }}
+                      className="px-4 py-2 rounded-full bg-emerald-500 text-black hover:bg-emerald-400 transition-colors text-xs font-bold uppercase tracking-wider cursor-pointer"
+                    >
+                      Ďalší jedálniček
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -537,7 +571,7 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
           if (reviewSubmitting) return;
           setReviewOpen(false);
         }}
-        title={`Napísať recenziu na "${reviewBooking?.trainerName || "trénera"}"`}
+        title={`Napísať recenziu na "${reviewTarget?.trainerName || "trénera"}"`}
       >
         <div className="space-y-4">
           {reviewError && <div className="text-red-400 text-sm">{reviewError}</div>}
@@ -612,9 +646,9 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
 
           <button
             type="button"
-            disabled={reviewSubmitting || !reviewBooking || reviewRating === 0 || reviewText.trim().length === 0}
+            disabled={reviewSubmitting || !reviewTarget || reviewRating === 0 || reviewText.trim().length === 0}
             onClick={async () => {
-              if (!reviewBooking) return;
+              if (!reviewTarget) return;
               setReviewError(null);
               setReviewSubmitting(true);
               try {
@@ -622,14 +656,24 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                 const accessToken = sessionRes.data.session?.access_token;
                 if (!accessToken) throw new Error("Pre odoslanie recenzie sa musíte prihlásiť.");
 
-                const res = await createTrainerReviewAction({
-                  booking_id: reviewBooking.bookingId,
-                  trainer_id: reviewBooking.trainerId,
-                  rating: reviewRating,
-                  comment: reviewText,
-                  photo_url: reviewPhotoUrl,
-                  access_token: accessToken,
-                });
+                const res =
+                  reviewTarget.kind === "booking"
+                    ? await createTrainerReviewAction({
+                        booking_id: reviewTarget.bookingId,
+                        trainer_id: reviewTarget.trainerId,
+                        rating: reviewRating,
+                        comment: reviewText,
+                        photo_url: reviewPhotoUrl,
+                        access_token: accessToken,
+                      })
+                    : await createTrainerMealPlanReviewAction({
+                        meal_plan_request_id: reviewTarget.mealPlanRequestId,
+                        trainer_id: reviewTarget.trainerId,
+                        rating: reviewRating,
+                        comment: reviewText,
+                        photo_url: reviewPhotoUrl,
+                        access_token: accessToken,
+                      });
 
                 if (res.status !== "success") throw new Error(res.message);
                 setReviewOpen(false);
