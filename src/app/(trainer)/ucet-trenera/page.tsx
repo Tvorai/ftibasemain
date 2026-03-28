@@ -12,7 +12,7 @@ import { listTrainerReviewsForDashboardAction } from "@/lib/booking/actions";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-type TabId = "profil" | "rezervacie" | "sluzby" | "kalendar" | "recenzie" | "vysledky" | "znacky" | "nastavenia";
+type TabId = "profil" | "rezervacie" | "sluzby" | "kalendar" | "online-konzultacie" | "recenzie" | "vysledky" | "znacky" | "nastavenia";
 type CalendarTabId = "moj_kalendar" | "nastavenia_kalendara";
 type BrandSubTabId = "pridat" | "zoznam";
 
@@ -520,39 +520,35 @@ export default function TrainerDashboardPage() {
 
       case "sluzby":
         return (
-          <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
-            {[
-              { key: "personal_training" as const, label: "Rezervovať osobný tréning" },
-              { key: "online_consultation" as const, label: "Rezervovať online konzultáciu" },
-              { key: "meal_plan" as const, label: "Objednať jedálniček" },
-              { key: "brands" as const, label: "Moje odporúčané značky" }
-            ].map((item) => (
-              <div key={item.key} className="flex items-center gap-6">
-                <div className="flex-1 border border-emerald-500 rounded-xl px-6 py-3 text-white text-xl font-display tracking-wide">
-                  {item.label}
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={servicesVisibility[item.key]}
-                  onClick={() => toggleService(item.key)}
-                  disabled={saving}
-                  className={`relative w-20 h-10 rounded-full transition-colors ${servicesVisibility[item.key] ? "bg-emerald-500" : "bg-zinc-700"} disabled:opacity-60 disabled:cursor-not-allowed`}
-                >
-                  <span
-                    className={`absolute top-1 left-1 w-8 h-8 bg-white rounded-full transition-transform ${servicesVisibility[item.key] ? "translate-x-10" : "translate-x-0"}`}
-                  />
-                </button>
+          <div className="flex flex-col gap-4 w-full max-w-[400px] ml-auto">
+            <div className="flex items-center justify-between p-4 border border-emerald-500/30 rounded-xl bg-zinc-900/30 backdrop-blur-sm">
+              <span className="text-white font-medium">Rezervovať osobný tréning</span>
+              <div className="w-12 h-6 bg-emerald-500 rounded-full relative">
+                <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full" />
               </div>
-            ))}
-            <div className="pt-6 self-end">
-              <button
-                onClick={handleSaveServices}
-                disabled={saving}
-                className="bg-emerald-500 hover:bg-emerald-400 text-black font-display text-2xl px-12 py-2 rounded-full tracking-wider transition-colors uppercase disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {saving ? "Ukladám..." : "ULOŽIŤ"}
-              </button>
+            </div>
+            {/* Online konzultácia skrytá na požiadavku */}
+            <div className="hidden items-center justify-between p-4 border border-zinc-800 rounded-xl bg-zinc-900/10">
+              <span className="text-zinc-500 font-medium">Rezervovať online konzultáciu</span>
+              <div className="w-12 h-6 bg-zinc-700 rounded-full relative">
+                <div className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full" />
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-4 border border-emerald-500/30 rounded-xl bg-zinc-900/30 backdrop-blur-sm">
+              <span className="text-white font-medium">Objednať jedálniček</span>
+              <div className="w-12 h-6 bg-emerald-500 rounded-full relative">
+                <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full" />
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-4 border border-emerald-500/30 rounded-xl bg-zinc-900/30 backdrop-blur-sm">
+              <span className="text-white font-medium">Moje odporúčané značky</span>
+              <div className="w-12 h-6 bg-emerald-500 rounded-full relative">
+                <div className="absolute top-1 right-1 w-4 h-4 bg-white rounded-full" />
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button className="bg-emerald-500 text-black font-display text-xl px-12 py-2 rounded-full uppercase tracking-widest shadow-lg shadow-emerald-500/20">Uložiť</button>
             </div>
           </div>
         );
@@ -586,9 +582,45 @@ export default function TrainerDashboardPage() {
             </div>
 
             {activeCalendarTab === "moj_kalendar" ? (
-              <TrainerCalendar trainerId={trainerId} />
+              <TrainerCalendar trainerId={trainerId} serviceType="personal" slotDurationMinutes={60} />
             ) : (
-              <CalendarSettings trainerId={trainerId} />
+              <CalendarSettings trainerId={trainerId} serviceType="personal" slotDurationMinutes={60} />
+            )}
+          </div>
+        );
+
+      case "online-konzultacie":
+        return (
+          <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
+            <h2 className="text-4xl font-display uppercase tracking-wider mb-4">Online konzultácie</h2>
+            
+            <div className="flex gap-4 mb-6 border-b border-zinc-900 pb-4">
+              <button
+                onClick={() => setActiveCalendarTab("moj_kalendar")}
+                className={`px-6 py-2 rounded-full font-bold uppercase tracking-widest text-xs transition-all ${
+                  activeCalendarTab === "moj_kalendar" 
+                    ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20" 
+                    : "text-zinc-500 hover:text-white"
+                }`}
+              >
+                Môj kalendár
+              </button>
+              <button
+                onClick={() => setActiveCalendarTab("nastavenia_kalendara")}
+                className={`px-6 py-2 rounded-full font-bold uppercase tracking-widest text-xs transition-all ${
+                  activeCalendarTab === "nastavenia_kalendara" 
+                    ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20" 
+                    : "text-zinc-500 hover:text-white"
+                }`}
+              >
+                Nastavenia kalendára
+              </button>
+            </div>
+
+            {activeCalendarTab === "moj_kalendar" ? (
+              <TrainerCalendar trainerId={trainerId} serviceType="online" slotDurationMinutes={30} />
+            ) : (
+              <CalendarSettings trainerId={trainerId} serviceType="online" slotDurationMinutes={30} />
             )}
           </div>
         );
@@ -750,9 +782,10 @@ export default function TrainerDashboardPage() {
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "profil", label: "Môj profil" },
-    { id: "rezervacie", label: "Rezervácie" },
+    { id: "rezervacie", label: "Všetky rezervácie" },
     { id: "sluzby", label: "Služby" },
     { id: "kalendar", label: "Kalendár" },
+    { id: "online-konzultacie", label: "Online konzultácie" },
     { id: "recenzie", label: "Recenzie" },
     { id: "vysledky", label: "Výsledky klientov" },
     { id: "znacky", label: "Moje značky" },

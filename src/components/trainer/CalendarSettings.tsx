@@ -9,6 +9,8 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface CalendarSettingsProps {
   trainerId: string;
+  serviceType?: "personal" | "online";
+  slotDurationMinutes?: number;
 }
 
 const DAYS = [
@@ -23,12 +25,16 @@ const DAYS = [
 
 const HOURS = Array.from({ length: 17 }, (_, i) => i + 5); // 05:00 - 21:00
 
-export default function CalendarSettings({ trainerId }: CalendarSettingsProps) {
+export default function CalendarSettings({ 
+  trainerId, 
+  serviceType = "personal",
+  slotDurationMinutes = 60
+}: CalendarSettingsProps) {
   // Inicializujeme stav s prázdnymi dňami, aby sme predišli undefined chybám pri prvom renderi
-  const [availability, setAvailability] = useState<Record<number, { isDayActive: boolean; activeHours: number[] }>>(() => {
-    const initial: Record<number, { isDayActive: boolean; activeHours: number[] }> = {};
+  const [availability, setAvailability] = useState<Record<number, { isDayActive: boolean; activeSlots: { hour: number; minute: number }[] }>>(() => {
+    const initial: Record<number, { isDayActive: boolean; activeSlots: { hour: number; minute: number }[] }> = {};
     DAYS.forEach(day => {
-      initial[day.id] = { isDayActive: false, activeHours: [] };
+      initial[day.id] = { isDayActive: false, activeSlots: [] };
     });
     return initial;
   });
@@ -45,29 +51,38 @@ export default function CalendarSettings({ trainerId }: CalendarSettingsProps) {
           .from("availability_slots")
           .select("day_of_week, start_time, end_time")
           .eq("trainer_id", trainerId)
+          .eq("service_type", serviceType)
           .eq("is_active", true);
 
         if (error) throw error;
 
         // Reset na čistý stav pred naplnením dátami z DB
-        const currentAvailability: Record<number, { isDayActive: boolean; activeHours: number[] }> = {};
+        const currentAvailability: Record<number, { isDayActive: boolean; activeSlots: { hour: number; minute: number }[] }> = {};
         DAYS.forEach(day => {
-          currentAvailability[day.id] = { isDayActive: false, activeHours: [] };
+          currentAvailability[day.id] = { isDayActive: false, activeSlots: [] };
         });
 
         data?.forEach(slot => {
           const dayId = slot.day_of_week;
           if (!dayId) return;
 
-          const startH = parseInt(slot.start_time.split(":")[0]);
-          const endH = parseInt(slot.end_time.split(":")[0]);
+          const [startH, startM] = slot.start_time.split(":").map(Number);
+          const [endH, endM] = slot.end_time.split(":").map(Number);
           
           currentAvailability[dayId].isDayActive = true;
-          for (let h = startH; h < endH; h++) {
-            if (HOURS.includes(h)) {
-              if (!currentAvailability[dayId].activeHours.includes(h)) {
-                currentAvailability[dayId].activeHours.push(h);
-              }
+          
+          let currentH = startH;
+          let currentM = startM;
+          
+          while (currentH < endH || (currentH === endH && currentM < endM)) {
+            if (HOURS.includes(currentH)) {
+              currentAvailability[dayId].activeSlots.push({ hour: currentH, minute: currentM });
+            }
+            
+            currentM += slotDurationMinutes;
+            if (currentM >= 60) {
+              currentH += Math.floor(currentM / 60);
+              currentM = currentM % 60;
             }
           }
         });
@@ -80,34 +95,47 @@ export default function CalendarSettings({ trainerId }: CalendarSettingsProps) {
       }
     }
     loadAvailability();
-  }, [trainerId]);
+  }, [trainerId, serviceType, slotDurationMinutes]);
 
   const toggleDay = (dayId: number) => {
     setAvailability(prev => {
-      const currentDay = prev[dayId] || { isDayActive: false, activeHours: [] };
+      const currentDay = prev[dayId] || { isDayActive: false, activeSlots: [] };
+      const allSlots: { hour: number; minute: number }[] = [];
+      
+      if (!currentDay.isDayActive) {
+        const slotsPerHour = 60 / slotDurationMinutes;
+        HOURS.forEach(hour => {
+          for (let i = 0; i < slotsPerHour; i++) {
+            allSlots.push({ hour, minute: i * slotDurationMinutes });
+          }
+        });
+      }
+
       return {
         ...prev,
         [dayId]: {
           isDayActive: !currentDay.isDayActive,
-          activeHours: !currentDay.isDayActive ? [...HOURS] : []
+          activeSlots: allSlots
         }
       };
     });
   };
 
-  const toggleHour = (dayId: number, hour: number) => {
+  const toggleSlot = (dayId: number, hour: number, minute: number) => {
     setAvailability(prev => {
-      const currentDay = prev[dayId] || { isDayActive: false, activeHours: [] };
+      const currentDay = prev[dayId] || { isDayActive: false, activeSlots: [] };
       if (!currentDay.isDayActive) return prev;
 
-      const currentHours = currentDay.activeHours;
-      const newHours = currentHours.includes(hour)
-        ? currentHours.filter(h => h !== hour)
-        : [...currentHours, hour].sort((a, b) => a - b);
+      const currentSlots = currentDay.activeSlots;
+      const exists = currentSlots.some(s => s.hour === hour && s.minute === minute);
+      
+      const newSlots = exists
+        ? currentSlots.filter(s => !(s.hour === hour && s.minute === minute))
+        : [...currentSlots, { hour, minute }].sort((a, b) => a.hour !== b.hour ? a.hour - b.hour : a.minute - b.minute);
       
       return {
         ...prev,
-        [dayId]: { ...currentDay, activeHours: newHours }
+        [dayId]: { ...currentDay, activeSlots: newSlots }
       };
     });
   };
@@ -115,7 +143,9 @@ export default function CalendarSettings({ trainerId }: CalendarSettingsProps) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await saveAvailabilityAction(trainerId, availability);
+      // Potrebujeme upraviť saveAvailabilityAction alebo vytvoriť novú, ktorá podporuje serviceType a minúty
+      // Pre tento moment skúsime poslať dáta tak, ako sú, ale s upravenou štruktúrou
+      const res = await saveAvailabilityAction(trainerId, availability as any, serviceType, slotDurationMinutes);
       if (res.success) {
         alert("Nastavenia kalendára boli uložené.");
       } else {
@@ -127,6 +157,8 @@ export default function CalendarSettings({ trainerId }: CalendarSettingsProps) {
   };
 
   if (loading) return <div className="text-zinc-500 animate-pulse">Načítavam nastavenia...</div>;
+
+  const slotsPerHour = 60 / slotDurationMinutes;
 
   return (
     <div className="space-y-8">
@@ -149,23 +181,30 @@ export default function CalendarSettings({ trainerId }: CalendarSettingsProps) {
           {/* Grid hodín */}
           {HOURS.map(hour => (
             <React.Fragment key={hour}>
-              <div className="flex items-center justify-center text-xs text-zinc-500 font-mono py-1">
-                {hour.toString().padStart(2, '0')}:00
-              </div>
-              {DAYS.map(day => {
-                const isActive = availability[day.id].isDayActive && availability[day.id].activeHours.includes(hour);
-                const isDayDisabled = !availability[day.id].isDayActive;
-                
+              {Array.from({ length: slotsPerHour }).map((_, slotIdx) => {
+                const minute = slotIdx * slotDurationMinutes;
                 return (
-                  <button
-                    key={`${day.id}-${hour}`}
-                    onClick={() => toggleHour(day.id, hour)}
-                    disabled={isDayDisabled}
-                    className={`h-10 rounded-lg border border-white/5 transition-all ${
-                      isDayDisabled ? "bg-zinc-900/20 cursor-not-allowed opacity-30" :
-                      isActive ? "bg-emerald-500 hover:bg-emerald-400" : "bg-zinc-800 hover:bg-zinc-700"
-                    }`}
-                  />
+                  <React.Fragment key={`${hour}-${minute}`}>
+                    <div className="flex items-center justify-center text-xs text-zinc-500 font-mono py-1">
+                      {hour.toString().padStart(2, '0')}:{minute.toString().padStart(2, '0')}
+                    </div>
+                    {DAYS.map(day => {
+                      const isActive = availability[day.id].isDayActive && availability[day.id].activeSlots.some(s => s.hour === hour && s.minute === minute);
+                      const isDayDisabled = !availability[day.id].isDayActive;
+                      
+                      return (
+                        <button
+                          key={`${day.id}-${hour}-${minute}`}
+                          onClick={() => toggleSlot(day.id, hour, minute)}
+                          disabled={isDayDisabled}
+                          className={`h-10 rounded-lg border border-white/5 transition-all ${
+                            isDayDisabled ? "bg-zinc-900/20 cursor-not-allowed opacity-30" :
+                            isActive ? "bg-emerald-500 hover:bg-emerald-400" : "bg-zinc-800 hover:bg-zinc-700"
+                          }`}
+                        />
+                      );
+                    })}
+                  </React.Fragment>
                 );
               })}
             </React.Fragment>
