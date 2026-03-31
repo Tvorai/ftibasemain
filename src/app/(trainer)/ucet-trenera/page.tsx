@@ -37,6 +37,22 @@ const defaultServicesVisibility: ServicesVisibility = {
   brands: true
 };
 
+type TrainerRow = {
+  id: string;
+  profile_id: string;
+  slug: string | null;
+  city: string | null;
+  bio: string | null;
+  images: (string | null)[] | null;
+  brands: Brand[] | null;
+  services: Partial<ServicesVisibility> | null;
+  stripe_account_id: string | null;
+  stripe_onboarding_completed: boolean | null;
+  stripe_charges_enabled: boolean | null;
+  stripe_payouts_enabled: boolean | null;
+  profiles: { full_name: string | null } | null;
+};
+
 // Helper pre slugifikáciu
 function toSlug(input: string) {
   return input
@@ -54,6 +70,53 @@ function parseLocation(value: string): { city: string; gym: string } {
   const match = raw.match(/^(.+?)\s*-\s*(.+)$/);
   if (!match) return { city: raw, gym: "" };
   return { city: match[1].trim(), gym: match[2].trim() };
+}
+
+function firstString(value: unknown, keys: string[]): string | null {
+  if (typeof value !== "object" || value === null) return null;
+  const record = value as Record<string, unknown>;
+  for (const k of keys) {
+    const v = record[k];
+    if (typeof v === "string" && v.trim()) return v;
+  }
+  return null;
+}
+
+async function fetchFirstWorkingRoute(input: {
+  paths: string[];
+  headers?: Record<string, string>;
+  body?: Record<string, unknown>;
+}): Promise<{ ok: true; payload: unknown } | { ok: false; message: string; status?: number }> {
+  const tryOnce = async (path: string, method: "POST" | "GET") => {
+    const mergedHeaders: Record<string, string> = { ...(input.headers || {}) };
+    if (input.body) mergedHeaders["Content-Type"] = "application/json";
+    const res = await fetch(path, {
+      method,
+      headers: Object.keys(mergedHeaders).length > 0 ? mergedHeaders : undefined,
+      body: input.body ? JSON.stringify(input.body) : undefined,
+    });
+    if (res.status === 404) return { ok: false as const, status: 404, message: "not_found" };
+    if (!res.ok) return { ok: false as const, status: res.status, message: `Request failed (${res.status}).` };
+    const payload: unknown = await res.json().catch(() => null);
+    return { ok: true as const, payload };
+  };
+
+  for (const path of input.paths) {
+    const post = await tryOnce(path, "POST");
+    if (post.ok) return post;
+    if (post.status && post.status !== 404) {
+      const get = await tryOnce(path, "GET");
+      if (get.ok) return get;
+      if (get.status && get.status !== 404) return get;
+    }
+    if (post.status === 404) {
+      const get = await tryOnce(path, "GET");
+      if (get.ok) return get;
+      if (get.status && get.status !== 404) return get;
+    }
+  }
+
+  return { ok: false, message: "Stripe API route neexistuje alebo nie je dostupná.", status: 404 };
 }
 
 export default function TrainerDashboardPage() {
@@ -85,19 +148,17 @@ export default function TrainerDashboardPage() {
   const brandLogoInputRef = useRef<HTMLInputElement>(null);
   const [servicesVisibility, setServicesVisibility] = useState<ServicesVisibility>(defaultServicesVisibility);
 
+  const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
+  const [stripeOnboardingCompleted, setStripeOnboardingCompleted] = useState(false);
+  const [stripeChargesEnabled, setStripeChargesEnabled] = useState(false);
+  const [stripePayoutsEnabled, setStripePayoutsEnabled] = useState(false);
+  const [stripeBusy, setStripeBusy] = useState<null | "connect" | "onboarding" | "dashboard">(null);
+  const [stripeError, setStripeError] = useState<string | null>(null);
+
   const siteUrl = "https://fitbasemain.vercel.app/";
   const profileUrl = `${siteUrl}${toSlug(username)}`;
   const locationText = [city.trim(), gymName.trim()].filter(Boolean).join(" - ");
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } finally {
-      router.push("/prihlasenie");
-    }
-  };
-
-  // Načítanie dát zo Supabase
   const loadProfile = useCallback(async () => {
     setLoading(true);
     try {
@@ -111,28 +172,31 @@ export default function TrainerDashboardPage() {
         .from("trainers")
         .select("*, profiles(full_name)")
         .eq("profile_id", user.id)
-        .maybeSingle();
+        .maybeSingle<TrainerRow>();
 
       if (error) throw error;
 
       if (trainer) {
         setTrainerId(trainer.id);
         setUsername(trainer.slug || "");
-        setFullName((trainer as any).profiles?.full_name || "");
+        setFullName(trainer.profiles?.full_name || "");
         const parsedLocation = parseLocation(trainer.city || "");
         setCity(parsedLocation.city);
         setGymName(parsedLocation.gym);
         setBio(trainer.bio || "");
         setBrands(trainer.brands || []);
-        if (trainer.services && typeof trainer.services === "object") {
+        if (trainer.services) {
           setServicesVisibility({
             ...defaultServicesVisibility,
-            ...(trainer.services as Partial<ServicesVisibility>)
+            ...trainer.services
           });
         } else {
           setServicesVisibility(defaultServicesVisibility);
         }
-        // Načítanie fotiek
+        setStripeAccountId(trainer.stripe_account_id || null);
+        setStripeOnboardingCompleted(Boolean(trainer.stripe_onboarding_completed));
+        setStripeChargesEnabled(Boolean(trainer.stripe_charges_enabled));
+        setStripePayoutsEnabled(Boolean(trainer.stripe_payouts_enabled));
         if (trainer.images && Array.isArray(trainer.images)) {
           const loadedImages = [...trainer.images];
           while (loadedImages.length < 4) loadedImages.push(null);
@@ -146,9 +210,129 @@ export default function TrainerDashboardPage() {
     }
   }, [router]);
 
+  const getAuthHeaders = useCallback(async (): Promise<Record<string, string>> => {
+    const sessionRes = await supabase.auth.getSession();
+    const token = sessionRes.data.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }, []);
+
+  const syncStripeStatusIfAvailable = useCallback(async () => {
+    const headers = await getAuthHeaders();
+    await fetchFirstWorkingRoute({
+      paths: ["/api/stripe/sync", "/api/stripe/sync-status", "/api/stripe/sync-account"],
+      headers,
+    });
+  }, [getAuthHeaders]);
+
+  const openStripeOnboarding = useCallback(async () => {
+    const headers = await getAuthHeaders();
+    const res = await fetchFirstWorkingRoute({
+      paths: ["/api/stripe/onboarding-link", "/api/onboarding-link"],
+      headers,
+    });
+    if (!res.ok) throw new Error(res.message);
+    const url = firstString(res.payload, ["url", "onboardingUrl", "onboarding_url", "link"]);
+    if (!url) throw new Error("Nepodarilo sa získať onboarding link.");
+    window.location.href = url;
+  }, [getAuthHeaders]);
+
+  const openStripeDashboard = useCallback(async () => {
+    const headers = await getAuthHeaders();
+    const res = await fetchFirstWorkingRoute({
+      paths: ["/api/stripe/dashboard-link", "/api/dashboard-link"],
+      headers,
+    });
+    if (!res.ok) throw new Error(res.message);
+    const url = firstString(res.payload, ["url", "dashboardUrl", "dashboard_url", "link"]);
+    if (!url) throw new Error("Nepodarilo sa získať Stripe dashboard link.");
+    window.open(url, "_blank", "noopener,noreferrer");
+  }, [getAuthHeaders]);
+
+  const handleStripeConnect = useCallback(async () => {
+    if (stripeBusy) return;
+    setStripeError(null);
+    setStripeBusy("connect");
+    try {
+      const headers = await getAuthHeaders();
+      const createRes = await fetchFirstWorkingRoute({
+        paths: ["/api/stripe/create-account", "/api/create-account"],
+        headers,
+      });
+      if (!createRes.ok) throw new Error(createRes.message);
+
+      const maybeOnboardingUrl = firstString(createRes.payload, ["url", "onboardingUrl", "onboarding_url", "link"]);
+      if (maybeOnboardingUrl) {
+        window.location.href = maybeOnboardingUrl;
+        return;
+      }
+
+      await loadProfile();
+      await openStripeOnboarding();
+    } catch (err: unknown) {
+      setStripeError(err instanceof Error ? err.message : "Nepodarilo sa prepojiť Stripe.");
+    } finally {
+      setStripeBusy(null);
+    }
+  }, [getAuthHeaders, loadProfile, openStripeOnboarding, stripeBusy]);
+
+  const handleStripeOnboarding = useCallback(async () => {
+    if (stripeBusy) return;
+    setStripeError(null);
+    setStripeBusy("onboarding");
+    try {
+      await openStripeOnboarding();
+    } catch (err: unknown) {
+      setStripeError(err instanceof Error ? err.message : "Nepodarilo sa otvoriť onboarding.");
+      setStripeBusy(null);
+    }
+  }, [openStripeOnboarding, stripeBusy]);
+
+  const handleStripeDashboard = useCallback(async () => {
+    if (stripeBusy) return;
+    setStripeError(null);
+    setStripeBusy("dashboard");
+    try {
+      await openStripeDashboard();
+    } catch (err: unknown) {
+      setStripeError(err instanceof Error ? err.message : "Nepodarilo sa otvoriť Stripe dashboard.");
+    } finally {
+      setStripeBusy(null);
+    }
+  }, [openStripeDashboard, stripeBusy]);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      router.push("/prihlasenie");
+    }
+  };
+
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  useEffect(() => {
+    if (activeTab !== "nastavenia") return;
+    if (activeSettingsTab !== "payment_account") return;
+    const onFocus = () => {
+      syncStripeStatusIfAvailable()
+        .catch(() => {})
+        .finally(() => loadProfile());
+    };
+    const onVisibility = () => {
+      if (document.hidden) return;
+      syncStripeStatusIfAvailable()
+        .catch(() => {})
+        .finally(() => loadProfile());
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [activeSettingsTab, activeTab, loadProfile, syncStripeStatusIfAvailable]);
 
   useEffect(() => {
     if (!isMobileNavOpen) return;
@@ -220,8 +404,10 @@ export default function TrainerDashboardPage() {
 
       const reader = new FileReader();
       reader.onloadend = () => {
-        const img = new (window as any).Image();
-        img.src = reader.result;
+        const img = new window.Image();
+        const result = reader.result;
+        if (typeof result !== "string") return;
+        img.src = result;
         img.onload = () => {
           const canvas = document.createElement("canvas");
           const MAX_WIDTH = 800;
@@ -290,9 +476,10 @@ export default function TrainerDashboardPage() {
       setNewBrandCode("");
       setNewBrandUrl("");
       alert("Značka úspešne pridaná.");
-    } catch (err: any) {
-      console.error("Save error:", err);
-      alert(`Chyba pri pridávaní značky: ${err.message || "Skontrolujte, či v databáze existuje stĺpec 'brands' (JSONB)."}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Skontrolujte, či v databáze existuje stĺpec 'brands' (JSONB).";
+      console.error("Save error:", message);
+      alert(`Chyba pri pridávaní značky: ${message}`);
     } finally {
       setSaving(false);
     }
@@ -336,8 +523,10 @@ export default function TrainerDashboardPage() {
 
       const reader = new FileReader();
       reader.onloadend = () => {
-        const img = new (window as any).Image();
-        img.src = reader.result;
+        const img = new window.Image();
+        const result = reader.result;
+        if (typeof result !== "string") return;
+        img.src = result;
         img.onload = () => {
           const canvas = document.createElement("canvas");
           const MAX_WIDTH = 400;
@@ -368,9 +557,10 @@ export default function TrainerDashboardPage() {
         .eq("profile_id", user.id);
 
       if (error) throw error;
-    } catch (err: any) {
-      console.error(err);
-      alert(`Chyba pri ukladaní služieb: ${err?.message || "Skontrolujte, či v databáze existuje stĺpec 'services' (JSONB)."}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Skontrolujte, či v databáze existuje stĺpec 'services' (JSONB).";
+      console.error(message);
+      alert(`Chyba pri ukladaní služieb: ${message}`);
       throw err;
     } finally {
       setSaving(false);
@@ -940,9 +1130,100 @@ export default function TrainerDashboardPage() {
 
             {activeSettingsTab === "payment_account" && (
               <div className="bg-zinc-900/30 border border-emerald-500/30 rounded-[30px] p-6 md:p-8 backdrop-blur-sm">
-                <div className="text-white font-bold text-lg">Platobný účet</div>
-                <div className="mt-2 text-zinc-400 text-sm">
-                  Stripe / platobný účet zatiaľ nie je v tomto projekte implementovaný.
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-white font-bold text-lg">Stripe Connect</div>
+                    <div className="mt-1 text-zinc-400 text-sm">
+                      Dokončite onboarding, aby ste mohli prijímať platby a dostávať výplaty.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                    <div className="text-zinc-300 text-sm">Stripe účet</div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                        stripeAccountId ? "bg-emerald-500/20 text-emerald-400" : "bg-zinc-700/50 text-zinc-300"
+                      }`}
+                    >
+                      {stripeAccountId ? "Vytvorený" : "Nevytvorený"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                    <div className="text-zinc-300 text-sm">Onboarding</div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                        stripeOnboardingCompleted ? "bg-emerald-500/20 text-emerald-400" : "bg-zinc-700/50 text-zinc-300"
+                      }`}
+                    >
+                      {stripeOnboardingCompleted ? "Dokončený" : "Nedokončený"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                    <div className="text-zinc-300 text-sm">Prijímanie platieb</div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                        stripeChargesEnabled ? "bg-emerald-500/20 text-emerald-400" : "bg-zinc-700/50 text-zinc-300"
+                      }`}
+                    >
+                      {stripeChargesEnabled ? "Povolené" : "Nepovolené"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                    <div className="text-zinc-300 text-sm">Výplaty</div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                        stripePayoutsEnabled ? "bg-emerald-500/20 text-emerald-400" : "bg-zinc-700/50 text-zinc-300"
+                      }`}
+                    >
+                      {stripePayoutsEnabled ? "Povolené" : "Nepovolené"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 text-[11px] text-zinc-500 leading-relaxed">
+                  Onboarding je overenie a nastavenie vášho Stripe účtu. Bez dokončenia onboardingu Stripe nezapne prijímanie platieb ani výplaty.
+                </div>
+
+                {stripeError && (
+                  <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-200 text-sm">
+                    {stripeError}
+                  </div>
+                )}
+
+                <div className="mt-6 flex justify-end">
+                  {!stripeAccountId ? (
+                    <button
+                      type="button"
+                      onClick={handleStripeConnect}
+                      disabled={stripeBusy !== null}
+                      className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 px-8 rounded-full text-xs uppercase tracking-widest transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+                    >
+                      {stripeBusy === "connect" ? "Prebieha..." : "Prepojiť Stripe"}
+                    </button>
+                  ) : !stripeOnboardingCompleted ? (
+                    <button
+                      type="button"
+                      onClick={handleStripeOnboarding}
+                      disabled={stripeBusy !== null}
+                      className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 px-8 rounded-full text-xs uppercase tracking-widest transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+                    >
+                      {stripeBusy === "onboarding" ? "Prebieha..." : "Dokončiť onboarding"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleStripeDashboard}
+                      disabled={stripeBusy !== null}
+                      className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 px-8 rounded-full text-xs uppercase tracking-widest transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+                    >
+                      {stripeBusy === "dashboard" ? "Prebieha..." : "Otvoriť Stripe dashboard"}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
