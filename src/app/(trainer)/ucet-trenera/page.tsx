@@ -85,6 +85,14 @@ export default function TrainerDashboardPage() {
   const profileUrl = `${siteUrl}${toSlug(username)}`;
   const locationText = [city.trim(), gymName.trim()].filter(Boolean).join(" - ");
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } finally {
+      router.push("/prihlasenie");
+    }
+  };
+
   // Načítanie dát zo Supabase
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -986,6 +994,18 @@ export default function TrainerDashboardPage() {
                     {tab.label}
                   </button>
                 ))}
+                <div className="pt-4 mt-4 border-t border-white/10">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsMobileNavOpen(false);
+                      await handleLogout();
+                    }}
+                    className="w-full text-left px-4 py-3 rounded-2xl font-display text-xl tracking-wide transition-colors text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                  >
+                    Odhlásiť sa
+                  </button>
+                </div>
               </nav>
             </div>
           </div>
@@ -994,17 +1014,28 @@ export default function TrainerDashboardPage() {
 
       <aside className="hidden md:flex w-[280px] p-10 flex-col gap-16 shrink-0 h-screen overflow-y-auto">
         <Image src="/Fitbase logo.png" alt="Fitbase" width={150} height={35} priority className="h-auto w-[150px]" />
-        <nav className="flex flex-col gap-4">
-          {tabs.map((tab) => (
+        <div>
+          <nav className="flex flex-col gap-4">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`text-left text-2xl font-display tracking-wide transition-colors ${activeTab === tab.id ? "text-emerald-500" : "text-white hover:text-emerald-500/70"}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+          <div className="pt-6 mt-6 border-t border-white/10">
             <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`text-left text-2xl font-display tracking-wide transition-colors ${activeTab === tab.id ? "text-emerald-500" : "text-white hover:text-emerald-500/70"}`}
+              type="button"
+              onClick={handleLogout}
+              className="text-left text-2xl font-display tracking-wide transition-colors text-red-400 hover:text-red-300"
             >
-              {tab.label}
+              Odhlásiť sa
             </button>
-          ))}
-        </nav>
+          </div>
+        </div>
       </aside>
       <main className="flex-1 p-6 md:p-10 flex flex-col">
         <div className="md:mt-[4px]">{renderTabContent()}</div>
