@@ -52,6 +52,8 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
     trainer_name, trainer_email, service_type
   } = validatedFields.data;
 
+  const normalizedServiceType: "personal" | "online" = service_type === "online" ? "online" : "personal";
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -111,6 +113,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
       .from("bookings")
       .select("id")
       .eq("trainer_id", trainer_id)
+      .eq("service_type", normalizedServiceType)
       .in("booking_status", activeStatuses)
       .lt("starts_at", ends_at)
       .gt("ends_at", starts_at)
@@ -144,7 +147,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
       client_phone,
       client_note: note,
       booking_status: "confirmed" as BookingStatus,
-      service_type: service_type || "personal",
+      service_type: normalizedServiceType,
     };
     if (service_id) insertPayload.service_id = service_id;
 
@@ -175,7 +178,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
           client_phone,
           note,
           booking_status: "confirmed" as BookingStatus,
-          service_type: service_type || "personal",
+          service_type: normalizedServiceType,
         };
         if (service_id) fallbackPayload.service_id = service_id;
         insertResult = await supabase.from("bookings").insert(fallbackPayload).select("id").maybeSingle();

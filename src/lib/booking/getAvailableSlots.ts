@@ -130,7 +130,12 @@ export async function getAvailableSlots(
   maxSlots: number = 30,
   serviceType: "personal" | "online" = "personal"
 ): Promise<AvailableSlot[] | null> {
-  console.log(`[getAvailableSlots] Start pre trainerId: ${trainerId}, serviceType: ${serviceType}`);
+  const effectiveSlotDurationMinutes = serviceType === "online" ? 30 : 60;
+  const requestedSlotDurationMinutes = Number.isFinite(slotDurationMinutes) ? slotDurationMinutes : effectiveSlotDurationMinutes;
+
+  console.log(
+    `[getAvailableSlots] Start pre trainerId: ${trainerId}, serviceType: ${serviceType}, slotDurationMinutes: ${effectiveSlotDurationMinutes} (requested: ${requestedSlotDurationMinutes})`
+  );
   
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -198,7 +203,7 @@ export async function getAvailableSlots(
   // --- Generovanie a filtrovanie termínov ---
   console.log(`[getAvailableSlots] Generovanie termínov...`);
   const finalAvailableSlots: AvailableSlot[] = [];
-  const slotDurationMs = slotDurationMinutes * 60 * 1000;
+  const slotDurationMs = effectiveSlotDurationMinutes * 60 * 1000;
 
   for (let offsetDays = 0; offsetDays <= lookaheadDays; offsetDays++) {
     const dayParts = addDaysToDateParts(todayInTz, offsetDays);

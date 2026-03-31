@@ -209,7 +209,11 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
   if (loading) return <div className="text-zinc-500 animate-pulse">Načítavam rezervácie...</div>;
   if (error) return <div className="text-red-400">Chyba: {error}</div>;
 
-  const filteredBookings = bookings.filter((b) => b.category === activeCategory);
+  const filteredBookings = bookings.filter((b) => {
+    if (activeCategory === "personal_training") return b.serviceType === "personal";
+    if (activeCategory === "online_consultation") return b.serviceType === "online";
+    return false;
+  });
 
   return (
     <div className="space-y-4">
