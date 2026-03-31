@@ -45,6 +45,14 @@ function toSlug(input: string) {
     .replace(/-{2,}/g, "-");
 }
 
+function parseLocation(value: string): { city: string; gym: string } {
+  const raw = value.trim();
+  if (!raw) return { city: "", gym: "" };
+  const match = raw.match(/^(.+?)\s*-\s*(.+)$/);
+  if (!match) return { city: raw, gym: "" };
+  return { city: match[1].trim(), gym: match[2].trim() };
+}
+
 export default function TrainerDashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>("profil");
@@ -59,6 +67,7 @@ export default function TrainerDashboardPage() {
   const [username, setUsername] = useState("");
   const [fullName, setFullName] = useState("");
   const [city, setCity] = useState("");
+  const [gymName, setGymName] = useState("");
   const [bio, setBio] = useState("");
   const [images, setImages] = useState<(string | null)[]>([null, null, null, null]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,6 +83,7 @@ export default function TrainerDashboardPage() {
 
   const siteUrl = "https://fitbasemain.vercel.app/";
   const profileUrl = `${siteUrl}${toSlug(username)}`;
+  const locationText = [city.trim(), gymName.trim()].filter(Boolean).join(" - ");
 
   // Načítanie dát zo Supabase
   const loadProfile = useCallback(async () => {
@@ -97,7 +107,9 @@ export default function TrainerDashboardPage() {
         setTrainerId(trainer.id);
         setUsername(trainer.slug || "");
         setFullName((trainer as any).profiles?.full_name || "");
-        setCity(trainer.city || "");
+        const parsedLocation = parseLocation(trainer.city || "");
+        setCity(parsedLocation.city);
+        setGymName(parsedLocation.gym);
         setBio(trainer.bio || "");
         setBrands(trainer.brands || []);
         if (trainer.services && typeof trainer.services === "object") {
@@ -163,7 +175,7 @@ export default function TrainerDashboardPage() {
         .update({ 
           slug, 
           bio,
-          city: city,
+          city: locationText,
           images: images 
         })
         .eq("profile_id", user.id);
@@ -502,13 +514,24 @@ export default function TrainerDashboardPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold ml-2">Lokalita</span>
+                <div className="space-y-2 md:col-start-1">
+                  <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold ml-2">Mesto</span>
                   <input
                     type="text"
-                    placeholder="Lokalita (napr. Bratislava)"
+                    placeholder="Mesto (napr. Trnava)"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
+                    className="w-full bg-zinc-950/50 border border-emerald-500/40 rounded-xl px-5 py-4 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-zinc-700"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-start-1">
+                  <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold ml-2">Názov fitka</span>
+                  <input
+                    type="text"
+                    placeholder="Názov fitka (napr. Royal Fitness)"
+                    value={gymName}
+                    onChange={(e) => setGymName(e.target.value)}
                     className="w-full bg-zinc-950/50 border border-emerald-500/40 rounded-xl px-5 py-4 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-zinc-700"
                   />
                 </div>
