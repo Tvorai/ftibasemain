@@ -221,11 +221,12 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
         />
       )}
 
-      <div className="inline-flex rounded-full bg-zinc-950/60 border border-zinc-800 p-1">
+      <div className="w-full overflow-x-auto overscroll-x-contain">
+        <div className="inline-flex rounded-full bg-zinc-950/60 border border-zinc-800 p-1 whitespace-nowrap">
         <button
           type="button"
           onClick={() => setActiveCategory("personal_training")}
-          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+          className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
             activeCategory === "personal_training" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
           }`}
         >
@@ -234,7 +235,7 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
         <button
           type="button"
           onClick={() => setActiveCategory("online_consultation")}
-          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+          className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
             activeCategory === "online_consultation" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
           }`}
         >
@@ -243,7 +244,7 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
         <button
           type="button"
           onClick={() => setActiveCategory("meal_plan")}
-          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+          className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
             activeCategory === "meal_plan" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
           }`}
         >
@@ -252,12 +253,13 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
         <button
           type="button"
           onClick={() => setActiveCategory("history")}
-          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+          className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
             activeCategory === "history" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
           }`}
         >
           História
         </button>
+        </div>
       </div>
 
       {activeCategory === "meal_plan" ? (
