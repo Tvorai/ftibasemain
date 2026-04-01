@@ -58,6 +58,10 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
 
   const [authOpen, setAuthOpen] = useState(false);
   const [submitState, setSubmitState] = useState<SubmitState>({ status: "idle" });
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
+  const [accountName, setAccountName] = useState<string | null>(null);
+  const [accountPhone, setAccountPhone] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
   const form = useForm<MealPlanRequestFormValues>({
     resolver: zodResolver<MealPlanRequestFormValues, unknown, MealPlanRequestFormValues>(mealPlanRequestFormSchemaRaw),
@@ -74,6 +78,27 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
     },
     mode: "onSubmit",
   });
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(async ({ data }) => {
+      const user = data.session?.user;
+      if (!user) {
+        setAccountEmail(null);
+        setAccountName(null);
+        setAccountPhone(null);
+        return;
+      }
+      setAccountEmail(typeof user.email === "string" ? user.email : null);
+      try {
+        const res = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle<{ full_name: string | null }>();
+        const full = res.data?.full_name;
+        setAccountName(full && full.trim() ? full : null);
+      } catch {
+        setAccountName(null);
+      }
+    });
+  }, [supabase]);
 
   const finalize = async (pending: PendingMealPlanPayload, accessToken: string) => {
     setSubmitState({ status: "loading" });
@@ -117,9 +142,13 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
 
     setSubmitState({ status: "idle" });
 
+    const resolvedName = accountEmail && !editMode ? (accountName || values.name || "Klient") : values.name;
+    const resolvedEmail = accountEmail && !editMode ? accountEmail : values.email;
+    const resolvedPhone = accountEmail && !editMode ? (accountPhone || "") : (values.phone || "");
+
     const pending: PendingMealPlanPayload = {
       trainer_id: trainerId,
-      form: values,
+      form: { ...values, name: resolvedName, email: resolvedEmail, phone: resolvedPhone },
       createdAt: Date.now(),
     };
 
@@ -156,32 +185,110 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
           )}
 
           <form className="space-y-3" onSubmit={form.handleSubmit(onSubmit)}>
-            <input
-              type="text"
-              placeholder="Meno"
-              disabled={disabled}
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-              {...form.register("name")}
-            />
-            {form.formState.errors.name?.message && <div className="text-xs text-red-300">{form.formState.errors.name.message}</div>}
+            {accountEmail ? (
+              <>
+                {!editMode ? (
+                  <div className="flex items-center justify-between rounded-xl border border-zinc-700 bg-zinc-900/40 p-3">
+                    <div className="text-xs text-zinc-400">
+                      <span className="font-bold uppercase tracking-wider">Ste prihlásený pod účtom: </span>
+                      <span className="text-white">{accountEmail}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="px-3 py-1 rounded-lg border border-white/10 text-zinc-300 hover:bg-white/5 text-[10px] uppercase font-bold tracking-widest"
+                      onClick={() => {
+                        setEditMode(true);
+                        setTimeout(() => {
+                          form.reset({
+                            ...form.getValues(),
+                            name: accountName || "",
+                            email: accountEmail || "",
+                            phone: accountPhone || "",
+                          });
+                        }, 0);
+                      }}
+                    >
+                      Upraviť
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      placeholder="Meno"
+                      disabled={disabled}
+                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                      {...form.register("name")}
+                    />
+                    {form.formState.errors.name?.message && <div className="text-xs text-red-300">{form.formState.errors.name.message}</div>}
 
-            <input
-              type="email"
-              placeholder="Email"
-              disabled={disabled}
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-              {...form.register("email")}
-            />
-            {form.formState.errors.email?.message && <div className="text-xs text-red-300">{form.formState.errors.email.message}</div>}
+                    <input
+                      type="email"
+                      placeholder="Email"
+                      disabled={disabled}
+                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                      {...form.register("email")}
+                    />
+                    {form.formState.errors.email?.message && <div className="text-xs text-red-300">{form.formState.errors.email.message}</div>}
 
-            <input
-              type="tel"
-              placeholder="Tel. číslo"
-              disabled={disabled}
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-              {...form.register("phone")}
-            />
-            {form.formState.errors.phone?.message && <div className="text-xs text-red-300">{form.formState.errors.phone.message}</div>}
+                    <input
+                      type="tel"
+                      placeholder="Tel. číslo"
+                      disabled={disabled}
+                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                      {...form.register("phone")}
+                    />
+                    {form.formState.errors.phone?.message && <div className="text-xs text-red-300">{form.formState.errors.phone.message}</div>}
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        className="px-3 py-1 rounded-lg border border-white/10 text-zinc-300 hover:bg-white/5 text-[10px] uppercase font-bold tracking-widest"
+                        onClick={() => {
+                          setEditMode(false);
+                          form.reset({
+                            ...form.getValues(),
+                            name: "",
+                            email: "",
+                            phone: "",
+                          });
+                        }}
+                      >
+                        Zavrieť
+                      </button>
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  placeholder="Meno"
+                  disabled={disabled}
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                  {...form.register("name")}
+                />
+                {form.formState.errors.name?.message && <div className="text-xs text-red-300">{form.formState.errors.name.message}</div>}
+
+                <input
+                  type="email"
+                  placeholder="Email"
+                  disabled={disabled}
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                  {...form.register("email")}
+                />
+                {form.formState.errors.email?.message && <div className="text-xs text-red-300">{form.formState.errors.email.message}</div>}
+
+                <input
+                  type="tel"
+                  placeholder="Tel. číslo"
+                  disabled={disabled}
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                  {...form.register("phone")}
+                />
+                {form.formState.errors.phone?.message && <div className="text-xs text-red-300">{form.formState.errors.phone.message}</div>}
+              </>
+            )}
 
             <textarea
               placeholder="Cieľ"

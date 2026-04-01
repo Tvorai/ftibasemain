@@ -100,6 +100,32 @@ export default function BookingForm({
     return featureFlags.supabaseEnabled ? createClient(supabaseUrl, supabaseAnonKey) : null;
   }, []);
 
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
+  const [accountName, setAccountName] = useState<string | null>(null);
+  const [accountPhone, setAccountPhone] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(async ({ data }) => {
+      const user = data.session?.user;
+      if (!user) {
+        setAccountEmail(null);
+        setAccountName(null);
+        setAccountPhone(null);
+        return;
+      }
+      setAccountEmail(typeof user.email === "string" ? user.email : null);
+      try {
+        const res = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle<{ full_name: string | null }>();
+        const full = res.data?.full_name;
+        setAccountName(full && full.trim() ? full : null);
+      } catch {
+        setAccountName(null);
+      }
+    });
+  }, [supabase]);
+
   const defaultValues = useMemo(() => {
     return {
       client_name: initialValues?.client_name || "",
@@ -197,9 +223,18 @@ export default function BookingForm({
       const sessionResult = await supabase.auth.getSession();
       const session = sessionResult.data.session;
 
+      const resolvedName = accountEmail && !editMode ? (accountName || values.client_name || "Klient") : values.client_name;
+      const resolvedEmail = accountEmail && !editMode ? accountEmail : values.client_email;
+      const resolvedPhone = accountEmail && !editMode ? (accountPhone || "") : (values.client_phone || "");
+
       const pending: PendingBookingPayload = {
         slot: selectedSlot,
-        form: values,
+        form: {
+          client_name: resolvedName,
+          client_email: resolvedEmail,
+          client_phone: resolvedPhone,
+          note: values.note || "",
+        },
         trainerName,
         trainerEmail,
         createdAt: Date.now(),
@@ -247,35 +282,103 @@ export default function BookingForm({
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div>
-          <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Meno a priezvisko *</label>
-          <input
-            {...register("client_name")}
-            className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 ${errors.client_name ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
-            placeholder="Janko Hraško"
-          />
-          {errors.client_name && <p className="text-red-400 text-[10px] mt-1 font-bold uppercase tracking-tighter">{errors.client_name.message}</p>}
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Email *</label>
-          <input
-            {...register("client_email")}
-            className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 ${errors.client_email ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
-            placeholder="janko@priklad.sk"
-            type="email"
-          />
-          {errors.client_email && <p className="text-red-400 text-[10px] mt-1 font-bold uppercase tracking-tighter">{errors.client_email.message}</p>}
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Telefónne číslo</label>
-          <input
-            {...register("client_phone")}
-            className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600"
-            placeholder="+421 900 000 000"
-          />
-        </div>
+        {accountEmail ? (
+          <>
+            {!editMode ? (
+              <div className="flex items-center justify-between rounded-xl border border-zinc-700 bg-zinc-900/40 p-3">
+                <div className="text-xs text-zinc-400">
+                  <span className="font-bold uppercase tracking-wider">Ste prihlásený pod účtom: </span>
+                  <span className="text-white">{accountEmail}</span>
+                </div>
+                <button
+                  type="button"
+                  className="px-3 py-1 rounded-lg border border-white/10 text-zinc-300 hover:bg-white/5 text-[10px] uppercase font-bold tracking-widest"
+                  onClick={() => {
+                    setEditMode(true);
+                    setTimeout(() => {
+                      if (accountName) reset({ ...defaultValues, client_name: accountName, client_email: accountEmail || "", client_phone: accountPhone || "" });
+                      else reset({ ...defaultValues, client_email: accountEmail || "", client_phone: accountPhone || "" });
+                    }, 0);
+                  }}
+                >
+                  Upraviť
+                </button>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Meno a priezvisko *</label>
+                  <input
+                    {...register("client_name")}
+                    className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 ${errors.client_name ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
+                    placeholder="Janko Hraško"
+                  />
+                  {errors.client_name && <p className="text-red-400 text-[10px] mt-1 font-bold uppercase tracking-tighter">{errors.client_name.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Email *</label>
+                  <input
+                    {...register("client_email")}
+                    className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 ${errors.client_email ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
+                    placeholder="janko@priklad.sk"
+                    type="email"
+                  />
+                  {errors.client_email && <p className="text-red-400 text-[10px] mt-1 font-bold uppercase tracking-tighter">{errors.client_email.message}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Telefónne číslo</label>
+                  <input
+                    {...register("client_phone")}
+                    className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600"
+                    placeholder="+421 900 000 000"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    className="px-3 py-1 rounded-lg border border-white/10 text-zinc-300 hover:bg-white/5 text-[10px] uppercase font-bold tracking-widest"
+                    onClick={() => {
+                      setEditMode(false);
+                      reset(defaultValues);
+                    }}
+                  >
+                    Zavrieť
+                  </button>
+                </div>
+              </>
+            )}
+          </>
+        ) : (
+          <>
+            <div>
+              <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Meno a priezvisko *</label>
+              <input
+                {...register("client_name")}
+                className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 ${errors.client_name ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
+                placeholder="Janko Hraško"
+              />
+              {errors.client_name && <p className="text-red-400 text-[10px] mt-1 font-bold uppercase tracking-tighter">{errors.client_name.message}</p>}
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Email *</label>
+              <input
+                {...register("client_email")}
+                className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 ${errors.client_email ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
+                placeholder="janko@priklad.sk"
+                type="email"
+              />
+              {errors.client_email && <p className="text-red-400 text-[10px] mt-1 font-bold uppercase tracking-tighter">{errors.client_email.message}</p>}
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Telefónne číslo</label>
+              <input
+                {...register("client_phone")}
+                className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600"
+                placeholder="+421 900 000 000"
+              />
+            </div>
+          </>
+        )}
 
         <div>
           <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Poznámka</label>
