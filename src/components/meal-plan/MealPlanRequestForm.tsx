@@ -70,8 +70,8 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
       email: "",
       phone: "",
       goal: "",
-      height_cm: 170,
-      age: 25,
+      height_cm: undefined,
+      age: undefined,
       gender: "male",
       allergens: "",
       favorite_foods: "",
@@ -328,12 +328,18 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
               </>
             )}
 
-            <textarea
-              placeholder="Cieľ"
+            <select
               disabled={disabled}
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 min-h-[90px]"
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 appearance-none"
               {...form.register("goal")}
-            />
+            >
+              <option value="" disabled>Vyberte cieľ</option>
+              <option value="Schudnúť">Schudnúť</option>
+              <option value="Pribrať">Pribrať</option>
+              <option value="Pribrať svaly">Pribrať svaly</option>
+              <option value="Vyrysovať sa">Vyrysovať sa</option>
+              <option value="Iné">Iné</option>
+            </select>
             {form.formState.errors.goal?.message && <div className="text-xs text-red-300">{form.formState.errors.goal.message}</div>}
 
             <div className="grid grid-cols-2 gap-3">
@@ -343,7 +349,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
                   inputMode="numeric"
                   placeholder="Výška (cm)"
                   disabled={disabled}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   {...form.register("height_cm", { valueAsNumber: true })}
                 />
                 {form.formState.errors.height_cm?.message && (
@@ -356,7 +362,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
                   inputMode="numeric"
                   placeholder="Vek"
                   disabled={disabled}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   {...form.register("age", { valueAsNumber: true })}
                 />
                 {form.formState.errors.age?.message && (

@@ -18,16 +18,14 @@ export const mealPlanRequestFormSchemaRaw = z.object({
   phone: z.string().trim().catch(""),
   goal: z.string().trim().min(1, "Cieľ je povinný."),
   height_cm: z
-    .number()
-    .refine((v) => Number.isFinite(v), "Výška musí byť číslo.")
+    .number({ message: "Výška je povinná." })
     .int()
-    .min(1, "Výška musí byť číslo.")
+    .min(1, "Výška musí byť aspoň 1 cm.")
     .max(300, "Výška je príliš veľká."),
   age: z
-    .number()
-    .refine((v) => Number.isFinite(v), "Vek musí byť číslo.")
+    .number({ message: "Vek je povinný." })
     .int()
-    .min(1, "Vek musí byť číslo.")
+    .min(1, "Vek musí byť aspoň 1 rok.")
     .max(120, "Vek je príliš veľký."),
   gender: z.enum(["male", "female", "other"]),
   allergens: z.string().trim().optional().or(z.literal("")),
