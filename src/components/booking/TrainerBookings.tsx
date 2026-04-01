@@ -21,6 +21,7 @@ type TrainerBookingItem = {
   startsAt: string;
   endsAt: string;
   status: BookingStatus;
+  paymentStatus: string | null;
   serviceId: string | null;
   serviceName: string | null;
   serviceType: string | null;
@@ -60,6 +61,7 @@ function toTrainerBookingItem(value: unknown): TrainerBookingItem | null {
   const startsAt = value.starts_at;
   const endsAt = value.ends_at;
   const status = value.booking_status;
+  const paymentStatusRaw = value.payment_status;
   const serviceType = value.service_type;
 
   if (typeof id !== "string" || typeof startsAt !== "string" || typeof endsAt !== "string" || !isBookingStatus(status)) {
@@ -77,6 +79,7 @@ function toTrainerBookingItem(value: unknown): TrainerBookingItem | null {
     startsAt,
     endsAt,
     status,
+    paymentStatus: typeof paymentStatusRaw === "string" ? paymentStatusRaw : null,
     serviceId: typeof serviceIdRaw === "string" ? serviceIdRaw : null,
     serviceName: null,
     serviceType: typeof serviceType === "string" ? serviceType : null,
@@ -86,6 +89,14 @@ function toTrainerBookingItem(value: unknown): TrainerBookingItem | null {
     clientPhone: typeof clientPhoneRaw === "string" ? clientPhoneRaw : null,
     clientNote: typeof clientNoteRaw === "string" ? clientNoteRaw : null,
   };
+}
+
+function getStatusLabel(status: BookingStatus, paymentStatus: string | null): string {
+  if (paymentStatus === "paid") return "potvrdené";
+  if (status === "confirmed") return "potvrdené";
+  if (status === "pending_payment") return "čaká";
+  if (status === "pending") return "čaká";
+  return status;
 }
 
 export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
@@ -102,7 +113,7 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
     try {
       const { data, error } = await supabase
         .from("bookings")
-        .select("id, starts_at, ends_at, booking_status, client_name, client_email, client_phone, client_note, service_id, service_type")
+        .select("id, starts_at, ends_at, booking_status, payment_status, client_name, client_email, client_phone, client_note, service_id, service_type")
         .eq("trainer_id", trainerId)
         .not("booking_status", "in", '("completed","cancelled")')
         .order("starts_at", { ascending: true });
@@ -305,15 +316,34 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
                       {booking.clientNote && <div className="text-xs opacity-60 mt-1">{booking.clientNote}</div>}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        booking.status === "confirmed" ? "bg-emerald-500/20 text-emerald-500" :
-                        booking.status === "pending" ? "bg-yellow-500/20 text-yellow-500" :
-                        booking.status === "completed" ? "bg-sky-500/20 text-sky-400" :
-                        booking.status === "cancelled" ? "bg-red-500/20 text-red-400" :
-                        "bg-zinc-700/50 text-zinc-400"
-                      }`}>
-                        {booking.status}
-                      </span>
+                      {(() => {
+                        const label = getStatusLabel(booking.status, booking.paymentStatus);
+                        const tone =
+                          booking.status === "cancelled"
+                            ? "cancelled"
+                            : booking.status === "completed"
+                              ? "completed"
+                              : booking.paymentStatus === "paid" || booking.status === "confirmed"
+                                ? "confirmed"
+                                : booking.status === "pending_payment" || booking.status === "pending"
+                                  ? "pending"
+                                  : "other";
+                        const cls =
+                          tone === "confirmed"
+                            ? "bg-emerald-500/20 text-emerald-500"
+                            : tone === "pending"
+                              ? "bg-yellow-500/20 text-yellow-500"
+                              : tone === "completed"
+                                ? "bg-sky-500/20 text-sky-400"
+                                : tone === "cancelled"
+                                  ? "bg-red-500/20 text-red-400"
+                                  : "bg-zinc-700/50 text-zinc-400";
+                        return (
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${cls}`}>
+                            {label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="relative inline-block" onPointerDown={(e) => e.stopPropagation()}>

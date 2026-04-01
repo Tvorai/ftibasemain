@@ -443,15 +443,25 @@ export default function ClientBookings({ userId, userEmail }: ClientBookingsProp
                     {item.trainerName}
                   </Link>
                 </div>
-                <span className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase ${
-                  item.status === "confirmed" ? "bg-emerald-500/20 text-emerald-500" :
-                  item.status === "pending" ? "bg-yellow-500/20 text-yellow-500" :
-                  item.status === "completed" ? "bg-sky-500/20 text-sky-400" :
-                  item.status === "cancelled" ? "bg-red-500/20 text-red-400" :
-                  "bg-zinc-800 text-zinc-500"
-                }`}>
-                  {item.status}
-                </span>
+                {(() => {
+                  const label =
+                    item.status === "confirmed" ? "potvrdené" :
+                    item.status === "pending_payment" ? "čaká" :
+                    item.status === "pending" ? "čaká" :
+                    item.status;
+                  const cls =
+                    item.status === "confirmed" ? "bg-emerald-500/20 text-emerald-500" :
+                    item.status === "pending_payment" ? "bg-yellow-500/20 text-yellow-500" :
+                    item.status === "pending" ? "bg-yellow-500/20 text-yellow-500" :
+                    item.status === "completed" ? "bg-sky-500/20 text-sky-400" :
+                    item.status === "cancelled" ? "bg-red-500/20 text-red-400" :
+                    "bg-zinc-800 text-zinc-500";
+                  return (
+                    <span className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase ${cls}`}>
+                      {label}
+                    </span>
+                  );
+                })()}
               </div>
               
               <div className="space-y-3 pt-4 border-t border-zinc-800/50">

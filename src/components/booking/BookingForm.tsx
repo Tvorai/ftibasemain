@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { AvailableSlot } from "@/lib/booking/getAvailableSlots";
-import { createBookingAction, BookingFormState } from "@/lib/booking/actions";
 import { createClient } from "@supabase/supabase-js";
 import { featureFlags, supabaseAnonKey, supabaseUrl } from "@/lib/config";
 import BookingAuthModal from "@/components/booking/BookingAuthModal";
@@ -40,6 +39,10 @@ type PendingBookingPayload = {
 };
 
 const PENDING_KEY = "fitbase_pending_booking";
+
+type BookingFormState =
+  | { status: "idle" }
+  | { status: "error"; message: string };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -92,7 +95,6 @@ export default function BookingForm({
   const [formState, setFormState] = useState<BookingFormState>({ status: "idle" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const [isRedirectingToPayment, setIsRedirectingToPayment] = useState(false);
 
   const supabase = useMemo(() => {
     return featureFlags.supabaseEnabled ? createClient(supabaseUrl, supabaseAnonKey) : null;
@@ -121,35 +123,47 @@ export default function BookingForm({
     reset(defaultValues);
   }, [defaultValues, reset]);
 
-  const finalizeBooking = async (payload: PendingBookingPayload, accessToken: string) => {
+  const startCheckout = useCallback(async (payload: PendingBookingPayload, accessToken: string) => {
     setIsSubmitting(true);
     setFormState({ status: "idle" });
 
     try {
-      const result = await createBookingAction({
-        trainer_id: payload.slot.trainer_id,
-        starts_at: payload.slot.starts_at,
-        ends_at: payload.slot.ends_at,
-        client_name: payload.form.client_name,
-        client_email: payload.form.client_email,
-        client_phone: payload.form.client_phone || null,
-        note: payload.form.note || null,
-        trainer_name: payload.trainerName,
-        trainer_email: payload.trainerEmail,
-        access_token: accessToken,
-        service_type: payload.serviceType,
+      const res = await fetch("/api/stripe/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          trainer_id: payload.slot.trainer_id,
+          starts_at: payload.slot.starts_at,
+          ends_at: payload.slot.ends_at,
+          service_type: payload.serviceType,
+          client_name: payload.form.client_name,
+          client_email: payload.form.client_email,
+          client_phone: payload.form.client_phone || null,
+          note: payload.form.note || null,
+          access_token: accessToken,
+        }),
       });
 
-      setFormState(result);
-      if (result.status === "success") {
-        sessionStorage.removeItem(PENDING_KEY);
+      const responsePayload: unknown = await res.json().catch(() => null);
+      const url = isRecord(responsePayload) && typeof responsePayload.url === "string" ? responsePayload.url : null;
+      if (!res.ok || !url) {
+        const message =
+          isRecord(responsePayload) && typeof responsePayload.message === "string"
+            ? responsePayload.message
+            : "Nepodarilo sa spustiť platbu.";
+        setFormState({ status: "error", message });
+        return;
       }
+
+      sessionStorage.removeItem(PENDING_KEY);
+      if (onSuccess) onSuccess();
+      window.location.href = url;
     } catch {
       setFormState({ status: "error", message: "Nastala neočakávaná chyba pri komunikácii so serverom." });
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [onSuccess]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -169,9 +183,9 @@ export default function BookingForm({
     supabase.auth.getSession().then(({ data }) => {
       const session = data.session;
       if (!session?.access_token) return;
-      void finalizeBooking(pending, session.access_token);
+      void startCheckout(pending, session.access_token);
     });
-  }, [selectedSlot.starts_at, selectedSlot.trainer_id, supabase]);
+  }, [selectedSlot.starts_at, selectedSlot.trainer_id, startCheckout, supabase]);
 
   const onSubmit = async (values: BookingFormValues) => {
     if (!supabase) {
@@ -198,82 +212,11 @@ export default function BookingForm({
         return;
       }
 
-      await finalizeBooking(pending, session.access_token);
+      await startCheckout(pending, session.access_token);
     } catch {
       setFormState({ status: "error", message: "Nastala neočakávaná chyba pri komunikácii so serverom." });
     }
   };
-
-  if (formState.status === "success") {
-    return (
-      <div className="p-6 bg-emerald-900/20 border border-emerald-500/50 rounded-xl text-center space-y-4">
-        <div className="text-emerald-500">
-          <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-          </svg>
-        </div>
-        <h3 className="text-xl font-bold text-emerald-400 mb-2">Rezervácia bola úspešná!</h3>
-        <p className="text-zinc-300">{formState.message}</p>
-
-        <div className="flex gap-3 justify-center pt-2">
-          <button
-            type="button"
-            disabled={isRedirectingToPayment}
-            onClick={async () => {
-              if (!supabase) {
-                setFormState({ status: "error", message: "Auth nie je dostupný." });
-                return;
-              }
-              setIsRedirectingToPayment(true);
-              try {
-                const sessionRes = await supabase.auth.getSession();
-                const accessToken = sessionRes.data.session?.access_token;
-                if (!accessToken) {
-                  setFormState({ status: "error", message: "Pre platbu sa musíte prihlásiť." });
-                  setIsRedirectingToPayment(false);
-                  return;
-                }
-
-                const res = await fetch("/api/stripe/checkout/create-session", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ booking_id: formState.bookingId, access_token: accessToken }),
-                });
-                const payload: unknown = await res.json().catch(() => null);
-                const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
-                const url = isRecord(payload) && typeof payload.url === "string" ? payload.url : null;
-                if (!res.ok || !url) {
-                  const message = isRecord(payload) && typeof payload.message === "string" ? payload.message : "Nepodarilo sa spustiť platbu.";
-                  setFormState({ status: "error", message });
-                  setIsRedirectingToPayment(false);
-                  return;
-                }
-
-                if (onSuccess) onSuccess();
-                window.location.href = url;
-              } catch {
-                setFormState({ status: "error", message: "Nastala neočakávaná chyba pri spustení platby." });
-                setIsRedirectingToPayment(false);
-              }
-            }}
-            className="flex-[2] py-3 px-6 bg-emerald-500 text-black rounded-xl font-bold hover:bg-emerald-400 disabled:bg-emerald-900/50 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors uppercase tracking-widest"
-          >
-            {isRedirectingToPayment ? "Presmerovávam..." : "Zaplatiť"}
-          </button>
-          {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={isRedirectingToPayment}
-              className="flex-1 py-3 px-4 border border-zinc-700 text-zinc-400 rounded-xl hover:bg-zinc-800 transition-colors font-bold uppercase text-xs disabled:opacity-50"
-            >
-              Zavrieť
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   const slotDateStr = new Date(selectedSlot.starts_at).toLocaleString("sk-SK", {
     weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit"
@@ -294,7 +237,7 @@ export default function BookingForm({
           const session = (await supabase.auth.getSession()).data.session;
           if (!session?.access_token) return;
           setAuthOpen(false);
-          await finalizeBooking(pending, session.access_token);
+          await startCheckout(pending, session.access_token);
         }}
       />
       <div className="mb-6 p-4 bg-zinc-800/50 border border-zinc-700 rounded-lg">
@@ -365,7 +308,7 @@ export default function BookingForm({
             disabled={isSubmitting}
             className="flex-[2] py-3 px-4 bg-emerald-500 text-black rounded-xl font-bold hover:bg-emerald-400 disabled:bg-emerald-900/50 disabled:text-zinc-500 disabled:cursor-not-allowed transition-colors uppercase tracking-widest"
           >
-            {isSubmitting ? "Spracovávam..." : "Rezervovať"}
+            {isSubmitting ? "Presmerovávam..." : "Rezervovať"}
           </button>
         </div>
         
