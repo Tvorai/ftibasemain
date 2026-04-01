@@ -18,8 +18,14 @@ type TrainerProfile = {
   bio: string | null;
   headline: string | null;
   city: string | null;
-  images: any[] | null;
-  brands: any[] | null;
+  images: string[] | null;
+  brands: {
+    name?: string;
+    logo?: string;
+    code?: string;
+    description?: string;
+    url?: string;
+  }[] | null;
   services: unknown;
   reviews?: unknown;
   client_results?: unknown;
@@ -61,7 +67,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
   } | null>(null);
   const suppressClickRef = useRef(false);
   const vantaElRef = useRef<HTMLDivElement | null>(null);
-  const vantaEffectRef = useRef<any>(null);
+  const vantaEffectRef = useRef<{ destroy: () => void } | null>(null);
   const [threeReady, setThreeReady] = useState(false);
   const [p5Ready, setP5Ready] = useState(false);
   const [vantaReady, setVantaReady] = useState(false);
@@ -361,7 +367,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
     if (!vantaElRef.current) return;
     if (vantaEffectRef.current) return;
 
-    const VANTA = (window as any).VANTA;
+    const VANTA = (window as unknown as { VANTA: { TOPOLOGY: (config: Record<string, unknown>) => { destroy: () => void } } }).VANTA;
     if (!VANTA?.TOPOLOGY) return;
 
     vantaEffectRef.current = VANTA.TOPOLOGY({
@@ -388,21 +394,19 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
     if (typeof window === "undefined") return;
     if (shareBusy) return;
 
-    const nav = window.navigator;
+    const nav = window.navigator as Navigator & { share?: (data: { title: string; url: string }) => Promise<void> };
     const name = trainer.profiles?.full_name?.trim() || "Fitbase tréner";
     const url = `${window.location.origin}/t/${trainer.id}`;
 
     setShareBusy(true);
     try {
-      const share = (nav as any).share;
-      if (typeof share === "function") {
-        await share.call(nav, { title: name, url });
+      if (typeof nav.share === "function") {
+        await nav.share({ title: name, url });
         return;
       }
 
-      const clipboard = (nav as any).clipboard;
-      if (clipboard && typeof clipboard.writeText === "function") {
-        await clipboard.writeText(url);
+      if (nav.clipboard && typeof nav.clipboard.writeText === "function") {
+        await nav.clipboard.writeText(url);
         alert("Link profilu skopírovaný.");
         return;
       }
@@ -416,8 +420,8 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
       document.execCommand("copy");
       textarea.remove();
       alert("Link profilu skopírovaný.");
-    } catch (err: any) {
-      if (err?.name !== "AbortError") console.error("Share failed:", err);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== "AbortError") console.error("Share failed:", err);
     } finally {
       setShareBusy(false);
     }

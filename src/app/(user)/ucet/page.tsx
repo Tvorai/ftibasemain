@@ -21,7 +21,7 @@ export default function UserAccountPage() {
   const [saving, setSaving] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const vantaElRef = useRef<HTMLDivElement | null>(null);
-  const vantaEffectRef = useRef<any>(null);
+  const vantaEffectRef = useRef<{ destroy: () => void } | null>(null);
   const [threeReady, setThreeReady] = useState(false);
   const [p5Ready, setP5Ready] = useState(false);
   const [vantaReady, setVantaReady] = useState(false);
@@ -43,7 +43,7 @@ export default function UserAccountPage() {
     if (!vantaElRef.current) return;
     if (vantaEffectRef.current) return;
 
-    const VANTA = (window as any).VANTA;
+    const VANTA = (window as unknown as { VANTA: { TOPOLOGY: (config: Record<string, unknown>) => { destroy: () => void } } }).VANTA;
     if (!VANTA?.TOPOLOGY) return;
 
     vantaEffectRef.current = VANTA.TOPOLOGY({

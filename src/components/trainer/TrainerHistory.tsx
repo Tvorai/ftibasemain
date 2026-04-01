@@ -72,21 +72,30 @@ export default function TrainerHistory({ trainerId }: TrainerHistoryProps) {
         if (serviceIds.length > 0) {
           const servicesRes = await supabase.from("services").select("id, name, title").in("id", serviceIds);
           if (!servicesRes.error && Array.isArray(servicesRes.data)) {
-            servicesRes.data.forEach((s: any) => {
+            servicesRes.data.forEach((s: { id: string; name?: string; title?: string }) => {
               serviceNameById.set(s.id, s.name || s.title || "");
             });
           }
         }
 
-        bookingsRes.data.forEach((b: any) => {
+        bookingsRes.data.forEach((b: { 
+          id: string; 
+          service_id?: string; 
+          client_name?: string; 
+          client_email?: string; 
+          client_phone?: string; 
+          booking_status: string; 
+          starts_at: string; 
+          ends_at: string; 
+        }) => {
           const serviceName = b.service_id ? serviceNameById.get(b.service_id) || null : null;
           const type = inferBookingCategoryFromServiceName(serviceName);
           bookingItems.push({
             id: b.id,
             type,
             clientName: b.client_name || "Bez mena",
-            clientEmail: b.client_email,
-            clientPhone: b.client_phone,
+            clientEmail: b.client_email || null,
+            clientPhone: b.client_phone || null,
             status: b.booking_status,
             date: b.starts_at,
             endsAt: b.ends_at,

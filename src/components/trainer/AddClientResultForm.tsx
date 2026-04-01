@@ -32,8 +32,8 @@ export default function AddClientResultForm({ trainerId, onSuccess }: AddClientR
 
       const reader = new FileReader();
       reader.onloadend = () => {
-        const img = new (window as any).Image();
-        img.src = reader.result;
+        const img = new window.Image();
+        img.src = reader.result as string;
         img.onload = () => {
           const canvas = document.createElement("canvas");
           const MAX_WIDTH = 1200;
