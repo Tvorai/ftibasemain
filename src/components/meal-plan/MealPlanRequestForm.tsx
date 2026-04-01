@@ -173,9 +173,16 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
 
     setSubmitState({ status: "idle" });
 
-    const resolvedName = accountEmail && !editMode ? (accountName || values.name || "Klient") : values.name;
-    const resolvedEmail = accountEmail && !editMode ? accountEmail : values.email;
-    const resolvedPhone = accountEmail && !editMode ? (accountPhone || "") : (values.phone || "");
+    const isAuthed = !!accountEmail;
+    const resolvedName = (isAuthed && !editMode) ? (accountName || "Klient") : (values.name || accountName || "Klient");
+    const resolvedEmail = (isAuthed && !editMode) ? accountEmail : (values.email || accountEmail || "");
+    const resolvedPhone = (isAuthed && !editMode) ? (accountPhone || "") : (values.phone || accountPhone || "");
+
+    // Ak nie sme prihlásení, musíme skontrolovať či máme aspoň meno a email
+    if (!isAuthed && (!resolvedName || !resolvedEmail)) {
+      setSubmitState({ status: "error", message: "Prosím vyplňte meno a email." });
+      return;
+    }
 
     const pending: PendingMealPlanPayload = {
       trainer_id: trainerId,

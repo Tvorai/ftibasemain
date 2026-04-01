@@ -13,9 +13,9 @@ export type MealPlanRequestFormValues = {
 };
 
 export const mealPlanRequestFormSchemaRaw = z.object({
-  name: z.string().trim().min(1, "Meno je povinné."),
-  email: z.string().trim().email("Neplatný email."),
-  phone: z.string().trim().min(1, "Telefón je povinný."),
+  name: z.string().trim().catch(""),
+  email: z.string().trim().email("Neplatný email.").or(z.literal("")).catch(""),
+  phone: z.string().trim().catch(""),
   goal: z.string().trim().min(1, "Cieľ je povinný."),
   height_cm: z
     .number()
