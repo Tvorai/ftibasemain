@@ -16,9 +16,12 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 type TabId = "profil" | "rezervacie" | "sluzby" | "kalendar" | "online-konzultacie" | "recenzie" | "vysledky" | "znacky" | "nastavenia";
 type CalendarTabId = "moj_kalendar" | "nastavenia_kalendara";
 type BrandSubTabId = "pridat" | "zoznam";
-type SettingsTabId = "payment_account";
+type SettingsTabId = "payment_account" | "pricing";
 
-const settingsTabs: { id: SettingsTabId; label: string }[] = [{ id: "payment_account", label: "Platobný účet" }];
+const settingsTabs: { id: SettingsTabId; label: string }[] = [
+  { id: "payment_account", label: "Platobný účet" },
+  { id: "pricing", label: "Cenník" }
+];
 
 type Brand = {
   id: string;
@@ -51,6 +54,8 @@ type TrainerRow = {
   stripe_charges_enabled: boolean | null;
   stripe_payouts_enabled: boolean | null;
   profiles: { full_name: string | null } | null;
+  price_personal_cents?: number | null;
+  price_online_cents?: number | null;
 };
 
 // Helper pre slugifikáciu
@@ -122,6 +127,9 @@ export default function TrainerDashboardPage() {
   const profileUrl = `${siteUrl}${toSlug(username)}`;
   const locationText = [city.trim(), gymName.trim()].filter(Boolean).join(" - ");
 
+  const [pricePersonalEuro, setPricePersonalEuro] = useState<string>("");
+  const [priceOnlineEuro, setPriceOnlineEuro] = useState<string>("");
+
   const loadProfile = useCallback(async () => {
     setLoading(true);
     try {
@@ -165,6 +173,10 @@ export default function TrainerDashboardPage() {
           while (loadedImages.length < 4) loadedImages.push(null);
           setImages(loadedImages.slice(0, 4));
         }
+        const pPersonal = typeof (trainer as TrainerRow).price_personal_cents === "number" ? (trainer as TrainerRow).price_personal_cents : null;
+        const pOnline = typeof (trainer as TrainerRow).price_online_cents === "number" ? (trainer as TrainerRow).price_online_cents : null;
+        setPricePersonalEuro(pPersonal && pPersonal > 0 ? (pPersonal / 100).toFixed(2) : "");
+        setPriceOnlineEuro(pOnline && pOnline > 0 ? (pOnline / 100).toFixed(2) : "");
       }
     } catch (err) {
       console.error("Error loading profile:", err);
@@ -345,6 +357,36 @@ export default function TrainerDashboardPage() {
     } catch (err) {
       console.error(err);
       alert("Chyba pri ukladaní profilu.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePricing = async () => {
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const toCents = (val: string): number | null => {
+        const num = Number(val.replace(",", "."));
+        if (!Number.isFinite(num) || num <= 0) return null;
+        const cents = Math.round(num * 100);
+        return cents > 0 ? cents : null;
+      };
+      const personalCents = toCents(pricePersonalEuro);
+      const onlineCents = toCents(priceOnlineEuro);
+      const payload: Record<string, number | null> = {
+        price_personal_cents: personalCents,
+        price_online_cents: onlineCents
+      };
+      const { error } = await supabase
+        .from("trainers")
+        .update(payload)
+        .eq("profile_id", user.id);
+      if (error) throw error;
+      alert("Cenník bol uložený.");
+    } catch {
+      alert("Chyba pri ukladaní cenníka.");
     } finally {
       setSaving(false);
     }
@@ -1186,6 +1228,46 @@ export default function TrainerDashboardPage() {
                       {stripeBusy === "dashboard" ? "Prebieha..." : "Otvoriť Stripe dashboard"}
                     </button>
                   )}
+                </div>
+              </div>
+            )}
+            {activeSettingsTab === "pricing" && (
+              <div className="bg-zinc-900/30 border border-emerald-500/30 rounded-[30px] p-6 md:p-8 backdrop-blur-sm space-y-6">
+                <div>
+                  <div className="text-white font-bold text-lg">Cenník</div>
+                  <div className="mt-1 text-zinc-400 text-sm">Nastavte ceny v EUR. Uložené hodnoty sa použijú pri platbe.</div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest">Osobný tréning (EUR)</label>
+                    <input
+                      value={pricePersonalEuro}
+                      onChange={(e) => setPricePersonalEuro(e.target.value)}
+                      inputMode="decimal"
+                      className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600"
+                      placeholder="50.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest">Online konzultácia (EUR)</label>
+                    <input
+                      value={priceOnlineEuro}
+                      onChange={(e) => setPriceOnlineEuro(e.target.value)}
+                      inputMode="decimal"
+                      className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600"
+                      placeholder="30.00"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSavePricing}
+                    disabled={saving}
+                    className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 px-8 rounded-full text-xs uppercase tracking-widest transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+                  >
+                    {saving ? "Ukladám..." : "Uložiť cenník"}
+                  </button>
                 </div>
               </div>
             )}

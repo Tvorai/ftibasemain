@@ -53,7 +53,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
   } = validatedFields.data;
 
   const normalizedServiceType: "personal" | "online" = service_type === "online" ? "online" : "personal";
-  const priceCents = normalizedServiceType === "online" ? 3000 : 5000;
+  let priceCents = normalizedServiceType === "online" ? 3000 : 5000;
   const currency = "eur";
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -74,6 +74,22 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
     if (!authUser) {
       console.error("createBookingAction: user not authenticated", userResult.error);
       return { status: "error", message: "Pre dokončenie rezervácie sa musíte prihlásiť." };
+    }
+
+    const trainerPriceRes = await supabase
+      .from("trainers")
+      .select("price_personal_cents, price_online_cents")
+      .eq("id", trainer_id)
+      .maybeSingle<{ price_personal_cents: number | null; price_online_cents: number | null }>();
+    if (!trainerPriceRes.error && trainerPriceRes.data) {
+      const personal = trainerPriceRes.data.price_personal_cents;
+      const online = trainerPriceRes.data.price_online_cents;
+      if (normalizedServiceType === "personal" && typeof personal === "number" && personal > 0) {
+        priceCents = personal;
+      }
+      if (normalizedServiceType === "online" && typeof online === "number" && online > 0) {
+        priceCents = online;
+      }
     }
 
     const profileResult = await supabase
