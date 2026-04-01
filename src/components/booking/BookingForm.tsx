@@ -11,8 +11,8 @@ import BookingAuthModal from "@/components/booking/BookingAuthModal";
 
 // Validácia formulára pomocou Zod (musi sa zhodovat s tym v server action)
 const bookingFormSchema = z.object({
-  client_name: z.string().min(2, "Meno musí mať aspoň 2 znaky"),
-  client_email: z.string().email("Neplatný email"),
+  client_name: z.string().optional().or(z.literal("")),
+  client_email: z.string().email("Neplatný email").optional().or(z.literal("")),
   client_phone: z.string().optional().or(z.literal("")),
   note: z.string().optional().or(z.literal("")),
 });
@@ -230,9 +230,16 @@ export default function BookingForm({
       const sessionResult = await supabase.auth.getSession();
       const session = sessionResult.data.session;
 
-      const resolvedName = accountEmail && !editMode ? (accountName || values.client_name || "Klient") : values.client_name;
-      const resolvedEmail = accountEmail && !editMode ? accountEmail : values.client_email;
-      const resolvedPhone = accountEmail && !editMode ? (accountPhone || "") : (values.client_phone || "");
+      const isAuthed = !!accountEmail;
+      const resolvedName = (isAuthed && !editMode) ? (accountName || "Klient") : (values.client_name || accountName || "Klient");
+      const resolvedEmail = (isAuthed && !editMode) ? accountEmail : (values.client_email || accountEmail || "");
+      const resolvedPhone = (isAuthed && !editMode) ? (accountPhone || "") : (values.client_phone || accountPhone || "");
+
+      // Ak nie sme v editMode a nie sme prihlásení, musíme skontrolovať či máme aspoň meno a email
+      if (!isAuthed && (!resolvedName || !resolvedEmail)) {
+        setFormState({ status: "error", message: "Prosím vyplňte meno a email." });
+        return;
+      }
 
       const pending: PendingBookingPayload = {
         slot: selectedSlot,
