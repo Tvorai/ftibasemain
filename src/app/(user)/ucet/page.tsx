@@ -11,7 +11,7 @@ import ClientBookings from "@/components/booking/ClientBookings";
 
 const supabase = featureFlags.supabaseEnabled ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
-type TabId = "profil" | "sluzby" | "meal_plan" | "historia";
+type TabId = "profil" | "sluzby";
 
 export default function UserAccountPage() {
   const router = useRouter();
@@ -197,31 +197,6 @@ export default function UserAccountPage() {
           </div>
         );
 
-      case "meal_plan":
-        return (
-          <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
-            <ClientBookings userId={userId} userEmail={email} kind="meal_plan" />
-          </div>
-        );
-
-      case "historia":
-        return (
-          <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
-            <Link
-              href="/historia-rezervacii"
-              className="w-full border border-emerald-500 rounded-[25px] px-8 py-5 text-white text-2xl font-display tracking-wide hover:text-emerald-300 hover:border-emerald-300 transition-colors"
-            >
-              História rezervácií
-            </Link>
-            <Link
-              href="/historia-platieb"
-              className="w-full border border-emerald-500 rounded-[25px] px-8 py-5 text-white text-2xl font-display tracking-wide hover:text-emerald-300 hover:border-emerald-300 transition-colors"
-            >
-              História platieb
-            </Link>
-          </div>
-        );
-
       default:
         return <div className="flex items-center justify-center h-full text-zinc-500 italic">Obsah sa pripravuje...</div>;
     }
@@ -229,9 +204,7 @@ export default function UserAccountPage() {
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "profil", label: "Môj profil" },
-    { id: "sluzby", label: "Moje tréningy" },
-    { id: "meal_plan", label: "Môj jedálniček" },
-    { id: "historia", label: "História" }
+    { id: "sluzby", label: "Moje tréningy" }
   ];
 
   return (
