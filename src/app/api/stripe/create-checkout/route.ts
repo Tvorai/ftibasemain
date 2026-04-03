@@ -106,7 +106,7 @@ export async function POST(request: Request) {
   let discountMessage = "";
 
   if (input.discount_code) {
-    const { data: discount } = await supabase
+    const { data: discount, error: discountErr } = await supabase
       .from("trainer_discounts")
       .select("*")
       .eq("trainer_id", input.trainer_id)
@@ -115,14 +115,23 @@ export async function POST(request: Request) {
       .eq("is_active", true)
       .maybeSingle();
 
+    if (discountErr) {
+      console.error("Discount lookup error:", discountErr);
+    }
+
     if (discount) {
       const isUsageValid = !discount.max_uses || discount.used_count < discount.max_uses;
       if (isUsageValid) {
-        if (discount.type === "percent") {
-          discountAmountCents = Math.round((priceCents * discount.value) / 100);
-        } else {
-          discountAmountCents = discount.value * 100;
+        // Použijeme stĺpce 'type' a 'value' podľa reálneho stavu v DB
+        const dType = discount.type;
+        const dValue = discount.value;
+
+        if (dType === "percent") {
+          discountAmountCents = Math.round((priceCents * dValue) / 100);
+        } else if (dType === "fixed") {
+          discountAmountCents = dValue * 100;
         }
+        
         finalPriceCents = Math.max(0, priceCents - discountAmountCents);
         validatedDiscountCode = discount.code;
         isValid = true;
