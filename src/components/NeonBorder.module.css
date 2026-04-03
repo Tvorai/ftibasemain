@@ -1,0 +1,41 @@
+.neonBorder {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.neonBorder::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--neon-size, 2px);
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 0, 0, 0) 0deg,
+    rgba(var(--neon-rgb, 0, 255, 136), 0) 40deg,
+    rgba(var(--neon-rgb, 0, 255, 136), 0.9) 80deg,
+    rgba(var(--neon-rgb, 0, 255, 136), 0) 130deg,
+    rgba(0, 0, 0, 0) 360deg
+  );
+  opacity: var(--neon-opacity, 0.45);
+  filter: drop-shadow(0 0 8px rgba(var(--neon-rgb, 0, 255, 136), 0.55))
+    drop-shadow(0 0 18px rgba(var(--neon-rgb, 0, 255, 136), 0.25));
+  will-change: transform;
+  animation: neonBorderSpin var(--neon-duration, 8s) linear infinite;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+@keyframes neonBorderSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neonBorder::before {
+    animation: none;
+  }
+}
