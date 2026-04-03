@@ -70,7 +70,7 @@ export async function createMealPlanRequestAction(
         gender: form.gender,
         allergens: form.allergens || null,
         favorite_foods: form.favorite_foods || null,
-        status: "new",
+        status: "confirmed",
       })
       .select("id")
       .maybeSingle<{ id: string }>();

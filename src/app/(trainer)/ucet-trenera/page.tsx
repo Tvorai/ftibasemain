@@ -87,6 +87,17 @@ function getStringField(payload: unknown, key: string): string | null {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
+type Discount = {
+  id: string;
+  code: string;
+  type: "percent" | "fixed";
+  value: number;
+  service_type: "personal" | "online" | "meal_plan";
+  max_uses: number | null;
+  used_count: number;
+  is_active: boolean;
+};
+
 export default function TrainerDashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>("profil");
@@ -133,7 +144,7 @@ export default function TrainerDashboardPage() {
   const [priceMealPlanEuro, setPriceMealPlanEuro] = useState("");
 
   // State pre "Zľavové kódy"
-  const [discounts, setDiscounts] = useState<any[]>([]);
+  const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [newDiscount, setNewDiscount] = useState({
     code: "",
     type: "percent" as "percent" | "fixed",
@@ -188,7 +199,7 @@ export default function TrainerDashboardPage() {
         }
         const pPersonal = typeof (trainer as TrainerRow).price_personal_cents === "number" ? (trainer as TrainerRow).price_personal_cents : null;
         const pOnline = typeof (trainer as TrainerRow).price_online_cents === "number" ? (trainer as TrainerRow).price_online_cents : null;
-        const pMealPlan = (trainer as any).price_meal_plan_cents;
+        const pMealPlan = (trainer as TrainerRow).price_meal_plan_cents;
         setPricePersonalEuro(pPersonal && pPersonal > 0 ? (pPersonal / 100).toFixed(2) : "");
         setPriceOnlineEuro(pOnline && pOnline > 0 ? (pOnline / 100).toFixed(2) : "");
         setPriceMealPlanEuro(typeof pMealPlan === "number" && pMealPlan > 0 ? (pMealPlan / 100).toFixed(2) : "");
@@ -198,7 +209,7 @@ export default function TrainerDashboardPage() {
           .select("*")
           .eq("trainer_id", trainer.id)
           .order("created_at", { ascending: false });
-        if (dscRes) setDiscounts(dscRes);
+        if (dscRes) setDiscounts(dscRes as Discount[]);
       }
     } catch (err) {
       console.error("Error loading profile:", err);

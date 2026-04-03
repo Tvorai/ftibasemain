@@ -44,7 +44,7 @@ export default function TrainerMealPlanRequests({ trainerId }: TrainerMealPlanRe
         .from("meal_plan_requests")
         .select("*")
         .eq("trainer_id", trainerId)
-        .in("status", ["new", "confirmed", "in_progress", "pending_payment"])
+        .in("status", ["confirmed", "in_progress"])
         .order("created_at", { ascending: false });
 
       if (error) throw error;
