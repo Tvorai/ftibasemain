@@ -279,39 +279,41 @@ export default function HomePage() {
       {/* For Who */}
       <section id="for-who" className="py-24">
         <div className="container mx-auto px-4 md:px-6">
-          <div className="grid md:grid-cols-2 gap-12">
-            <div className="bg-zinc-900/50 border border-white/5 p-10 md:p-16 rounded-[3rem] space-y-8 hover:border-emerald-500/20 transition-colors">
-              <h2 className="font-display text-4xl md:text-5xl uppercase tracking-tight text-emerald-400">Fitbase je pre teba, ak</h2>
-              <ul className="space-y-4">
-                {[
-                  "si osobný tréner a chceš viac klientov",
-                  "robíš online coaching",
-                  "ponúkaš jedálničky",
-                  "chceš pôsobiť profesionálne",
-                  "nechceš riešiť rezervácie ručne"
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-4 text-zinc-300">
-                    <span className="text-emerald-500 font-bold mt-1">+</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <div className="relative max-w-5xl mx-auto">
+            <div className="absolute inset-0 bg-emerald-500/10 blur-[70px] rounded-[3rem]" />
+            <div className="relative bg-zinc-900/40 border border-emerald-500/20 rounded-[3rem] p-10 md:p-16 backdrop-blur-sm shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-10">
+                <div className="space-y-4">
+                  <h2 className="font-display text-4xl md:text-6xl uppercase tracking-tight text-emerald-400">
+                    Fitbase je pre teba, ak
+                  </h2>
+                  <div className="text-zinc-500 text-sm">
+                    Moderný profil, rezervácie aj platby bez chaosu.
+                  </div>
+                </div>
 
-            <div className="bg-zinc-900/20 border border-white/5 p-10 md:p-16 rounded-[3rem] space-y-8">
-              <h2 className="font-display text-4xl md:text-5xl uppercase tracking-tight text-zinc-500">Nie je to pre teba, ak</h2>
-              <ul className="space-y-4">
-                {[
-                  "nechceš online rezervácie",
-                  "nechceš verejný profil",
-                  "nechceš digitalizovať svoje služby"
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-4 text-zinc-600">
-                    <span className="text-zinc-700 font-bold mt-1">—</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
+                <div className="grid sm:grid-cols-2 gap-4 w-full lg:max-w-[640px]">
+                  {[
+                    "si osobný tréner a chceš viac klientov",
+                    "robíš online coaching",
+                    "ponúkaš jedálničky",
+                    "chceš pôsobiť profesionálne",
+                    "nechceš riešiť rezervácie ručne"
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      className="flex items-start gap-3 rounded-2xl border border-white/5 bg-black/20 px-5 py-4 hover:border-emerald-500/30 transition-colors"
+                    >
+                      <div className="mt-0.5 h-6 w-6 rounded-full bg-emerald-500/15 text-emerald-400 flex items-center justify-center shrink-0">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                          <path d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <div className="text-zinc-200">{item}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
