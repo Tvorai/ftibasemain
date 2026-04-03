@@ -32,27 +32,56 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-black text-white selection:bg-emerald-500/30">
       {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? "bg-black/80 backdrop-blur-md border-b border-white/5 py-3" : "bg-transparent py-5"}`}>
-        <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/Fitbase logo.png" alt="Fitbase" width={120} height={28} priority className="h-auto w-[100px] md:w-[120px]" />
-          </Link>
-          
-          <div className="hidden lg:flex items-center gap-8 text-sm font-bold uppercase tracking-widest text-zinc-400">
-            <button onClick={() => scrollToSection('why')} className="hover:text-emerald-400 transition-colors">Prečo Fitbase</button>
-            <button onClick={() => scrollToSection('how')} className="hover:text-emerald-400 transition-colors">Ako to funguje</button>
-            <button onClick={() => scrollToSection('services')} className="hover:text-emerald-400 transition-colors">Funkcie</button>
-            <button onClick={() => scrollToSection('pricing')} className="hover:text-emerald-400 transition-colors">Cenník</button>
-            <button onClick={() => scrollToSection('faq')} className="hover:text-emerald-400 transition-colors">FAQ</button>
-          </div>
+      <nav className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 pt-4 md:pt-6">
+        <div
+          className={`mx-auto max-w-6xl rounded-full border border-white/10 backdrop-blur-md shadow-[0_10px_30px_rgba(0,0,0,0.55)] transition-all duration-300 ${
+            isScrolled ? "bg-black/85 py-2" : "bg-black/60 py-3"
+          }`}
+        >
+          <div className="flex items-center justify-between px-4 md:px-6">
+            <Link href="/" className="flex items-center gap-2">
+              <Image
+                src="/Fitbase logo.png"
+                alt="Fitbase"
+                width={120}
+                height={28}
+                priority
+                className="h-auto w-[100px] md:w-[120px]"
+              />
+            </Link>
 
-          <div className="flex items-center gap-4">
-            <Link href="/prihlasenie" className="hidden sm:block text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors">
-              Prihlásiť sa
-            </Link>
-            <Link href="/registracia?mode=trainer" className="bg-emerald-500 hover:bg-emerald-400 text-black px-5 py-2.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20">
-              Začať ako tréner
-            </Link>
+            <div className="hidden lg:flex items-center gap-8 text-sm font-bold uppercase tracking-widest text-zinc-400">
+              <button onClick={() => scrollToSection("why")} className="hover:text-emerald-400 transition-colors">
+                Prečo Fitbase
+              </button>
+              <button onClick={() => scrollToSection("how")} className="hover:text-emerald-400 transition-colors">
+                Ako to funguje
+              </button>
+              <button onClick={() => scrollToSection("services")} className="hover:text-emerald-400 transition-colors">
+                Funkcie
+              </button>
+              <button onClick={() => scrollToSection("pricing")} className="hover:text-emerald-400 transition-colors">
+                Cenník
+              </button>
+              <button onClick={() => scrollToSection("faq")} className="hover:text-emerald-400 transition-colors">
+                FAQ
+              </button>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <Link
+                href="/prihlasenie"
+                className="hidden sm:block text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
+              >
+                Prihlásiť sa
+              </Link>
+              <Link
+                href="/registracia?mode=trainer"
+                className="bg-emerald-500 hover:bg-emerald-400 text-black px-5 py-2.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
+              >
+                Začať ako tréner
+              </Link>
+            </div>
           </div>
         </div>
       </nav>
