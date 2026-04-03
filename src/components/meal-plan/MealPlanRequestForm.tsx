@@ -74,6 +74,38 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
   } | null>(null);
   const [isValidatingDiscount, setIsValidatingDiscount] = useState(false);
 
+  // Načítanie pôvodnej ceny pri mounte
+  useEffect(() => {
+    const fetchOriginalPrice = async () => {
+      if (!supabase) return;
+      try {
+        const session = (await supabase.auth.getSession()).data.session;
+        const res = await fetch("/api/stripe/create-checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            trainer_id: trainerId,
+            service_type: "meal_plan",
+            validate_only: true,
+            access_token: session?.access_token
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setDiscountInfo({
+            isValid: false,
+            discountAmountCents: 0,
+            finalPriceCents: data.original_price_cents,
+            originalPriceCents: data.original_price_cents,
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching original price:", err);
+      }
+    };
+    fetchOriginalPrice();
+  }, [trainerId, supabase]);
+
   const validateDiscount = async () => {
     if (!discountCode.trim() || !supabase) return;
     setIsValidatingDiscount(true);
@@ -93,7 +125,13 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
       });
       const data = await res.json();
       if (res.ok && data.is_valid) {
-        setDiscountInfo(data);
+        setDiscountInfo({
+          isValid: true,
+          discountAmountCents: data.discount_amount_cents,
+          finalPriceCents: data.final_price_cents,
+          originalPriceCents: data.original_price_cents,
+          message: data.message
+        });
       } else {
         setDiscountInfo({
           isValid: false,
@@ -473,7 +511,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
                 </button>
               </div>
               {discountInfo && (
-                <div className={`mt-2 p-3 rounded-lg text-xs font-bold ${discountInfo.isValid ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                <div className={`mt-2 p-3 rounded-lg text-xs font-bold ${discountInfo.isValid ? 'bg-emerald-500/10 text-emerald-400' : (discountInfo.message ? 'bg-red-500/10 text-red-400' : 'bg-white/5 text-zinc-400')}`}>
                   {discountInfo.isValid ? (
                     <div className="space-y-1">
                       <div className="flex justify-between">
@@ -490,7 +528,12 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
                       </div>
                     </div>
                   ) : (
-                    discountInfo.message
+                    discountInfo.message || (
+                      <div className="flex justify-between items-center">
+                        <span>Cena za službu:</span>
+                        <span className="text-white text-lg font-bold">{(discountInfo.originalPriceCents / 100).toFixed(2)} €</span>
+                      </div>
+                    )
                   )}
                 </div>
               )}
