@@ -10,12 +10,12 @@ const bodySchema = z.object({
   starts_at: z.string().datetime().optional(),
   ends_at: z.string().datetime().optional(),
   service_type: z.enum(["personal", "online", "meal_plan"]),
-  client_name: z.string().min(2),
-  client_email: z.string().email(),
+  client_name: z.string().min(2).optional().or(z.string().length(0)), // Voliteľné pre validate_only
+  client_email: z.string().email().optional().or(z.string().length(0)), // Voliteľné pre validate_only
   client_phone: z.string().nullable().optional(),
   note: z.string().nullable().optional(),
   access_token: z.string().min(1),
-  // Dodatočné polia pre meal plan ak sú potrebné
+  // Dodatočné polia pre meal plan - všetky voliteľné v schéme, logická validácia nižšie
   goal: z.string().optional(),
   height_cm: z.number().optional(),
   age: z.number().optional(),
@@ -152,6 +152,20 @@ export async function POST(request: Request) {
       original_price_cents: originalPriceCents,
       message: discountMessage
     });
+  }
+
+  // --- STRIKTNÁ VALIDÁCIA PRE REÁLNY CHECKOUT FLOW ---
+  if (!input.client_name || input.client_name.length < 2) {
+    return NextResponse.json({ message: "Meno klienta je povinné." }, { status: 400 });
+  }
+  if (!input.client_email) {
+    return NextResponse.json({ message: "Email klienta je povinný." }, { status: 400 });
+  }
+
+  if (input.service_type === "meal_plan") {
+    if (!input.goal || !input.height_cm || !input.age || !input.gender) {
+      return NextResponse.json({ message: "Pre jedálniček na mieru musíte vyplniť všetky povinné polia." }, { status: 400 });
+    }
   }
 
   if (!trainerRes.data.stripe_account_id) {
