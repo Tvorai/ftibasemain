@@ -980,7 +980,7 @@ export default function TrainerDashboardPage() {
 
       case "rezervacie":
         return (
-          <div className="flex flex-col gap-6 w-full ml-auto">
+          <div className="flex flex-col gap-6 w-full max-w-[1100px] ml-auto">
             <h2 className="text-4xl font-display uppercase tracking-wider mb-4">Moje rezervácie</h2>
             <TrainerBookings trainerId={trainerId} />
           </div>
