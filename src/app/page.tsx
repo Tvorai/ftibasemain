@@ -4,12 +4,56 @@ import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import { useEffect, useState, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
+import { supabaseAnonKey, supabaseUrl } from "@/lib/config";
+
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function HomePage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const vantaRef = useRef<HTMLDivElement>(null);
   const [vantaEffect, setVantaEffect] = useState<any>(null);
   const [activeIndex, setActiveIndex] = useState(2);
+  const [user, setUser] = useState<any>(null);
+  const [isTrainer, setIsTrainer] = useState(false);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+
+      if (user) {
+        const { data: trainer } = await supabase
+          .from("trainers")
+          .select("id")
+          .eq("profile_id", user.id)
+          .maybeSingle();
+        setIsTrainer(!!trainer);
+      }
+    };
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        supabase
+          .from("trainers")
+          .select("id")
+          .eq("profile_id", session.user.id)
+          .maybeSingle()
+          .then(({ data: trainer }) => setIsTrainer(!!trainer));
+      } else {
+        setIsTrainer(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.reload();
+  };
 
   const carouselImages = [
     { src: "/1.png", title: "Profil trénera" },
@@ -138,18 +182,37 @@ export default function HomePage() {
             </div>
 
             <div className="flex items-center gap-4">
-              <Link
-                href="/prihlasenie"
-                className="hidden sm:block text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
-              >
-                Prihlásiť sa
-              </Link>
-              <Link
-                href="/registracia?mode=trainer"
-                className="bg-emerald-500 hover:bg-emerald-400 text-black px-5 py-2.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
-              >
-                Začať ako tréner
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    href={isTrainer ? "/ucet-trenera" : "/ucet"}
+                    className="hidden sm:block text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
+                  >
+                    Účet
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="bg-zinc-800 hover:bg-zinc-700 text-white px-5 py-2.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all"
+                  >
+                    Odhlásiť sa
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/prihlasenie"
+                    className="hidden sm:block text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
+                  >
+                    Prihlásiť sa
+                  </Link>
+                  <Link
+                    href="/registracia?mode=trainer"
+                    className="bg-emerald-500 hover:bg-emerald-400 text-black px-5 py-2.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
+                  >
+                    Začať ako tréner
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
