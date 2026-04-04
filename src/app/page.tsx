@@ -13,7 +13,6 @@ export default function HomePage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const vantaRef = useRef<HTMLDivElement>(null);
-  const [vantaEffect, setVantaEffect] = useState<any>(null);
   const [activeIndex, setActiveIndex] = useState(2);
   const [user, setUser] = useState<any>(null);
   const [isTrainer, setIsTrainer] = useState(false);
@@ -71,9 +70,11 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    let effect: any = null;
+
     const initVanta = () => {
-      if (typeof window !== "undefined" && (window as any).VANTA && (window as any).VANTA.TOPOLOGY && vantaRef.current && !vantaEffect) {
-        const effect = (window as any).VANTA.TOPOLOGY({
+      if (typeof window !== "undefined" && (window as any).VANTA && (window as any).VANTA.TOPOLOGY && vantaRef.current && !effect) {
+        effect = (window as any).VANTA.TOPOLOGY({
           el: vantaRef.current,
           mouseControls: true,
           touchControls: true,
@@ -85,19 +86,21 @@ export default function HomePage() {
           color: 0x56ca56,
           backgroundColor: 0x0
         });
-        setVantaEffect(effect);
       }
     };
 
-    // Check if scripts are already loaded
-    if ((window as any).VANTA && (window as any).VANTA.TOPOLOGY) {
-      initVanta();
-    }
+    // Delay initialization slightly to ensure scripts are ready and DOM is stable
+    const timer = setTimeout(() => {
+      if ((window as any).VANTA && (window as any).VANTA.TOPOLOGY) {
+        initVanta();
+      }
+    }, 500);
 
     return () => {
-      if (vantaEffect) vantaEffect.destroy();
+      clearTimeout(timer);
+      if (effect) effect.destroy();
     };
-  }, [vantaEffect]);
+  }, []);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -124,25 +127,8 @@ export default function HomePage() {
       <Script
         src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.topology.min.js"
         strategy="afterInteractive"
-        onLoad={() => {
-          if ((window as any).VANTA && (window as any).VANTA.TOPOLOGY && vantaRef.current && !vantaEffect) {
-            const effect = (window as any).VANTA.TOPOLOGY({
-              el: vantaRef.current,
-              mouseControls: true,
-              touchControls: true,
-              gyroControls: false,
-              minHeight: 200.00,
-              minWidth: 200.00,
-              scale: 1.00,
-              scaleMobile: 1.00,
-              color: 0x56ca56,
-              backgroundColor: 0x0
-            });
-            setVantaEffect(effect);
-          }
-        }}
       />
-      <div ref={vantaRef} className="fixed inset-0 z-0 opacity-40" />
+      <div ref={vantaRef} className="fixed inset-0 z-0 opacity-40 pointer-events-none w-full h-full" />
 
       <div className="relative z-10">
         {/* Navigation */}
