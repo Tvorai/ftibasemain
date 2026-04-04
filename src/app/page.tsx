@@ -156,21 +156,41 @@ export default function HomePage() {
       </nav>
 
       {/* Hero Section */}
-      <section id="hero" className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+      <section id="hero" className="relative pt-40 pb-20 md:pt-48 md:pb-32 overflow-hidden">
         <div className="container mx-auto px-4 md:px-6 relative z-10">
           <div className="grid lg:grid-cols-2 gap-14 lg:gap-16 items-center">
-            <div className="text-center lg:text-left space-y-8">
-              <h1 className="font-display text-4xl md:text-5xl lg:text-6xl uppercase leading-[0.95] tracking-tight">
-                Získavaj klientov, rezervácie
-                <br className="hidden md:block" />
-                a platby na jednom mieste.
-              </h1>
+            <div className="text-center lg:text-left space-y-8 flex flex-col">
+              <div className="order-1">
+                <h1 className="font-display text-4xl md:text-5xl lg:text-6xl uppercase leading-[0.95] tracking-tight">
+                  Získavaj klientov, rezervácie
+                  <br className="hidden md:block" />
+                  a platby na jednom mieste.
+                </h1>
+              </div>
 
-              <p className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                Fitbase je platforma pre osobných trénerov a výživových poradcov, ktorí chcú mať profesionálny profil, online rezervácie, platby a jednoduchú správu služieb bez chaosu.
-              </p>
+              <div className="order-2 mt-8">
+                <p className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                  Fitbase je platforma pre osobných trénerov a výživových poradcov, ktorí chcú mať profesionálny profil, online rezervácie, platby a jednoduchú správu služieb bez chaosu.
+                </p>
+              </div>
 
-              <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 pt-2">
+              <div className="order-3 lg:hidden mt-12 mb-4">
+                <div className="relative w-full max-w-[560px] mx-auto fitbase-bannerFloat">
+                  <div className="absolute inset-0 bg-emerald-500/10 blur-[60px]" />
+                  <div className="relative rounded-[2.5rem] bg-zinc-900/20 backdrop-blur-sm shadow-2xl overflow-hidden">
+                    <Image
+                      src="/banner.png"
+                      alt="Fitbase banner"
+                      width={1200}
+                      height={900}
+                      priority
+                      className="w-full h-auto object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="order-4 flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 pt-2">
                 <Link
                   href="/registracia?mode=trainer"
                   className="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-black px-10 py-4 rounded-full text-sm font-bold uppercase tracking-widest transition-all shadow-xl shadow-emerald-500/20 scale-105 hover:scale-110 active:scale-95"
@@ -186,7 +206,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="relative flex justify-center lg:justify-end">
+            <div className="relative hidden lg:flex justify-center lg:justify-end">
               <div className="relative w-full max-w-[560px] fitbase-bannerFloat">
                 <div className="absolute inset-0 bg-emerald-500/10 blur-[60px]" />
                 <div className="relative rounded-[2.5rem] bg-zinc-900/20 backdrop-blur-sm shadow-2xl overflow-hidden">
