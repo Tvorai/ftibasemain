@@ -804,9 +804,12 @@ export default function HomePage() {
           <div className="container mx-auto px-4 md:px-6 flex flex-col md:flex-row justify-between items-center gap-8">
             <Image src="/Fitbase logo.png" alt="Fitbase" width={100} height={24} className="opacity-50" />
             <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-600">
-              © 2024 Fitbase. Všetky práva vyhradené.
+              © 2026 Fitbase. Všetky práva vyhradené.
             </div>
-            <div className="flex gap-8 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+            <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
+              <Link href="/roadmap" className="hover:text-white transition-colors">Roadmap</Link>
+              <Link href="/podpora" className="hover:text-white transition-colors">Podpora</Link>
+              <Link href="/o-nas" className="hover:text-white transition-colors">O nás</Link>
               <span className="hover:text-white cursor-pointer">Podmienky</span>
               <span className="hover:text-white cursor-pointer">Súkromie</span>
             </div>
