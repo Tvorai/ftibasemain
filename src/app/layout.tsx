@@ -2,7 +2,6 @@ import "@/app/globals.css";
 import type { Metadata } from "next";
 import { I18nProvider } from "@/providers/i18n";
 import { AppShell } from "@/components/AppShell";
-import { NeonBorder } from "@/components/NeonBorder";
 
 export const metadata: Metadata = {
   title: "Fitbase",
@@ -16,7 +15,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <I18nProvider>
           <AppShell>{children}</AppShell>
-          <NeonBorder />
         </I18nProvider>
       </body>
     </html>
