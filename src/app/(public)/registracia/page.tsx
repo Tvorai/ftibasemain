@@ -31,8 +31,8 @@ export default function UserRegistrationPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="w-full px-4 py-6 md:px-12 md:py-10 lg:px-20">
+    <div className="min-h-screen bg-black text-white flex flex-col md:flex-row">
+      <div className="flex-1 flex flex-col px-4 py-6 md:px-12 md:py-10 lg:px-20 overflow-y-auto">
         <div className="mb-6 md:mb-10">
           <Image
             src="/Fitbase logo.png"
@@ -44,8 +44,8 @@ export default function UserRegistrationPage() {
           />
         </div>
 
-        <div className="grid gap-10 md:grid-cols-[minmax(380px,520px)_1fr] md:items-center md:gap-16">
-          <div className="max-w-xl md:max-w-none">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-xl">
             <div className="inline-flex rounded-full bg-zinc-950/60 border border-zinc-800 p-1 mb-6">
               <button
                 type="button"
@@ -280,31 +280,27 @@ export default function UserRegistrationPage() {
               </div>
             </form>
           </div>
-
-          <div className="hidden md:block">
-            <div className="relative ml-auto h-[560px] w-full max-w-[720px]">
-              <Image
-                src="/Fitbase register.png"
-                alt=""
-                fill
-                priority
-                className="object-contain object-right"
-              />
-            </div>
-          </div>
         </div>
+      </div>
 
-        <div className="mt-10 md:hidden">
-          <div className="relative mx-auto h-[320px] w-full max-w-[380px]">
-            <Image
-              src="/Fitbase register.png"
-              alt=""
-              fill
-              priority
-              className="object-contain object-bottom"
-            />
-          </div>
-        </div>
+      <div className="hidden md:block md:w-1/2 relative min-h-screen">
+        <Image
+          src="/uvod.jpg"
+          alt="Fitbase registration"
+          fill
+          priority
+          className="object-cover"
+        />
+      </div>
+
+      <div className="md:hidden w-full h-[300px] relative">
+        <Image
+          src="/uvod.jpg"
+          alt="Fitbase registration"
+          fill
+          priority
+          className="object-cover"
+        />
       </div>
     </div>
   );
