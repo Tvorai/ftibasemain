@@ -254,7 +254,7 @@ export default function HomePage() {
                         href="/registracia?mode=trainer"
                         className="bg-emerald-500 hover:bg-emerald-400 text-black px-5 py-2.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
                       >
-                        Začať ako tréner
+                        Registrovať sa
                       </Link>
                     </div>
                   </>
@@ -365,7 +365,7 @@ export default function HomePage() {
                       onClick={() => setIsMenuOpen(false)}
                       className="bg-emerald-500 text-black px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest text-center"
                     >
-                      Začať ako tréner
+                      Registrovať sa
                     </Link>
                   </>
                 )}
