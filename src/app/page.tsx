@@ -11,6 +11,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function HomePage() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const vantaRef = useRef<HTMLDivElement>(null);
   const [vantaEffect, setVantaEffect] = useState<any>(null);
   const [activeIndex, setActiveIndex] = useState(2);
@@ -184,15 +185,127 @@ export default function HomePage() {
             <div className="flex items-center gap-4">
               {user ? (
                 <>
+                  <div className="hidden sm:flex items-center gap-4">
+                    <Link
+                      href={isTrainer ? "/ucet-trenera" : "/ucet"}
+                      className="text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
+                    >
+                      Účet
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="bg-zinc-800 hover:bg-zinc-700 text-white px-5 py-2.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all"
+                    >
+                      Odhlásiť sa
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="hidden sm:flex items-center gap-4">
+                    <Link
+                      href="/prihlasenie"
+                      className="text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
+                    >
+                      Prihlásiť sa
+                    </Link>
+                    <Link
+                      href="/registracia?mode=trainer"
+                      className="bg-emerald-500 hover:bg-emerald-400 text-black px-5 py-2.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
+                    >
+                      Začať ako tréner
+                    </Link>
+                  </div>
+                </>
+              )}
+              
+              {/* Hamburger Button */}
+              <button
+                onClick={() => setIsMenuOpen(true)}
+                className="lg:hidden w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {/* Mobile Drawer Menu */}
+      <div className={`fixed inset-0 z-[100] transition-visibility duration-300 ${isMenuOpen ? 'visible' : 'invisible'}`}>
+        {/* Backdrop */}
+        <div 
+          className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isMenuOpen ? 'opacity-100' : 'opacity-0'}`}
+          onClick={() => setIsMenuOpen(false)}
+        />
+        
+        {/* Drawer Content */}
+        <div className={`absolute top-0 right-0 h-full w-[280px] bg-zinc-950 border-l border-white/10 shadow-2xl transition-transform duration-500 ease-out flex flex-col ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+          <div className="p-6 flex items-center justify-between border-b border-white/5">
+            <Image
+              src="/Fitbase logo.png"
+              alt="Fitbase"
+              width={100}
+              height={24}
+              className="h-auto w-[90px]"
+            />
+            <button 
+              onClick={() => setIsMenuOpen(false)}
+              className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto py-8 px-6 space-y-8">
+            {user && (
+              <div className="space-y-1">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Prihlásený {isTrainer ? 'tréner' : 'používateľ'}</div>
+                <div className="text-white font-bold">{user.email?.split('@')[0]}</div>
+              </div>
+            )}
+
+            <nav className="flex flex-col gap-4 text-sm font-bold uppercase tracking-widest">
+              {[
+                { label: "Prečo Fitbase", id: "why" },
+                { label: "Ako to funguje", id: "how" },
+                { label: "Funkcie", id: "services" },
+                { label: "Cenník", id: "pricing" },
+                { label: "FAQ", id: "faq" }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    scrollToSection(item.id);
+                  }}
+                  className="text-left text-zinc-400 hover:text-emerald-400 transition-colors py-2"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </nav>
+
+            <div className="pt-8 border-t border-white/5 flex flex-col gap-4">
+              {user ? (
+                <>
                   <Link
                     href={isTrainer ? "/ucet-trenera" : "/ucet"}
-                    className="hidden sm:block text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="bg-emerald-500 text-black px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest text-center"
                   >
-                    Účet
+                    Môj profil
                   </Link>
                   <button
-                    onClick={handleLogout}
-                    className="bg-zinc-800 hover:bg-zinc-700 text-white px-5 py-2.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      handleLogout();
+                    }}
+                    className="text-rose-400/80 hover:text-rose-400 text-xs font-bold uppercase tracking-widest text-left py-2 px-2"
                   >
                     Odhlásiť sa
                   </button>
@@ -201,13 +314,15 @@ export default function HomePage() {
                 <>
                   <Link
                     href="/prihlasenie"
-                    className="hidden sm:block text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="text-white border border-white/10 px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest text-center hover:bg-white/5 transition-colors"
                   >
                     Prihlásiť sa
                   </Link>
                   <Link
                     href="/registracia?mode=trainer"
-                    className="bg-emerald-500 hover:bg-emerald-400 text-black px-5 py-2.5 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="bg-emerald-500 text-black px-6 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest text-center"
                   >
                     Začať ako tréner
                   </Link>
@@ -216,7 +331,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </nav>
+      </div>
 
       {/* Hero Section */}
       <section id="hero" className="relative pt-40 pb-20 md:pt-48 md:pb-32 overflow-hidden">
