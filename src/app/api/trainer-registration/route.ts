@@ -116,7 +116,7 @@ export async function POST(req: Request) {
   let profileFullName = fullName;
   let profileReady = false;
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 15; i++) {
     const prof = await admin
       .from("profiles")
       .select("id, role, full_name, phone_number")
@@ -131,6 +131,8 @@ export async function POST(req: Request) {
           userId,
           role: prof.data.role
         });
+        // We update the role to trainer if it's not set correctly
+        await admin.from("profiles").update({ role: "trainer" }).eq("id", userId);
       }
       if (!prof.data.phone_number || prof.data.phone_number.trim() !== phoneNumber) {
         await admin.from("profiles").update({ phone_number: phoneNumber }).eq("id", userId);
@@ -138,11 +140,12 @@ export async function POST(req: Request) {
       break;
     }
 
-    await wait(250);
+    await wait(400);
   }
 
   if (!profileReady) {
     console.error("trainer-registration: profile not found after signup", { userId });
+    return json("Nepodarilo sa vytvoriť profil používateľa. Skúste to prosím znova o chvíľu.", 500);
   }
 
   const existingTrainer = await admin

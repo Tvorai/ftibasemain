@@ -25,9 +25,20 @@ export default function UserRegistrationPage() {
   const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>("user");
 
+  const updateUrl = (mode: AuthMode) => {
+    const url = new URL(window.location.href);
+    if (mode === "trainer") {
+      url.searchParams.set("mode", "trainer");
+    } else {
+      url.searchParams.delete("mode");
+    }
+    window.history.pushState({}, "", url.toString());
+  };
+
   useEffect(() => {
-    const mode = new URLSearchParams(window.location.search).get("mode");
-    if (mode === "trainer") setAuthMode("trainer");
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get("mode");
+    if (mode === "trainer" || mode === "trener") setAuthMode("trainer");
   }, []);
 
   return (
@@ -52,6 +63,7 @@ export default function UserRegistrationPage() {
                 onClick={() => {
                   setAuthMode("user");
                   setStatus(null);
+                  updateUrl("user");
                 }}
                 className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
                   authMode === "user" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
@@ -64,6 +76,7 @@ export default function UserRegistrationPage() {
                 onClick={() => {
                   setAuthMode("trainer");
                   setStatus(null);
+                  updateUrl("trainer");
                 }}
                 className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
                   authMode === "trainer" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
