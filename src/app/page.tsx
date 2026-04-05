@@ -58,7 +58,7 @@ export default function HomePage() {
   const carouselImages = [
     { src: "/1.png", title: "Profil trénera" },
     { src: "/2.png", title: "Rezervácie" },
-    { src: "/3.png", title: "Kalendár" },
+    { src: "/3.png", title: "Kalendár osobných tréningov" },
     { src: "/4.png", title: "Služby" },
     { src: "/5.png", title: "Objednávky" },
   ];
