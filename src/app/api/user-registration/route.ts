@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const configSiteUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || "https://fitbase.sk";
 
   if (!supabaseUrl || !supabaseAnonKey) {
     return json("Server nie je správne nakonfigurovaný pre registráciu.", 500);
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
 
   const { createClient } = await import("@supabase/supabase-js");
 
-  const emailRedirectTo = siteUrl ? new URL("/prihlasenie", siteUrl).toString() : undefined;
+  const emailRedirectTo = new URL("/auth/callback?next=/prihlasenie", configSiteUrl).toString();
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: { persistSession: false, autoRefreshToken: false }

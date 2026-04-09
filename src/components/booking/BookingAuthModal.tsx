@@ -2,16 +2,16 @@
 
 import React, { useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { featureFlags, supabaseAnonKey, supabaseUrl } from "@/lib/config";
+import { featureFlags, siteUrl, supabaseAnonKey, supabaseUrl } from "@/lib/config";
 
-type Props = {
+interface BookingAuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAuthed: () => Promise<void> | void;
   initialEmail?: string;
 };
 
-export default function BookingAuthModal({ isOpen, onClose, onAuthed, initialEmail }: Props) {
+export default function BookingAuthModal({ isOpen, onClose, onAuthed, initialEmail }: BookingAuthModalProps) {
   const supabase = useMemo(() => {
     return featureFlags.supabaseEnabled ? createClient(supabaseUrl, supabaseAnonKey) : null;
   }, []);
@@ -69,7 +69,7 @@ export default function BookingAuthModal({ isOpen, onClose, onAuthed, initialEma
             if (!supabase) return;
             setError(null);
             setLoading(true);
-            const redirectTo = typeof window !== "undefined" ? window.location.href : undefined;
+            const redirectTo = typeof window !== "undefined" ? `${siteUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent(window.location.pathname)}` : undefined;
             const result = await supabase.auth.signInWithOAuth({
               provider: "google",
               options: redirectTo ? { redirectTo } : undefined,

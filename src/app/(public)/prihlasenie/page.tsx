@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { featureFlags, supabaseAnonKey, supabaseUrl } from "@/lib/config";
+import { siteUrl, supabaseAnonKey, supabaseUrl, featureFlags } from "@/lib/config";
 import { useI18n } from "@/providers/i18n";
 
 const supabase = featureFlags.supabaseEnabled ? createClient(supabaseUrl, supabaseAnonKey) : null;
@@ -233,8 +233,9 @@ export default function UserLoginPage() {
                   if (!email.trim()) return;
 
                   setLoading(true);
+                  const redirectTo = `${siteUrl.replace(/\/$/, "")}/auth/callback?next=/reset-hesla`;
                   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-                    redirectTo: `${window.location.origin}/reset-hesla`
+                    redirectTo
                   });
                   setLoading(false);
 
