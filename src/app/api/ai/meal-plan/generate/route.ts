@@ -63,7 +63,7 @@ export async function POST(request: Request) {
   const { data: trainer, error: trainerError } = await supabase
     .from("trainers")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("profile_id", user.id)
     .maybeSingle();
 
   if (trainerError || !trainer) {
