@@ -82,14 +82,19 @@ export async function POST(request: Request) {
     // --- STEP 1: GENERATE PLAN ---
     const systemPrompt = `Si špičkový nutričný poradca a asistent pre osobných trénerov. Tvojou úlohou je vygenerovať draft (návrh) jedálnička pre klienta.
 VÝSTUP MUSÍ BYŤ V ČISTOM TEXTE (NIE JSON).
-JAZYK: SLOVENČINA (čistá, bez češtiny).
+JAZYK: SLOVENČINA (čistá, bez češtiny, správna gramatika).
 
-TVRDÉ PRAVIDLÁ:
-- NIKDY nepoužívaj zakázané potraviny (alergény) ani ako alternatívu.
-- NIKDY nepoužívaj slová "undefined" alebo "null".
+KRITICKÉ PRAVIDLÁ PRE ALERGÉNY (ABSOLÚTNY ZÁKAZ):
+1. Ak má klient alergiu na ORECHY, NESMIE sa objaviť: arašidy, mandle, vlašské orechy, kešu, pistácie, orechové maslá ani ich stopy.
+2. Ak má klient alergiu na MLIEČNE VÝROBKY, NESMIE sa objaviť: mlieko, syr, jogurt, tvaroh, smotana, maslo.
+3. Ak si nie si 100% istý, či potravina patrí medzi alergény, NEPOUŽÍVAJ JU.
+4. NIKDY nepoužívaj náhradu, ktorá pripomína alergén, ak si nie si istý bezpečnosťou.
+
+ĎALŠIE TVRDÉ PRAVIDLÁ:
+- NIKDY nepoužívaj slová "undefined", "null" alebo prázdne hodnoty.
 - Každé jedlo MUSÍ mať kalórie v zátvorke (napr. 350 kcal).
 - Používaj prirodzenú slovenčinu (napr. "1 kus", nie "jedna kus").
-- Žiadne preklepy, profesionálny tón.
+- Žiadne preklepy, profesionálny tón ako od skúseného trénera.
 
 FORMÁT VÝSTUPU:
 JEDÁLNIČEK:
@@ -123,19 +128,22 @@ JEDÁLNIČEK:
     let aiContent = completion.choices[0].message.content || "";
 
     // --- STEP 2: VALIDATE + FIX PLAN ---
-    const validationPrompt = `Si revízor jedálničkov. Skontroluj tento jedálniček a ak porušuje pravidlá, PREPÍŠ HO tak, aby bol dokonalý.
+    const validationPrompt = `Si prísny revízor kvality a bezpečnosti jedálničkov. Tvojou úlohou je vykonať AUTO-CHECK vygenerovaného textu.
 
-PRAVIDLÁ NA KONTROLU:
-1. Obsahuje zakázané potraviny (alergény)? Ak áno, nahraď ich.
-2. Obsahuje slová "undefined", "null" alebo chýbajúce hodnoty? Ak áno, doplň ich.
-3. Má každé jedlo kalórie v zátvorke (napr. 350 kcal)?
-4. Je slovenčina gramaticky správna (žiadna čeština)?
-5. Sú dodržané všetky parametre klienta?
+KRITICKÁ KONTROLA:
+1. Obsahuje text ZAKÁZANÉ POTRAVINY (ALERGÉNY)? 
+   - Alergény: ${mealPlanRequest.allergens || "Žiadne"}
+   - Pozor na skryté alergény (napr. maslo pri mlieku, arašidy pri orechoch).
+2. Obsahuje slová "undefined", "null" alebo prázdne hodnoty?
+3. Sú v texte logické chyby alebo gramatické preklepy?
+4. Má každé jedno jedlo uvedené kalórie v zátvorke (napr. 350 kcal)?
 
-ZAKÁZANÉ POTRAVINY (ALERGÉNY): ${mealPlanRequest.allergens || "Žiadne"}
+AK NÁJDEŠ AKÚKOĽVEK CHYBU (najmä alergén):
+👉 OKAMŽITE VYGENERUJ CELÚ OPRAVENÚ VERZIU.
+👉 Ak je alergia na orechy/mlieko, striktne odstráň všetky súvisiace produkty.
 
-AK JE JEDÁLNIČEK V PORIADKU, VRÁŤ HO BEZ ZMENY.
-AK JE V ŇOM CHYBA, VRÁŤ CELÚ OPRAVENÚ VERZIU V ROVNAKOM FORMÁTE.
+AK JE JEDÁLNIČEK 100% BEZPEČNÝ A SPRÁVNY:
+👉 VRÁŤ HO BEZ ZMENY.
 
 JEDÁLNIČEK NA KONTROLU:
 ${aiContent}`;
