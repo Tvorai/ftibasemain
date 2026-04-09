@@ -23,6 +23,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Unauthorized." }, { status: 401 });
   }
 
+  if (!process.env.NOVITA_API_KEY) {
+    return NextResponse.json({ message: "AI API configuration missing (NOVITA_API_KEY)." }, { status: 500 });
+  }
+
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
