@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Script from "next/script";
 import { ModalWrapper } from "@/components/ModalWrapper";
+import { Footer } from "@/components/Footer";
 import AvailableSlots from "@/components/booking/AvailableSlots";
 import BookingForm from "@/components/booking/BookingForm";
 import { AvailableSlot } from "@/lib/booking/getAvailableSlots";
@@ -707,6 +708,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
           </div>
         )}
       </div>
+      <Footer />
     </div>
   </div>
 
