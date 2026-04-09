@@ -475,7 +475,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
       />
 
       <div className="relative z-10 min-h-screen md:px-10 md:py-10">
-        <div className="min-h-screen w-full max-w-md md:max-w-xl mx-auto bg-black text-white pb-20 overflow-x-hidden relative md:rounded-2xl md:shadow-2xl md:shadow-black/40">
+        <div className="min-h-screen w-full max-w-md md:max-w-xl mx-auto bg-black text-white pb-0 overflow-x-hidden relative md:rounded-2xl md:shadow-2xl md:shadow-black/40">
       {images.length > 0 ? (
         <div
           className="relative w-full aspect-[4/3] overflow-hidden group touch-pan-y"

@@ -5,7 +5,7 @@ import Image from "next/image";
 
 export function Footer() {
   return (
-    <footer className="w-full bg-black pt-6 pb-8 px-6 rounded-b-[30px] md:rounded-b-2xl">
+    <footer className="w-full bg-black pt-6 pb-3 px-6 rounded-b-[30px] md:rounded-b-2xl">
       <div className="max-w-md mx-auto bg-zinc-950/50 border border-white/5 rounded-[40px] p-8 flex flex-col items-center text-center shadow-2xl">
         <div className="flex items-center gap-2 mb-4">
           <Image src="/simplelogo.png" alt="Fitbase" width={28} height={28} />
