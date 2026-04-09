@@ -106,41 +106,35 @@ export async function POST(request: Request) {
 
     const model = process.env.NOVITA_MODEL || "qwen/qwen3.5-35b-a3b";
 
-    const systemPrompt = `Si špičkový nutričný poradca a asistent pre osobných trénerov. Tvojou úlohou je vygenerovať draft (návrh) jedálnička pre klienta na základe jeho údajov. 
-Tento draft bude následne upravovať tréner, takže buď profesionálny, presný a zameraj sa na praktické odporúčania.
+    const systemPrompt = `Si profesionálny výživový poradca. Tvoj cieľ je vytvoriť jedálniček pre klienta v perfektnej spisovnej slovenčine.
 
-DODRŽIAVAJ TIETO PRAVIDLÁ:
-
-1. Jazyk:
+PRAVIDLÁ:
 - Používaj výhradne spisovnú slovenčinu.
-- Nepoužívaj češtinu (napr. "rýže", "kuře").
-- Nepoužívaj slang ani neodborné výrazy.
-- Nepoužívaj nesprávne výrazy ako:
-  - "kvapalné príjmy" → správne "tekuté potraviny" alebo "tekuté jedlá"
-  - "ketchup" → "kečup"
-  - "rýže" → "ryža"
+- Zakázané sú čechizmy (napr. rýže, kuře, metabolismus, respektuje).
+- Nepoužívaj zvláštne alebo neexistujúce výrazy.
+- Nepíš poznámky typu "over si", "skontroluj", "ak toleruje".
 
-2. Štýl:
-- Text musí pôsobiť ako od profesionálneho výživového poradcu.
-- Používaj jasné, stručné a správne formulácie.
-- Vyhni sa zvláštnym formuláciám alebo prekladovým chybám.
+ALERGIE:
+- Nikdy nepouži potraviny, na ktoré má klient alergiu: ${mealPlanRequest.allergens || "Žiadne"}.
+- Nikdy nespochybňuj alergiu.
+- Nepoužívaj náhrady, ktoré môžu obsahovať alergén.
 
-3. Konzistencia:
-- Používaj jednotné názvy potravín (napr. vždy "kuracie mäso", nie raz "kuracie" a raz "kuře").
-- Používaj slovenské názvy ingrediencií.
+ŠTÝL:
+- Profesionálny výstup vhodný pre klienta.
+- Žiadne zbytočné komentáre, žiadne interné poznámky.
+- Jednoduché a reálne jedlá.
 
-4. Validácia:
-- Pred výstupom si skontroluj text a oprav:
-  - pravopis
-  - gramatiku
-  - nevhodné výrazy
+FORMÁT (v JSON):
+- ZHRNUTIE KLIENTA (client_summary)
+- CIEĽ (goal_summary)
+- KALÓRIE A MAKROŽIVINY (calorie_target, macros)
+- ODPORÚČANIA (recommendations - max 5 bodov)
+- JEDÁLNIČEK (meal_plan_days)
 
-5. Zakázané chyby:
-- žiadne mixovanie jazykov
-- žiadne neexistujúce výrazy
-- žiadne automatické preklady z češtiny
+KONTROLA PRED ODOSLANÍM:
+- oprav gramatiku, odstráň čechizmy, skontroluj alergie, odstráň nezmyselné formulácie.
 
-Výstup musí byť jazykovo bezchybný, profesionálny a pripravený na odovzdanie klientovi.
+Výstup musí byť jazykovo bezchybný, profesionálny a pripravený na odovzdanie klientovi bez ďalších úprav.
 
 POUŽI FORMÁT JSON podľa tejto štruktúry: ${JSON.stringify(MEAL_PLAN_STRUCTURE, null, 2)}`;
 
@@ -162,11 +156,67 @@ POUŽI FORMÁT JSON podľa tejto štruktúry: ${JSON.stringify(MEAL_PLAN_STRUCTU
       response_format: { type: "json_object" }
     });
 
-    const aiContent = completion.choices[0].message.content;
+    let aiContent = completion.choices[0].message.content;
+    
+    // --- STEP 2: PROOFREADER ---
+    if (aiContent) {
+      const proofreaderPrompt = `Oprav nasledujúci text (vo formáte JSON):
+- preveď ho do čistej spisovnej slovenčiny
+- odstráň čechizmy (napr. rýže, kuře, metabolismus, respektuje)
+- oprav gramatiku
+- odstráň zvláštne alebo neprofesionálne formulácie
+- zachovaj význam a JSON štruktúru
+- NIKDY nepridávaj poznámky typu "tu je opravený text" alebo "skontroloval som to"
+
+TEXT (JSON):
+${aiContent}
+
+Výstup musí byť jazykovo dokonalý a vo validnom JSON formáte.`;
+
+      const proofreadCompletion = await openai.chat.completions.create({
+        model: model,
+        messages: [
+          { role: "system", content: "Si expert na slovenský jazyk a profesionálnu komunikáciu. Opravuješ texty v JSON formáte." },
+          { role: "user", content: proofreaderPrompt }
+        ],
+        response_format: { type: "json_object" }
+      });
+      
+      if (proofreadCompletion.choices[0].message.content) {
+        aiContent = proofreadCompletion.choices[0].message.content;
+      }
+    }
+
     let aiJson = null;
 
     try {
       aiJson = aiContent ? JSON.parse(aiContent) : null;
+      
+      // --- STEP 3 & 4: VALIDATION & POST-PROCESSING ---
+      if (aiJson) {
+        const forbiddenWords = ["rýže", "ketchup", "metabolismus", "respektuje", "kuře", "ak toleruje"];
+        const rawString = JSON.stringify(aiJson).toLowerCase();
+        
+        const foundForbidden = forbiddenWords.filter(word => rawString.includes(word.toLowerCase()));
+        if (foundForbidden.length > 0) {
+          console.error("[AI Validation] Forbidden words found:", foundForbidden);
+          // Post-processing as a fallback/bonus
+          let processedStr = JSON.stringify(aiJson);
+          processedStr = processedStr.replace(/rýže/gi, "ryža")
+                                   .replace(/ketchup/gi, "kečup")
+                                   .replace(/metabolismus/gi, "metabolizmus")
+                                   .replace(/kuře/gi, "kuracie mäso")
+                                   .replace(/respektuje/gi, "rešpektuje");
+          
+          aiJson = JSON.parse(processedStr);
+          
+          // Double check after replacement - if still has issues, we might want to throw but let's try to be resilient
+          const finalRaw = JSON.stringify(aiJson).toLowerCase();
+          if (forbiddenWords.some(word => finalRaw.includes(word.toLowerCase()))) {
+            throw new Error(`Výstup obsahuje zakázané výrazy aj po korekcii: ${foundForbidden.join(", ")}`);
+          }
+        }
+      }
     } catch (parseError) {
       console.error("[AI Generate] JSON parse error:", parseError);
       // Fallback: store as raw text if JSON parsing fails
