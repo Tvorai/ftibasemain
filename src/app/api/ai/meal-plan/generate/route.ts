@@ -92,38 +92,28 @@ export async function POST(request: Request) {
 
     const FORBIDDEN_EXPRESSIONS = [
       "omeléta", "jedno pomaranč", "salát", "kuracia guláš", "mliečneho omáčkovej",
-      "slepačie vajcia natvrdo", "polejte troškou", "podávané s 100 g uvarenými zemiakmi"
+      "slepačie vajcia natvrdo", "polejte troškou", "podávané s 100 g uvarenými zemiakmi",
+      "bielej rýb", "sezmový", "krajka chleba", "podliateho na zelenine"
     ];
 
     let finalContent = "";
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 2; // Reduced to prevent timeouts
     let lastAiContent = "";
 
     while (attempts < maxAttempts) {
       attempts++;
       
-      // --- STEP 1: GENERATE PLAN ---
-      const systemPrompt = `Si špičkový nutričný poradca a osobný tréner. Tvojou úlohou je vygenerovať profesionálny draft jedálnička.
+      // --- STEP 1: GENERATE PROFESSIONAL PLAN (Combined Generation & Style) ---
+      const systemPrompt = `Si špičkový nutričný poradca a profesionálny osobný tréner. Tvojou úlohou je vygenerovať DOKONALÝ draft jedálnička.
 VÝSTUP MUSÍ BYŤ V ČISTOM TEXTE (NIE JSON).
-JAZYK: SPISOVNÁ SLOVENČINA (profesionálna, bez gramatických chýb a čechizmov).
+JAZYK: ČISTÁ SPISOVNÁ SLOVENČINA (bez gramatických chýb, bez čechizmov).
 
-NUTRIČNÁ LOGIKA:
-- Jedlá musia byť jednoduché, realistické a sýte.
-- Ak je cieľ CHUDNUTIE, nepoužívaj sladené džúsy, tekuté kalórie ani náhodné sladké doplnky.
-- Zameraj sa na čisté suroviny a vyvážené makroživiny.
-
-KRITICKÉ PRAVIDLÁ PRE ALERGÉNY (ABSOLÚTNY ZÁKAZ):
-1. Ak má klient alergiu na ORECHY, NESMIE sa objaviť: arašidy, mandle, vlašské orechy, kešu, pistácie, orechové maslá ani ich stopy.
-2. Ak má klient alergiu na MLIEČNE VÝROBKY, NESMIE sa objaviť: mlieko, syr, jogurt, tvaroh, smotana, maslo.
-3. Ak si nie si 100% istý, či potravina patrí medzi alergény, NEPOUŽÍVAJ JU.
-4. NIKDY nepoužívaj náhradu, ktorá pripomína alergén, ak si nie si istý bezpečnosťou.
-
-ĎALŠIE TVRDÉ PRAVIDLÁ:
-- NIKDY nepoužívaj slová "undefined", "null" alebo prázdne hodnoty.
-- Každé jedlo MUSÍ mať kalórie v zátvorke (napr. 350 kcal).
-- Používaj prirodzenú slovenčinu (napr. "1 kus", nie "jedna kus").
-- Žiadne preklepy, profesionálny tón.
+STRIKTNÉ PRAVIDLÁ:
+1. ALERGÉNY (ABSOLÚTNY ZÁKAZ): Ak má klient alergiu na ORECHY alebo MLIEČNE VÝROBKY, nesmieš použiť nič z daného zoznamu (ani syr, maslo, arašidy, atď.).
+2. NUTRIČNÁ LOGIKA: Jedlá musia byť realistické, sýte a profesionálne. Žiadne divné kombinácie (mäso s ovocím v jednej desiate a pod.).
+3. ŠTÝL: Text musí pôsobiť ako platený produkt od prémiového trénera. Používaj gramáž a jednoduchý popis.
+4. FORMÁT: Každé jedlo MUSÍ mať kalórie v zátvorke (napr. 350 kcal).
 
 FORMÁT VÝSTUPU:
 JEDÁLNIČEK:
@@ -137,36 +127,34 @@ JEDÁLNIČEK:
 
 (prázdny riadok medzi dňami)`;
 
-      const userPrompt = `Prosím o vygenerovanie profesionálneho draftu jedálnička pre klienta:
+      const userPrompt = `Prosím o vygenerovanie špičkového draftu jedálnička:
 - Cieľ: ${mealPlanRequest.goal}
-- Výška: ${mealPlanRequest.height_cm} cm
-- Vek: ${mealPlanRequest.age} rokov
-- Pohlavie: ${mealPlanRequest.gender === "male" ? "Muž" : "Žena"}
-- Alergény (ZAKÁZANÉ - NIKDY NEPOUŽÍVAŤ): ${expandedAllergens.length > 0 ? expandedAllergens.join(", ") : "Žiadne"}
+- Parametre: ${mealPlanRequest.gender === "male" ? "Muž" : "Žena"}, ${mealPlanRequest.age} r., ${mealPlanRequest.height_cm} cm
+- Alergény (ABSOLÚTNY ZÁKAZ): ${expandedAllergens.length > 0 ? expandedAllergens.join(", ") : "Žiadne"}
 - Obľúbené jedlá: ${mealPlanRequest.favorite_foods || "Žiadne"}
-- Poznámky od trénera: ${trainerNotes || "Žiadne"}${attempts > 1 ? "\n\nUPOZORNENIE: Predchádzajúci pokus obsahoval chyby. Oprav gramatiku a nutričnú logiku." : ""}`;
+- Poznámky: ${trainerNotes || "Žiadne"}`;
 
       const completion = await openai.chat.completions.create({
         model: model,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
-        ]
+        ],
+        temperature: 0.3 // Balanced for quality and consistency
       });
 
       lastAiContent = completion.choices[0].message.content || "";
 
-      // --- STEP 2: VALIDATE + FIX (Allergens & Basics) ---
-      const validationPrompt = `Si prísny revízor kvality a bezpečnosti. Skontroluj tento jedálniček:
+      // --- STEP 2: VALIDATE + CLEANUP (Single pass for everything) ---
+      const validationPrompt = `Skontroluj a oprav nasledujúci jedálniček.
+CIEĽ: 100% bezpečnosť (alergény) a 100% gramatická správnosť.
 
-1. Obsahuje ZAKÁZANÉ POTRAVINY (ALERGÉNY)? 
-   - Alergény: ${expandedAllergens.length > 0 ? expandedAllergens.join(", ") : "Žiadne"}
-2. Obsahuje "undefined", "null" alebo prázdne hodnoty?
-3. Má každé jedlo kalórie v zátvorke?
+PRAVIDLÁ:
+1. Obsahuje ZAKÁZANÉ POTRAVINY? (${expandedAllergens.join(", ")}) Ak áno, nahraď celé jedlo bezpečnou alternatívou.
+2. Sú tam gramatické chyby, čechizmy alebo "undefined"? Ak áno, oprav ich do spisovnej slovenčiny.
+3. Má každé jedlo kcal v zátvorke?
 
-AK NÁJDEŠ CHYBU:
-👉 VYGENERUJ CELÚ OPRAVENÚ VERZIU.
-👉 Ak je v poriadku, VRÁŤ HO BEZ ZMENY.
+Vráť LEN finálny opravený text jedálnička bez komentára.
 
 TEXT NA KONTROLU:
 ${lastAiContent}`;
@@ -174,74 +162,37 @@ ${lastAiContent}`;
       const validationCompletion = await openai.chat.completions.create({
         model: model,
         messages: [
-          { role: "system", content: "Si prísny revízor. Vždy vraciaš len finálny text jedálnička." },
+          { role: "system", content: "Si prísny revízor a editor jedálničkov. Vždy vraciaš len finálny text." },
           { role: "user", content: validationPrompt }
-        ]
+        ],
+        temperature: 0.1 // High precision
       });
 
-      let validatedContent = validationCompletion.choices[0].message.content || lastAiContent;
+      const validatedContent = validationCompletion.choices[0].message.content || lastAiContent;
 
-      // --- STEP 3: CLEANUP PASS (Language & Professionalism) ---
-      const cleanupPrompt = `Oprav nasledujúci jedálniček.
-
-CIEĽ:
-- odstrániť všetky gramatické chyby (napr. 'bielej rýb', 'sezmový', 'krajka chleba', 'podliateho na zelenine')
-- odstrániť neprofesionálne formulácie a čechizmy
-- zabezpečiť konzistentný štýl ako od trénera (stručný, jasný)
-- každé jedlo musí byť realistické (zakázané sú kombinácie ako ovocie+mäso v jednej desiate, alebo tuniak+voda+uhorka)
-- žiadne texty typu 'časť z obeda', 'zvyšky z prípravy'
-- zachovať kcal, štruktúru dní a VŠETKY alergénové obmedzenia.
-
-AK NÁJDEŠ CHYBU:
-👉 PREPÍŠ CELÉ JEDLO, NIE LEN OPRAV SLOVO.
-👉 VRÁŤ LEN OPRAVENÝ JEDÁLNIČEK BEZ KOMENTÁRA.
-
-TEXT NA OPRAVU:
-${validatedContent}`;
-
-      const cleanupCompletion = await openai.chat.completions.create({
-        model: model,
-        messages: [
-          { role: "system", content: "Si špičkový nutričný editor. Vždy vraciaš len finálny, gramaticky dokonalý a profesionálny text jedálnička." },
-          { role: "user", content: cleanupPrompt }
-        ]
-      });
-
-      let finalStepContent = cleanupCompletion.choices[0].message.content || validatedContent;
-
-      // --- STEP 4: PROGRAMMATIC QUALITY CHECK ---
+      // --- STEP 3: PROGRAMMATIC QUALITY CHECK ---
       const hasForbiddenExpressions = FORBIDDEN_EXPRESSIONS.some(expr => 
-        finalStepContent.toLowerCase().includes(expr.toLowerCase())
+        validatedContent.toLowerCase().includes(expr.toLowerCase())
       );
       
-      const hasAllergens = containsForbidden(finalStepContent, expandedAllergens);
-      const hasNulls = finalStepContent.toLowerCase().includes("undefined") || finalStepContent.toLowerCase().includes("null");
+      const hasAllergens = containsForbidden(validatedContent, expandedAllergens);
+      const hasNulls = validatedContent.toLowerCase().includes("undefined") || validatedContent.toLowerCase().includes("null");
 
       if (!hasForbiddenExpressions && !hasAllergens && !hasNulls) {
-        finalContent = finalStepContent;
+        finalContent = validatedContent;
         break;
       }
       
       console.warn(`[AI Generate] Attempt ${attempts} failed quality check. Expressions: ${hasForbiddenExpressions}, Allergens: ${hasAllergens}, Nulls: ${hasNulls}. Retrying...`);
-      lastAiContent = finalStepContent;
       if (attempts === maxAttempts) {
-        finalContent = finalStepContent;
+        finalContent = validatedContent;
       }
-    }
-
-    // --- STEP 5: FINAL GRAMMAR FIX ---
-    let fixedPlan = finalContent;
-    try {
-      fixedPlan = await fixMealPlanGrammar(finalContent);
-    } catch (e) {
-      console.error("[AI Generate] fixMealPlanGrammar failed, using original:", e);
-      fixedPlan = finalContent;
     }
 
     // Consistency wrapper for storage
     const aiData = {
       format: "text",
-      raw_text: fixedPlan
+      raw_text: finalContent
     };
 
     // Save AI draft to DB
