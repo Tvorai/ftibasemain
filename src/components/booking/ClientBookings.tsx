@@ -713,6 +713,8 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
             placeholder="Napíšte recenziu..."
           />
 
+          {/* Dočasne skryté nahranie fotky */}
+          {/* 
           <div className="space-y-2">
             <input
               type="file"
@@ -747,6 +749,7 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
               </div>
             )}
           </div>
+          */}
 
           <button
             type="button"
