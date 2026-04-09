@@ -663,7 +663,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
         )}
 
         {clientResults.length > 0 && (
-          <div className="mt-12">
+          <div className="mt-6">
             <h2 className="text-3xl font-bold text-center mb-6 font-display uppercase tracking-wider">Výsledky klientov</h2>
             <div className="space-y-6">
               {clientResults.slice(0, 2).map((result) => (
@@ -700,7 +700,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
             {clientResults.length > 0 && (
               <button 
                 onClick={() => setIsAllResultsModalOpen(true)}
-                className="w-full text-center text-[10px] text-zinc-500 mt-4 hover:text-zinc-300 transition-colors uppercase tracking-widest font-bold underline underline-offset-4 decoration-zinc-700 hover:decoration-zinc-400"
+                className="w-full text-center text-[10px] text-zinc-500 mt-2 hover:text-zinc-300 transition-colors uppercase tracking-widest font-bold underline underline-offset-4 decoration-zinc-700 hover:decoration-zinc-400"
               >
                 + Všetky výsledky
               </button>
@@ -708,7 +708,9 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
           </div>
         )}
       </div>
-      <Footer />
+      <div className="mt-2">
+        <Footer />
+      </div>
     </div>
   </div>
 
