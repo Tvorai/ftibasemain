@@ -431,7 +431,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
             >
               <option value="" disabled>Vyberte cieľ</option>
               <option value="Schudnúť">Schudnúť</option>
-              <option value="Pribrať">Pribrať</option>
+              <option value="Pribrať na váhe celkovo">Pribrať na váhe celkovo</option>
               <option value="Pribrať svaly">Pribrať svaly</option>
               <option value="Vyrysovať sa">Vyrysovať sa</option>
               <option value="Iné">Iné</option>
