@@ -12,7 +12,7 @@ export function Footer() {
           <span className="text-xl font-display font-black tracking-tighter uppercase italic">Fitbase</span>
         </div>
         
-        <h3 className="text-xl md:text-2xl font-display font-bold uppercase tracking-tight mb-2 leading-tight">
+        <h3 className="text-sm md:text-2xl font-display font-bold uppercase tracking-tight mb-2 leading-tight">
           Si tréner? Pridaj sa k nám!
         </h3>
         
