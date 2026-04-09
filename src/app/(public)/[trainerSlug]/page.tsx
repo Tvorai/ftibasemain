@@ -501,7 +501,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
               className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${activeImageIndex === idx ? "opacity-100 z-10" : "opacity-0 z-0"}`}
             >
               <Image 
-                src={`${img}?width=800&quality=80`} 
+                src={img} 
                 alt={`Trainer banner ${idx + 1}`} 
                 fill 
                 className="object-cover"
@@ -647,14 +647,8 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
                 </div>
                 <p className="text-zinc-300 italic text-sm leading-relaxed">&quot;{reviews[0]?.comment || ""}&quot;</p>
                 {reviews[0]?.photo_url && (
-                  <div className="mt-4 relative w-full h-48 md:h-64">
-                    <Image 
-                      src={`${reviews[0].photo_url}?width=600&quality=75`} 
-                      alt="Review photo" 
-                      fill 
-                      className="object-cover rounded-2xl border border-white/10"
-                      loading="lazy"
-                    />
+                  <div className="mt-4">
+                    <img src={reviews[0].photo_url} alt="" className="w-full rounded-2xl border border-white/10" />
                   </div>
                 )}
               </div>
@@ -679,13 +673,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
                       className="relative flex-1 rounded-2xl overflow-hidden border border-zinc-800 cursor-zoom-in"
                       onClick={() => setLightboxImage(result.before_image_url)}
                     >
-                      <Image 
-                        src={`${result.before_image_url}?width=400&quality=80`} 
-                        alt="Pred" 
-                        fill 
-                        className="object-cover" 
-                        loading="lazy"
-                      />
+                      <Image src={result.before_image_url} alt="Pred" fill className="object-cover" />
                       <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[10px] uppercase font-bold text-white tracking-widest">
                         Pred
                       </div>
@@ -694,13 +682,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
                       className="relative flex-1 rounded-2xl overflow-hidden border border-emerald-500/30 cursor-zoom-in"
                       onClick={() => setLightboxImage(result.after_image_url)}
                     >
-                      <Image 
-                        src={`${result.after_image_url}?width=400&quality=80`} 
-                        alt="Po" 
-                        fill 
-                        className="object-cover" 
-                        loading="lazy"
-                      />
+                      <Image src={result.after_image_url} alt="Po" fill className="object-cover" />
                       <div className="absolute bottom-2 right-2 bg-emerald-500/80 backdrop-blur-md px-2 py-0.5 rounded text-[10px] uppercase font-bold text-black tracking-widest">
                         Po
                       </div>
@@ -971,14 +953,8 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
               </div>
               <div className="text-zinc-200 text-sm italic leading-relaxed">&quot;{r.comment}&quot;</div>
               {r.photo_url && (
-                <div className="mt-4 relative w-full h-48 md:h-64 cursor-zoom-in" onClick={() => setLightboxImage(r.photo_url)}>
-                  <Image 
-                    src={`${r.photo_url}?width=600&quality=75`} 
-                    alt="Review" 
-                    fill 
-                    className="object-cover rounded-2xl border border-white/10" 
-                    loading="lazy"
-                  />
+                <div className="mt-4">
+                  <img src={r.photo_url} alt="" className="w-full rounded-2xl border border-white/10 cursor-zoom-in" onClick={() => setLightboxImage(r.photo_url)} />
                 </div>
               )}
             </div>
@@ -1002,25 +978,13 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
                   className="relative flex-1 rounded-xl overflow-hidden border border-zinc-800 cursor-zoom-in"
                   onClick={() => setLightboxImage(result.before_image_url)}
                 >
-                  <Image 
-                    src={`${result.before_image_url}?width=400&quality=80`} 
-                    alt="Pred" 
-                    fill 
-                    className="object-cover" 
-                    loading="lazy"
-                  />
+                  <Image src={result.before_image_url} alt="Pred" fill className="object-cover" />
                 </div>
                 <div 
                   className="relative flex-1 rounded-xl overflow-hidden border border-emerald-500/30 cursor-zoom-in"
                   onClick={() => setLightboxImage(result.after_image_url)}
                 >
-                  <Image 
-                    src={`${result.after_image_url}?width=400&quality=80`} 
-                    alt="Po" 
-                    fill 
-                    className="object-cover" 
-                    loading="lazy"
-                  />
+                  <Image src={result.after_image_url} alt="Po" fill className="object-cover" />
                 </div>
               </div>
               {result.client_name && <div className="text-white font-bold text-sm">{result.client_name}</div>}
