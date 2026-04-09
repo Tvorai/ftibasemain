@@ -62,14 +62,23 @@ function toTrainerBookingItem(value: unknown): TrainerBookingItem | null {
   const id = value.id;
   const startsAt = value.starts_at;
   const endsAt = value.ends_at;
-  const status = value.booking_status;
   const paymentStatusRaw = value.payment_status;
   const serviceType = value.service_type;
+  
+  // Robustnejšie spracovanie statusu
+  let statusRaw = value.booking_status;
+  if (!statusRaw && paymentStatusRaw === "paid") {
+    statusRaw = "confirmed";
+  }
+  if (!statusRaw) {
+    statusRaw = "pending_payment";
+  }
 
-  if (typeof id !== "string" || typeof startsAt !== "string" || typeof endsAt !== "string" || !isBookingStatus(status)) {
+  if (typeof id !== "string" || typeof startsAt !== "string" || typeof endsAt !== "string") {
     return null;
   }
 
+  const status: BookingStatus = isBookingStatus(statusRaw) ? statusRaw : "pending_payment";
   const serviceIdRaw = value.service_id;
   const clientNameRaw = value.client_name;
   const clientEmailRaw = value.client_email;
@@ -119,7 +128,6 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
         .from("bookings")
         .select("id, starts_at, ends_at, booking_status, payment_status, client_name, client_email, client_phone, client_note, service_id, service_type")
         .eq("trainer_id", trainerId)
-        .in("booking_status", ["pending", "pending_payment", "confirmed"])
         .order("starts_at", { ascending: true });
 
       if (error) throw error;

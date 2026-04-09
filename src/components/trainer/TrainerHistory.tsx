@@ -9,7 +9,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface HistoryItem {
   id: string;
-  type: "personal_training" | "online_consultation" | "meal_plan";
+  type: "personal_training" | "online_consultation" | "meal_plan" | "transformation";
   clientName: string;
   clientEmail: string | null;
   clientPhone: string | null;
@@ -27,10 +27,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function inferBookingCategoryFromServiceName(serviceName: string | null): "personal_training" | "online_consultation" | "meal_plan" {
+function inferBookingCategory(serviceType: string | null, serviceName: string | null): "personal_training" | "online_consultation" | "meal_plan" | "transformation" {
+  if (serviceType === "online") return "online_consultation";
+  if (serviceType === "personal") return "personal_training";
+  if (serviceType === "transformation") return "transformation";
+
   const raw = (serviceName || "").toLowerCase();
+  if (raw.includes("premena") || raw.includes("transformation")) return "transformation";
   if (raw.includes("online") || raw.includes("konzult")) return "online_consultation";
   if (raw.includes("jedál") || raw.includes("jedal") || raw.includes("meal") || raw.includes("plan")) return "meal_plan";
+  
   return "personal_training";
 }
 
@@ -46,7 +52,7 @@ export default function TrainerHistory({ trainerId }: TrainerHistoryProps) {
       // 1. Načítať uzavreté bookingy
       const bookingsPromise = supabase
         .from("bookings")
-        .select("id, starts_at, ends_at, booking_status, client_name, client_email, client_phone, service_id")
+        .select("id, starts_at, ends_at, booking_status, client_name, client_email, client_phone, service_id, service_type")
         .eq("trainer_id", trainerId)
         .in("booking_status", ["completed", "cancelled"]);
 
@@ -81,6 +87,7 @@ export default function TrainerHistory({ trainerId }: TrainerHistoryProps) {
         bookingsRes.data.forEach((b: { 
           id: string; 
           service_id?: string; 
+          service_type?: string;
           client_name?: string; 
           client_email?: string; 
           client_phone?: string; 
@@ -89,7 +96,7 @@ export default function TrainerHistory({ trainerId }: TrainerHistoryProps) {
           ends_at: string; 
         }) => {
           const serviceName = b.service_id ? serviceNameById.get(b.service_id) || null : null;
-          const type = inferBookingCategoryFromServiceName(serviceName);
+          const type = inferBookingCategory(b.service_type || null, serviceName);
           bookingItems.push({
             id: b.id,
             type,
@@ -154,6 +161,7 @@ export default function TrainerHistory({ trainerId }: TrainerHistoryProps) {
       case "personal_training": return "Osobný tréning";
       case "online_consultation": return "Online konzultácia";
       case "meal_plan": return "Jedálniček na mieru";
+      case "transformation": return "Mesačná premena";
       default: return "Neznámy typ";
     }
   };
@@ -177,6 +185,7 @@ export default function TrainerHistory({ trainerId }: TrainerHistoryProps) {
                 <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md ${
                   item.type === "meal_plan" ? "bg-purple-500/10 text-purple-400" :
                   item.type === "online_consultation" ? "bg-blue-500/10 text-blue-400" :
+                  item.type === "transformation" ? "bg-amber-500/10 text-amber-400" :
                   "bg-emerald-500/10 text-emerald-400"
                 }`}>
                   {getTypeLabel(item.type)}

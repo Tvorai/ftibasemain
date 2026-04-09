@@ -176,28 +176,18 @@ export async function POST(request: Request) {
         client_name: clientName,
         client_email: clientEmail,
         client_phone: clientPhone,
-        client_note: note,
+        client_note: note || (personalSessionsCount ? `Program: ${personalSessionsCount}x tréning, ${onlineCallsCount}x volanie, Jedálniček: ${includesMealPlan ? 'ÁNO' : 'NIE'}` : null),
         starts_at: now.toISOString(),
         ends_at: end.toISOString(),
         booking_status: "confirmed",
         payment_status: "paid",
         service_type: "transformation",
         price_cents: priceCents,
-        original_price_cents: originalPriceCents,
-        final_price_cents: finalPriceCents,
         discount_code: discountCode,
         discount_amount_cents: discountAmountCents,
         currency: "eur",
         stripe_checkout_session_id: session.id,
         stripe_payment_intent_id: stripePaymentIntentId,
-        // Program dates
-        program_start_date: now.toISOString(),
-        program_end_date: end.toISOString(),
-        duration_days: 30,
-        // Metadata
-        personal_sessions_count: personalSessionsCount ? Number(personalSessionsCount) : 0,
-        online_calls_count: onlineCallsCount ? Number(onlineCallsCount) : 0,
-        includes_meal_plan: includesMealPlan,
       };
 
       const { data: inserted, error: insertErr } = await supabase
@@ -208,6 +198,38 @@ export async function POST(request: Request) {
 
       if (insertErr) {
         console.error("[Platform Webhook] Error inserting transformation booking:", insertErr.message);
+        // Fallback pre prípad chýbajúcich stĺpcov
+        if (insertErr.message.toLowerCase().includes("column")) {
+          const fallbackPayload: Record<string, unknown> = {
+            trainer_id: trainerId,
+            client_profile_id: userId,
+            client_name: clientName,
+            client_email: clientEmail,
+            client_phone: clientPhone,
+            note: note || (personalSessionsCount ? `Program: ${personalSessionsCount}x tréning, ${onlineCallsCount}x volanie, Jedálniček: ${includesMealPlan ? 'ÁNO' : 'NIE'}` : null),
+            starts_at: now.toISOString(),
+            ends_at: end.toISOString(),
+            booking_status: "confirmed",
+            payment_status: "paid",
+            service_type: "transformation",
+            price_cents: priceCents,
+            discount_code: discountCode,
+            discount_amount_cents: discountAmountCents,
+            currency: "eur",
+            stripe_checkout_session_id: session.id,
+            stripe_payment_intent_id: stripePaymentIntentId,
+          };
+          const { data: retryInserted, error: retryErr } = await supabase
+            .from("bookings")
+            .insert(fallbackPayload)
+            .select("id")
+            .maybeSingle();
+          if (retryErr) {
+            console.error("[Platform Webhook] Fallback insert failed:", retryErr.message);
+            return NextResponse.json({ message: retryErr.message }, { status: 500 });
+          }
+          return NextResponse.json({ received: true, action: "inserted_transformation_fallback", id: retryInserted?.id });
+        }
         return NextResponse.json({ message: insertErr.message }, { status: 500 });
       }
 
@@ -308,8 +330,6 @@ export async function POST(request: Request) {
         stripe_payment_intent_id: stripePaymentIntentId,
         service_type: type,
         currency,
-        original_price_cents: originalPriceCents,
-        final_price_cents: finalPriceCents,
         discount_code: discountCode,
         discount_amount_cents: discountAmountCents,
       };
@@ -327,6 +347,38 @@ export async function POST(request: Request) {
       
       if (insertErr) {
         console.error("[Platform Webhook] Error inserting booking:", insertErr.message);
+        // Fallback pre prípad chýbajúcich stĺpcov
+        if (insertErr.message.toLowerCase().includes("column")) {
+          const fallbackPayload: Record<string, unknown> = {
+            trainer_id: trainerId,
+            client_profile_id: userId,
+            starts_at: startsAt,
+            ends_at: endsAt,
+            booking_status: "confirmed",
+            payment_status: "paid",
+            stripe_checkout_session_id: session.id,
+            stripe_payment_intent_id: stripePaymentIntentId,
+            service_type: type,
+            currency,
+            discount_code: discountCode,
+            discount_amount_cents: discountAmountCents,
+          };
+          if (priceCents !== null) fallbackPayload.price_cents = priceCents;
+          if (clientName) fallbackPayload.client_name = clientName;
+          if (clientEmail) fallbackPayload.client_email = clientEmail;
+          if (clientPhone) fallbackPayload.client_phone = clientPhone;
+          if (note) fallbackPayload.note = note;
+          const { data: retryInserted, error: retryErr } = await supabase
+            .from("bookings")
+            .insert(fallbackPayload)
+            .select("id")
+            .maybeSingle();
+          if (retryErr) {
+            console.error("[Platform Webhook] Fallback insert failed:", retryErr.message);
+            return NextResponse.json({ message: retryErr.message }, { status: 500 });
+          }
+          return NextResponse.json({ received: true, action: "inserted_fallback", id: retryInserted?.id });
+        }
         return NextResponse.json({ message: insertErr.message }, { status: 500 });
       }
 
