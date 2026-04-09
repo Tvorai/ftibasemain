@@ -204,15 +204,21 @@ POUŽI FORMÁT JSON podľa tejto štruktúry: ${JSON.stringify(MEAL_PLAN_STRUCTU
 
       // Proofreader
       if (aiContent) {
-        const proofreadCompletion = await openai.chat.completions.create({
-          model: model,
-          messages: [
-            { role: "system", content: "Si expert na slovenský jazyk. Oprav gramatiku, odstráň čechizmy a zachovaj profesionálny štýl a JSON štruktúru. NIKDY nepridávaj komentáre." },
-            { role: "user", content: `Oprav tento JSON text (markdown formátovanie a štýl zachovaj): ${aiContent}` }
-          ],
-          response_format: { type: "json_object" }
-        });
-        aiContent = proofreadCompletion.choices[0].message.content || aiContent;
+        try {
+          const proofreadCompletion = await openai.chat.completions.create({
+            model: model,
+            messages: [
+              { role: "system", content: "Si expert na slovenský jazyk. Oprav gramatiku, odstráň čechizmy a zachovaj profesionálny štýl a JSON štruktúru. NIKDY nepridávaj komentáre." },
+              { role: "user", content: `Oprav tento JSON text (markdown formátovanie a štýl zachovaj): ${aiContent}` }
+            ],
+            response_format: { type: "json_object" }
+          });
+          if (proofreadCompletion.choices[0].message.content) {
+            aiContent = proofreadCompletion.choices[0].message.content;
+          }
+        } catch (proofError) {
+          console.error("[AI Proofreader] Error, continuing with original content:", proofError);
+        }
       }
 
       if (aiContent) {
