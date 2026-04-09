@@ -127,6 +127,88 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true, action: "inserted_meal_plan", id: inserted?.id });
     }
 
+    if (type === "transformation") {
+      // FLOW PRE MESAČNÚ PREMENU
+      const trainerId = getStringField(meta, "trainer_id");
+      const userId = getStringField(meta, "user_id");
+      const clientName = getStringField(meta, "client_name");
+      const clientEmail = getStringField(meta, "client_email");
+      const clientPhone = getStringField(meta, "client_phone");
+      const note = getStringField(meta, "note");
+      const priceCentsRaw = getStringField(meta, "price_cents");
+      const priceCents = priceCentsRaw ? Number(priceCentsRaw) : null;
+      const discountCode = getStringField(meta, "discount_code");
+      const discountAmountRaw = getStringField(meta, "discount_amount_cents");
+      const discountAmountCents = discountAmountRaw ? Number(discountAmountRaw) : 0;
+      
+      const personalSessionsCount = getStringField(meta, "personal_sessions_count");
+      const onlineCallsCount = getStringField(meta, "online_calls_count");
+      const includesMealPlan = getStringField(meta, "includes_meal_plan") === "true";
+
+      const now = new Date();
+      const end = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+      // Idempotencia
+      const { data: existingBooking } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("stripe_checkout_session_id", session.id)
+        .maybeSingle();
+
+      if (existingBooking) {
+        return NextResponse.json({ received: true, action: "none", message: "Transformation booking already exists" });
+      }
+
+      const insertPayload: Record<string, unknown> = {
+        trainer_id: trainerId,
+        client_profile_id: userId,
+        client_name: clientName,
+        client_email: clientEmail,
+        client_phone: clientPhone,
+        client_note: note,
+        starts_at: now.toISOString(),
+        ends_at: end.toISOString(),
+        booking_status: "confirmed",
+        payment_status: "paid",
+        service_type: "transformation",
+        price_cents: priceCents,
+        discount_code: discountCode,
+        discount_amount_cents: discountAmountCents,
+        currency: "eur",
+        stripe_checkout_session_id: session.id,
+        stripe_payment_intent_id: stripePaymentIntentId,
+        // Program dates
+        program_start_date: now.toISOString(),
+        program_end_date: end.toISOString(),
+        duration_days: 30,
+        // Metadata
+        personal_sessions_count: personalSessionsCount ? Number(personalSessionsCount) : 0,
+        online_calls_count: onlineCallsCount ? Number(onlineCallsCount) : 0,
+        includes_meal_plan: includesMealPlan,
+      };
+
+      const { data: inserted, error: insertErr } = await supabase
+        .from("bookings")
+        .insert(insertPayload)
+        .select("id")
+        .maybeSingle();
+
+      if (insertErr) {
+        console.error("[Platform Webhook] Error inserting transformation booking:", insertErr.message);
+        return NextResponse.json({ message: insertErr.message }, { status: 500 });
+      }
+
+      // Inkrementovať used_count ak bol použitý kód
+      if (discountCode && trainerId) {
+        await supabase.rpc("increment_discount_usage", { 
+          t_id: trainerId, 
+          d_code: discountCode 
+        });
+      }
+
+      return NextResponse.json({ received: true, action: "inserted_transformation", id: inserted?.id });
+    }
+
     // POVODNY FLOW PRE BOOKINGY
     const bookingIdFromMeta = getStringField(meta, "booking_id");
     const trainerId = getStringField(meta, "trainer_id");

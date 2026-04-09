@@ -14,7 +14,7 @@ import { listTrainerReviewsForDashboardAction } from "@/lib/booking/actions";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-type TabId = "profil" | "rezervacie" | "sluzby" | "kalendar" | "online-konzultacie" | "recenzie" | "vysledky" | "znacky" | "ai-jedalnicek" | "nastavenia";
+type TabId = "profil" | "rezervacie" | "sluzby" | "kalendar" | "online-konzultacie" | "recenzie" | "vysledky" | "znacky" | "ai-jedalnicek" | "nastavenia" | "transformation";
 type CalendarTabId = "moj_kalendar" | "nastavenia_kalendara";
 type BrandSubTabId = "pridat" | "zoznam";
 type SettingsTabId = "payment_account" | "pricing";
@@ -31,14 +31,27 @@ type Brand = {
   url?: string;
 };
 
-type ServiceKey = "personal_training" | "online_consultation" | "meal_plan" | "brands";
+type ServiceKey = "personal_training" | "online_consultation" | "meal_plan" | "brands" | "transformation";
 type ServicesVisibility = Record<ServiceKey, boolean>;
 
 const defaultServicesVisibility: ServicesVisibility = {
   personal_training: true,
   online_consultation: true,
   meal_plan: true,
-  brands: true
+  brands: true,
+  transformation: false
+};
+
+type TrainerTransformation = {
+  trainer_id: string;
+  is_enabled: boolean;
+  headline: string;
+  subheadline: string;
+  personal_sessions_count: number;
+  online_calls_count: number;
+  includes_meal_plan: boolean;
+  price_month_cents: number;
+  regular_price_cents: number;
 };
 
 type TrainerRow = {
@@ -95,7 +108,7 @@ type Discount = {
   code: string;
   type: "percent" | "fixed";
   value: number;
-  service_type: "personal" | "online" | "meal_plan";
+  service_type: "personal" | "online" | "meal_plan" | "transformation";
   max_uses: number | null;
   used_count: number;
   is_active: boolean;
@@ -147,13 +160,26 @@ export default function TrainerDashboardPage() {
   const [priceMealPlanEuro, setPriceMealPlanEuro] = useState("");
   const [platformFeePercent, setPlatformFeePercent] = useState("10");
 
+  // State pre "Mesačná premena"
+  const [transformation, setTransformation] = useState<TrainerTransformation>({
+    trainer_id: "",
+    is_enabled: false,
+    headline: "",
+    subheadline: "",
+    personal_sessions_count: 0,
+    online_calls_count: 0,
+    includes_meal_plan: false,
+    price_month_cents: 0,
+    regular_price_cents: 0,
+  });
+
   // State pre "Zľavové kódy"
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [newDiscount, setNewDiscount] = useState({
     code: "",
     type: "percent" as "percent" | "fixed",
     value: "",
-    service_type: "personal" as "personal" | "online" | "meal_plan",
+    service_type: "personal" as "personal" | "online" | "meal_plan" | "transformation",
     max_uses: ""
   });
 
@@ -215,6 +241,36 @@ export default function TrainerDashboardPage() {
           .eq("trainer_id", trainer.id)
           .order("created_at", { ascending: false });
         if (dscRes) setDiscounts(dscRes as Discount[]);
+
+        // Načítanie "Mesačná premena"
+        const { data: transRes, error: transErr } = await supabase
+          .from("trainer_transformations")
+          .select("*")
+          .eq("trainer_id", trainer.id)
+          .maybeSingle();
+
+        if (transRes) {
+          setTransformation(transRes as TrainerTransformation);
+        } else if (!transErr) {
+          // Vytvoriť default row
+          const defaultTrans = {
+            trainer_id: trainer.id,
+            is_enabled: false,
+            headline: "",
+            subheadline: "",
+            personal_sessions_count: 0,
+            online_calls_count: 0,
+            includes_meal_plan: false,
+            price_month_cents: 0,
+            regular_price_cents: 0
+          };
+          const { data: newTrans } = await supabase
+            .from("trainer_transformations")
+            .insert(defaultTrans)
+            .select()
+            .maybeSingle();
+          if (newTrans) setTransformation(newTrans as TrainerTransformation);
+        }
       }
     } catch (err) {
       console.error("Error loading profile:", err);
@@ -624,7 +680,18 @@ export default function TrainerDashboardPage() {
     setServicesVisibility((prev) => {
       const next = { ...prev, [key]: !prev[key] };
       servicesPersistLockRef.current = true;
-      persistServicesVisibility(next)
+      
+      const updatePromise = async () => {
+        if (key === "transformation") {
+          await supabase
+            .from("trainer_transformations")
+            .update({ is_enabled: next.transformation })
+            .eq("trainer_id", trainerId);
+        }
+        await persistServicesVisibility(next);
+      };
+
+      updatePromise()
         .catch(() => {
           setServicesVisibility(prev);
         })
@@ -633,6 +700,30 @@ export default function TrainerDashboardPage() {
         });
       return next;
     });
+  };
+
+  const handleSaveTransformation = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("trainer_transformations")
+        .update({
+          headline: transformation.headline,
+          subheadline: transformation.subheadline,
+          personal_sessions_count: transformation.personal_sessions_count,
+          online_calls_count: transformation.online_calls_count,
+          includes_meal_plan: transformation.includes_meal_plan,
+          price_month_cents: transformation.price_month_cents,
+          regular_price_cents: transformation.regular_price_cents,
+        })
+        .eq("trainer_id", trainerId);
+      if (error) throw error;
+      alert("Mesačná premena bola uložená.");
+    } catch {
+      alert("Chyba pri ukladaní.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAddDiscount = async () => {
@@ -982,6 +1073,21 @@ export default function TrainerDashboardPage() {
               </button>
             </div>
             <div className="flex items-center justify-between p-4 border border-emerald-500/30 rounded-xl bg-zinc-900/30 backdrop-blur-sm">
+              <span className="text-white font-medium">Mesačná premena</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={servicesVisibility.transformation}
+                onClick={() => toggleService("transformation")}
+                disabled={saving}
+                className={`relative w-12 h-6 rounded-full transition-colors ${servicesVisibility.transformation ? "bg-emerald-500" : "bg-zinc-700"} disabled:opacity-60 disabled:cursor-not-allowed`}
+              >
+                <span
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${servicesVisibility.transformation ? "translate-x-6" : "translate-x-0"}`}
+                />
+              </button>
+            </div>
+            <div className="flex items-center justify-between p-4 border border-emerald-500/30 rounded-xl bg-zinc-900/30 backdrop-blur-sm">
               <span className="text-white font-medium">Moje odporúčané značky</span>
               <button
                 type="button"
@@ -1225,6 +1331,192 @@ export default function TrainerDashboardPage() {
           </div>
         );
 
+      case "transformation":
+        return (
+          <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
+            <h2 className="text-4xl font-display uppercase tracking-wider mb-2">Mesačná premena</h2>
+            <div className="bg-zinc-900/30 border border-emerald-500/30 rounded-[30px] p-8 backdrop-blur-sm space-y-8">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Vypíšte, čo klient získa kúpou mesačnej premeny</h3>
+                <p className="text-zinc-400 text-sm">Tieto informácie uvidí klient na vašom profile pred kúpou.</p>
+              </div>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold ml-2">Čo získate kúpou mesačného predplatného?</label>
+                  <input
+                    type="text"
+                    placeholder="Napr. Kompletná transformácia tela za 30 dní"
+                    value={transformation.headline}
+                    onChange={(e) => setTransformation({ ...transformation, headline: e.target.value })}
+                    className="w-full bg-zinc-950/50 border border-emerald-500/40 rounded-xl px-5 py-4 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-zinc-700"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold ml-2">Nepovinná krátka motivačná veta</label>
+                  <input
+                    type="text"
+                    placeholder="Napr. Zmeňte svoj životný štýl ešte dnes"
+                    value={transformation.subheadline}
+                    onChange={(e) => setTransformation({ ...transformation, subheadline: e.target.value })}
+                    className="w-full bg-zinc-950/50 border border-emerald-500/40 rounded-xl px-5 py-4 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all placeholder:text-zinc-700"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold ml-2">Počet osobných tréningov</label>
+                    <input
+                      type="number"
+                      value={transformation.personal_sessions_count}
+                      onChange={(e) => setTransformation({ ...transformation, personal_sessions_count: parseInt(e.target.value) || 0 })}
+                      className="w-full bg-zinc-950/50 border border-emerald-500/40 rounded-xl px-5 py-4 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold ml-2">Počet online volaní</label>
+                    <input
+                      type="number"
+                      value={transformation.online_calls_count}
+                      onChange={(e) => setTransformation({ ...transformation, online_calls_count: parseInt(e.target.value) || 0 })}
+                      className="w-full bg-zinc-950/50 border border-emerald-500/40 rounded-xl px-5 py-4 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 px-2">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={transformation.includes_meal_plan}
+                    onClick={() => setTransformation({ ...transformation, includes_meal_plan: !transformation.includes_meal_plan })}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${transformation.includes_meal_plan ? "bg-emerald-500" : "bg-zinc-700"}`}
+                  >
+                    <span className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${transformation.includes_meal_plan ? "translate-x-6" : "translate-x-0"}`} />
+                  </button>
+                  <span className="text-white font-medium">Jedálniček na mieru</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold ml-2">Cena na mesiac (v EUR)</label>
+                    <input
+                      type="number"
+                      placeholder="Cena v EUR"
+                      value={transformation.price_month_cents / 100}
+                      onChange={(e) => setTransformation({ ...transformation, price_month_cents: Math.round(parseFloat(e.target.value) * 100) || 0 })}
+                      className="w-full bg-zinc-950/50 border border-emerald-500/40 rounded-xl px-5 py-4 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all font-bold text-lg"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-zinc-400 uppercase tracking-widest font-bold ml-2">Koľko by vás to vyšlo normálne (v EUR)</label>
+                    <input
+                      type="number"
+                      placeholder="Bežná cena v EUR"
+                      value={transformation.regular_price_cents / 100}
+                      onChange={(e) => setTransformation({ ...transformation, regular_price_cents: Math.round(parseFloat(e.target.value) * 100) || 0 })}
+                      className="w-full bg-zinc-950/50 border border-emerald-500/40 rounded-xl px-5 py-4 text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-8 flex justify-end">
+                   <button
+                     onClick={handleSaveTransformation}
+                     disabled={saving}
+                     className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 px-10 rounded-full text-sm uppercase tracking-widest transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20"
+                   >
+                     {saving ? "Ukladám..." : "Uložiť premenu"}
+                   </button>
+                 </div>
+               </div>
+             </div>
+
+             <div className="mt-12 bg-zinc-900/30 border border-emerald-500/30 rounded-[30px] p-8 backdrop-blur-sm">
+               <div className="text-white font-bold text-lg mb-6 uppercase tracking-wider">Zľavové kódy pre premenu</div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div className="bg-black/20 border border-white/10 rounded-2xl p-6 space-y-4">
+                   <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Nový kód</div>
+                   <div className="space-y-3">
+                     <input
+                       placeholder="KÓD (napr. PREMENA10)"
+                       value={newDiscount.code}
+                       onChange={(e) => setNewDiscount({ ...newDiscount, code: e.target.value.toUpperCase(), service_type: "transformation" })}
+                       className="w-full p-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white outline-none focus:ring-1 focus:ring-emerald-500"
+                     />
+                     <div className="flex gap-2">
+                       <select
+                         value={newDiscount.type}
+                         onChange={(e) => setNewDiscount({ ...newDiscount, type: e.target.value as "percent" | "fixed" })}
+                         className="flex-1 p-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white outline-none"
+                       >
+                         <option value="percent">Percentá (%)</option>
+                         <option value="fixed">Fixná suma (EUR)</option>
+                       </select>
+                       <input
+                         placeholder="Hodnota"
+                         type="number"
+                         value={newDiscount.value}
+                         onChange={(e) => setNewDiscount({ ...newDiscount, value: e.target.value })}
+                         className="w-24 p-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white outline-none focus:ring-1 focus:ring-emerald-500"
+                       />
+                     </div>
+                     <input
+                       placeholder="Max. počet použití (voliteľné)"
+                       type="number"
+                       value={newDiscount.max_uses}
+                       onChange={(e) => setNewDiscount({ ...newDiscount, max_uses: e.target.value })}
+                       className="w-full p-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white outline-none focus:ring-1 focus:ring-emerald-500"
+                     />
+                     <button
+                       onClick={handleAddDiscount}
+                       disabled={saving || !newDiscount.code || !newDiscount.value}
+                       className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-4 rounded-xl text-xs uppercase tracking-widest transition-all disabled:opacity-50"
+                     >
+                       Pridať kód
+                     </button>
+                   </div>
+                 </div>
+
+                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                   {discounts.filter(d => d.service_type === "transformation").length === 0 ? (
+                     <div className="text-zinc-500 italic text-sm text-center py-10">Zatiaľ žiadne kódy pre premenu.</div>
+                   ) : (
+                     discounts.filter(d => d.service_type === "transformation").map((d) => (
+                       <div key={d.id} className="bg-zinc-800/50 border border-white/5 rounded-xl p-5 flex items-center justify-between">
+                         <div>
+                           <div className="flex items-center gap-2">
+                             <span className="font-bold text-emerald-400">{d.code}</span>
+                           </div>
+                           <div className="text-xs text-zinc-400 mt-1">
+                             {d.value}{d.type === "percent" ? "%" : " EUR"} • Použité: {d.used_count}/{d.max_uses || "∞"}
+                           </div>
+                         </div>
+                         <div className="flex items-center gap-3">
+                           <button
+                             onClick={() => toggleDiscountActive(d.id, d.is_active)}
+                             className={`w-10 h-5 rounded-full relative transition-colors ${d.is_active ? "bg-emerald-500" : "bg-zinc-600"}`}
+                           >
+                             <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${d.is_active ? "left-6" : "left-1"}`} />
+                           </button>
+                           <button onClick={() => deleteDiscount(d.id)} className="text-zinc-500 hover:text-red-400 p-2">
+                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                               <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                             </svg>
+                           </button>
+                         </div>
+                       </div>
+                     ))
+                   )}
+                 </div>
+               </div>
+             </div>
+           </div>
+         );
+
       case "ai-jedalnicek":
         return (
           <div className="flex flex-col gap-6 w-full max-w-[1100px] ml-auto">
@@ -1424,7 +1716,7 @@ export default function TrainerDashboardPage() {
                         <div className="flex gap-2">
                           <select
                             value={newDiscount.type}
-                            onChange={(e) => setNewDiscount({ ...newDiscount, type: e.target.value as any })}
+                            onChange={(e) => setNewDiscount({ ...newDiscount, type: e.target.value as "percent" | "fixed" })}
                             className="flex-1 p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white outline-none"
                           >
                             <option value="percent">Percentá (%)</option>
@@ -1440,12 +1732,13 @@ export default function TrainerDashboardPage() {
                         </div>
                         <select
                           value={newDiscount.service_type}
-                          onChange={(e) => setNewDiscount({ ...newDiscount, service_type: e.target.value as any })}
+                          onChange={(e) => setNewDiscount({ ...newDiscount, service_type: e.target.value as "personal" | "online" | "meal_plan" | "transformation" })}
                           className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl text-white outline-none"
                         >
                           <option value="personal">Osobný tréning</option>
                           <option value="online">Online konzultácia</option>
                           <option value="meal_plan">Jedálniček na mieru</option>
+                          <option value="transformation">Mesačná premena</option>
                         </select>
                         <input
                           placeholder="Max. počet použití (voliteľné)"
@@ -1519,6 +1812,7 @@ export default function TrainerDashboardPage() {
     { id: "recenzie", label: "Recenzie" },
     { id: "vysledky", label: "Výsledky klientov" },
     { id: "znacky", label: "Moje značky" },
+    ...(servicesVisibility.transformation ? [{ id: "transformation" as TabId, label: "Mesačná premena" }] : []),
     { id: "ai-jedalnicek", label: "AI jedálniček" },
     { id: "nastavenia", label: "Nadstavenia" },
   ];

@@ -26,7 +26,7 @@ interface BookingFormProps {
   initialValues?: Partial<BookingFormValues>;
   onSuccess?: () => void;
   onCancel?: () => void;
-  serviceType?: "personal" | "online";
+  serviceType?: "personal" | "online" | "transformation";
 }
 
 type PendingBookingPayload = {
@@ -35,7 +35,7 @@ type PendingBookingPayload = {
   trainerName: string;
   trainerEmail?: string;
   createdAt: number;
-  serviceType: "personal" | "online";
+  serviceType: "personal" | "online" | "transformation";
 };
 
 const PENDING_KEY = "fitbase_pending_booking";
@@ -56,7 +56,7 @@ function parsePendingBooking(raw: string): PendingBookingPayload | null {
     const form = parsed.form;
     const trainerName = parsed.trainerName;
     const createdAt = parsed.createdAt;
-    const serviceType = parsed.serviceType as "personal" | "online";
+    const serviceType = parsed.serviceType as "personal" | "online" | "transformation";
 
     if (!isRecord(slot)) return null;
     if (typeof slot.trainer_id !== "string" || typeof slot.starts_at !== "string" || typeof slot.ends_at !== "string" || typeof slot.source_availability_slot_id !== "string") {
@@ -365,9 +365,11 @@ export default function BookingForm({
     }
   };
 
-  const slotDateStr = new Date(selectedSlot.starts_at).toLocaleString("sk-SK", {
-    weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit"
-  });
+  const slotDateStr = serviceType === "transformation" 
+    ? "Program na 30 dní"
+    : new Date(selectedSlot.starts_at).toLocaleString("sk-SK", {
+        weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit"
+      });
 
   return (
     <div className="p-0 bg-transparent rounded-xl max-w-md mx-auto">

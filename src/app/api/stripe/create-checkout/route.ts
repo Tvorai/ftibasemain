@@ -10,7 +10,7 @@ const bodySchema = z.object({
   trainer_id: z.string().uuid(),
   starts_at: z.string().datetime().optional(),
   ends_at: z.string().datetime().optional(),
-  service_type: z.enum(["personal", "online", "meal_plan"]),
+  service_type: z.enum(["personal", "online", "meal_plan", "transformation"]),
   client_name: z.string().min(2).optional().or(z.string().length(0)), // Voliteľné pre validate_only
   client_email: z.string().email().optional().or(z.string().length(0)), // Voliteľné pre validate_only
   client_phone: z.string().nullable().optional(),
@@ -43,9 +43,10 @@ function getDateTimePartsInBratislava(iso: string): { date: string; time: string
   return { date, time };
 }
 
-function getServiceLabel(serviceType: "personal" | "online" | "meal_plan"): string {
+function getServiceLabel(serviceType: "personal" | "online" | "meal_plan" | "transformation"): string {
   if (serviceType === "online") return "Online konzultácia";
   if (serviceType === "meal_plan") return "Jedálniček na mieru";
+  if (serviceType === "transformation") return "Mesačná premena";
   return "Osobný tréning";
 }
 
@@ -96,6 +97,13 @@ export async function POST(request: Request) {
     priceCents = trainerRes.data.price_online_cents || 0;
   } else if (input.service_type === "meal_plan") {
     priceCents = trainerRes.data.price_meal_plan_cents || 0;
+  } else if (input.service_type === "transformation") {
+    const { data: trans } = await supabase
+      .from("trainer_transformations")
+      .select("price_month_cents")
+      .eq("trainer_id", input.trainer_id)
+      .maybeSingle();
+    priceCents = trans?.price_month_cents || 0;
   } else {
     priceCents = trainerRes.data.price_personal_cents || 0;
   }
@@ -184,7 +192,7 @@ export async function POST(request: Request) {
      }
    }
 
-  if (input.service_type !== "meal_plan") {
+  if (input.service_type !== "meal_plan" && input.service_type !== "transformation") {
     if (!input.starts_at || !input.ends_at) {
       return NextResponse.json({ message: "Chýba časový rozsah pre rezerváciu." }, { status: 400 });
     }
@@ -233,6 +241,22 @@ export async function POST(request: Request) {
     if (input.gender) metadata.gender = input.gender;
     if (input.allergens) metadata.allergens = input.allergens;
     if (input.favorite_foods) metadata.favorite_foods = input.favorite_foods;
+  }
+
+  // Transformation specific metadata
+  if (input.service_type === "transformation") {
+    const { data: trans } = await supabase
+      .from("trainer_transformations")
+      .select("*")
+      .eq("trainer_id", input.trainer_id)
+      .maybeSingle();
+    
+    if (trans) {
+      metadata.duration_days = "30";
+      metadata.personal_sessions_count = String(trans.personal_sessions_count);
+      metadata.online_calls_count = String(trans.online_calls_count);
+      metadata.includes_meal_plan = trans.includes_meal_plan ? "true" : "false";
+    }
   }
 
   // Výpočet poplatku pre platformu (z finálnej ceny po zľave)

@@ -9,8 +9,19 @@ import BookingForm from "@/components/booking/BookingForm";
 import { AvailableSlot } from "@/lib/booking/getAvailableSlots";
 import MealPlanRequestForm from "@/components/meal-plan/MealPlanRequestForm";
 
-type ServiceKey = "personal_training" | "online_consultation" | "meal_plan" | "brands";
+type ServiceKey = "personal_training" | "online_consultation" | "meal_plan" | "brands" | "transformation";
 type ServicesVisibility = Record<ServiceKey, boolean>;
+
+type TrainerTransformation = {
+  is_enabled: boolean;
+  headline: string;
+  subheadline: string;
+  personal_sessions_count: number;
+  online_calls_count: number;
+  includes_meal_plan: boolean;
+  price_month_cents: number;
+  regular_price_cents: number;
+};
 
 type TrainerProfile = {
   id: string;
@@ -29,6 +40,7 @@ type TrainerProfile = {
   services: unknown;
   reviews?: unknown;
   client_results?: unknown;
+  transformation?: TrainerTransformation | null;
   profiles: {
     full_name: string | null;
     email?: string | null;
@@ -79,6 +91,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
   const [pendingFormValues, setPendingFormValues] = useState<{ client_name: string; client_email: string; client_phone: string; note: string } | null>(null);
   const [isOnlineConsultationModalOpen, setIsOnlineConsultationModalModalOpen] = useState(false);
   const [isMealPlanModalOpen, setIsMealPlanModalOpen] = useState(false);
+  const [isTransformationModalOpen, setIsTransformationModalOpen] = useState(false);
   const [isBrandsModalOpen, setIsBrandsModalOpen] = useState(false);
   const [isAllResultsModalOpen, setIsAllResultsModalOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
@@ -256,7 +269,8 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
     personal_training: true,
     online_consultation: true,
     meal_plan: true,
-    brands: true
+    brands: true,
+    transformation: false
   };
 
   const coerceBoolean = (value: unknown): boolean | undefined => {
@@ -283,7 +297,8 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
     personal_training: coerceBoolean(servicesMerged.personal_training) ?? defaultServices.personal_training,
     online_consultation: coerceBoolean(servicesMerged.online_consultation) ?? defaultServices.online_consultation,
     meal_plan: coerceBoolean(servicesMerged.meal_plan) ?? defaultServices.meal_plan,
-    brands: coerceBoolean(servicesMerged.brands) ?? defaultServices.brands
+    brands: coerceBoolean(servicesMerged.brands) ?? defaultServices.brands,
+    transformation: coerceBoolean(servicesMerged.transformation) ?? defaultServices.transformation
   };
 
   const avgRating = reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
@@ -588,6 +603,14 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
               Objednať jedálniček
             </button>
           )}
+          {services.transformation && (
+            <button
+              onClick={() => setIsTransformationModalOpen(true)}
+              className="w-full bg-emerald-500 text-black font-bold py-4 md:py-5 px-4 md:px-6 rounded-[22px] text-[12px] sm:text-[13px] md:text-lg uppercase tracking-normal md:tracking-wide whitespace-nowrap leading-none border border-emerald-400/20 shadow-[0_18px_40px_-22px_rgba(16,185,129,0.75)] transition-all duration-200 hover:bg-emerald-400 hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-2 focus:ring-offset-black"
+            >
+              Mesačná premena
+            </button>
+          )}
           {services.brands && trainer.brands && trainer.brands.length > 0 && (
             <button
               onClick={() => setIsBrandsModalOpen(true)}
@@ -750,6 +773,105 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
         title="Objednať jedálniček"
       >
         {trainer ? <MealPlanRequestForm trainerId={trainer.id} /> : null}
+      </ModalWrapper>
+
+      <ModalWrapper
+        isOpen={isTransformationModalOpen}
+        onClose={() => {
+          setIsTransformationModalOpen(false);
+          setSelectedSlot(null);
+        }}
+        title="Mesačná premena"
+      >
+        {!selectedSlot ? (
+          <div className="flex flex-col items-center text-center">
+            <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-emerald-500/30 mb-6">
+              {images[0] ? (
+                <Image src={images[0]} alt={trainer.profiles?.full_name || ""} fill className="object-cover" />
+              ) : (
+                <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-zinc-500">
+                  {trainer.profiles?.full_name?.charAt(0) || "T"}
+                </div>
+              )}
+            </div>
+
+            <h3 className="text-2xl font-bold text-white mb-2">{trainer.profiles?.full_name}</h3>
+            <div className="text-emerald-400 font-bold text-lg mb-6 uppercase tracking-widest">Mesačná premena</div>
+
+            <div className="w-full bg-zinc-900/50 border border-emerald-500/20 rounded-[30px] p-6 mb-8 text-left">
+              <div className="text-white font-bold text-xl mb-1">{trainer.transformation?.headline}</div>
+              {trainer.transformation?.subheadline && (
+                <div className="text-zinc-400 text-sm italic mb-6">{trainer.transformation.subheadline}</div>
+              )}
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">💪</span>
+                  <span className="text-zinc-200">
+                    <span className="font-bold text-white">{trainer.transformation?.personal_sessions_count}x</span> Osobný tréning
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">📱</span>
+                  <span className="text-zinc-200">
+                    <span className="font-bold text-white">{trainer.transformation?.online_calls_count}x</span> Online volanie
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">🥗</span>
+                  <span className="text-zinc-200">
+                    Jedálniček na mieru: <span className="font-bold text-white">{trainer.transformation?.includes_meal_plan ? "ÁNO" : "NIE"}</span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-white/5 flex items-baseline justify-between gap-4">
+                <div>
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Cena na mesiac</div>
+                  <div className="text-3xl font-bold text-emerald-400">
+                    {trainer.transformation ? (trainer.transformation.price_month_cents / 100).toFixed(2) : "0.00"}€
+                  </div>
+                </div>
+                {trainer.transformation && trainer.transformation.regular_price_cents > 0 && (
+                  <div className="text-right">
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-1">Bežná cena</div>
+                    <div className="text-lg text-zinc-500 line-through">
+                      {(trainer.transformation.regular_price_cents / 100).toFixed(2)}€
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                const now = new Date();
+                const end = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+                setSelectedSlot({
+                  trainer_id: trainer.id,
+                  starts_at: now.toISOString(),
+                  ends_at: end.toISOString(),
+                  source_availability_slot_id: "transformation_placeholder"
+                });
+              }}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-5 px-8 rounded-[22px] text-lg uppercase tracking-wide transition-all shadow-lg shadow-emerald-500/20"
+            >
+              CHCEM ÍSŤ DO TOHO
+            </button>
+          </div>
+        ) : (
+          <BookingForm 
+            selectedSlot={selectedSlot} 
+            trainerName={trainer.profiles?.full_name || ""} 
+            serviceType="transformation"
+            onSuccess={() => {
+              setIsTransformationModalOpen(false);
+              setSelectedSlot(null);
+              alert("Objednávka mesačnej premeny bola úspešne odoslaná.");
+            }}
+            onCancel={() => setSelectedSlot(null)}
+          />
+        )}
       </ModalWrapper>
 
       <ModalWrapper

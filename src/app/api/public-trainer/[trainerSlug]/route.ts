@@ -144,5 +144,13 @@ export async function GET(
 
   const client_results = resultsRes.data || [];
 
-  return NextResponse.json({ ok: true, trainer: { ...data, reviews, client_results } }, { headers: noStoreHeaders });
+  const transformationRes = await supabase
+    .from("trainer_transformations")
+    .select("*")
+    .eq("trainer_id", (data as { id: string }).id)
+    .maybeSingle();
+
+  const transformation = transformationRes.data || null;
+
+  return NextResponse.json({ ok: true, trainer: { ...data, reviews, client_results, transformation } }, { headers: noStoreHeaders });
 }
