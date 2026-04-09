@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
+import { expandAllergens, containsForbidden } from "@/lib/allergens";
 
 function getBearerToken(request: Request): string | null {
   const auth = request.headers.get("authorization");
@@ -79,8 +80,20 @@ export async function POST(request: Request) {
 
     const model = process.env.NOVITA_MODEL || "qwen/qwen3.5-35b-a3b";
 
-    // --- STEP 1: GENERATE PLAN ---
-    const systemPrompt = `Si špičkový nutričný poradca a asistent pre osobných trénerov. Tvojou úlohou je vygenerovať draft (návrh) jedálnička pre klienta.
+    // Prepare allergens for validation
+    const rawAllergens = mealPlanRequest.allergens ? mealPlanRequest.allergens.split(",").map((a: string) => a.trim()) : [];
+    const expandedAllergens = expandAllergens(rawAllergens);
+
+    let finalContent = "";
+    let attempts = 0;
+    const maxAttempts = 3;
+    let lastAiContent = "";
+
+    while (attempts < maxAttempts) {
+      attempts++;
+      
+      // --- STEP 1: GENERATE PLAN ---
+      const systemPrompt = `Si špičkový nutričný poradca a asistent pre osobných trénerov. Tvojou úlohou je vygenerovať draft (návrh) jedálnička pre klienta.
 VÝSTUP MUSÍ BYŤ V ČISTOM TEXTE (NIE JSON).
 JAZYK: SLOVENČINA (čistá, bez češtiny, správna gramatika).
 
@@ -108,27 +121,27 @@ JEDÁLNIČEK:
 
 (prázdny riadok medzi dňami)`;
 
-    const userPrompt = `Prosím o vygenerovanie draftu jedálnička pre klienta s týmito parametrami:
+      const userPrompt = `Prosím o vygenerovanie draftu jedálnička pre klienta s týmito parametrami:
 - Cieľ: ${mealPlanRequest.goal}
 - Výška: ${mealPlanRequest.height_cm} cm
 - Vek: ${mealPlanRequest.age} rokov
 - Pohlavie: ${mealPlanRequest.gender === "male" ? "Muž" : "Žena"}
 - Alergény (ZAKÁZANÉ POTRAVINY): ${mealPlanRequest.allergens || "Žiadne"}
 - Obľúbené jedlá: ${mealPlanRequest.favorite_foods || "Žiadne"}
-- Poznámky od trénera: ${trainerNotes || "Žiadne"}`;
+- Poznámky od trénera: ${trainerNotes || "Žiadne"}${attempts > 1 ? "\n\nUPOZORNENIE: Predchádzajúci pokus obsahoval chyby alebo alergény. Prosím o opravu a striktné dodržanie pravidiel." : ""}`;
 
-    const completion = await openai.chat.completions.create({
-      model: model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ]
-    });
+      const completion = await openai.chat.completions.create({
+        model: model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ]
+      });
 
-    let aiContent = completion.choices[0].message.content || "";
+      lastAiContent = completion.choices[0].message.content || "";
 
-    // --- STEP 2: VALIDATE + FIX PLAN ---
-    const validationPrompt = `Si prísny revízor kvality a bezpečnosti jedálničkov. Tvojou úlohou je vykonať AUTO-CHECK vygenerovaného textu.
+      // --- STEP 2: VALIDATE + FIX PLAN ---
+      const validationPrompt = `Si prísny revízor kvality a bezpečnosti jedálničkov. Tvojou úlohou je vykonať AUTO-CHECK vygenerovaného textu.
 
 KRITICKÁ KONTROLA:
 1. Obsahuje text ZAKÁZANÉ POTRAVINY (ALERGÉNY)? 
@@ -146,17 +159,32 @@ AK JE JEDÁLNIČEK 100% BEZPEČNÝ A SPRÁVNY:
 👉 VRÁŤ HO BEZ ZMENY.
 
 JEDÁLNIČEK NA KONTROLU:
-${aiContent}`;
+${lastAiContent}`;
 
-    const validationCompletion = await openai.chat.completions.create({
-      model: model,
-      messages: [
-        { role: "system", content: "Si prísny revízor kvality. Vždy vraciaš len finálny text jedálnička." },
-        { role: "user", content: validationPrompt }
-      ]
-    });
+      const validationCompletion = await openai.chat.completions.create({
+        model: model,
+        messages: [
+          { role: "system", content: "Si prísny revízor kvality. Vždy vraciaš len finálny text jedálnička." },
+          { role: "user", content: validationPrompt }
+        ]
+      });
 
-    const finalContent = validationCompletion.choices[0].message.content || aiContent;
+      const validatedContent = validationCompletion.choices[0].message.content || lastAiContent;
+
+      // --- STEP 3: FINAL PROGRAMMATIC ALLERGEN CHECK ---
+      if (!containsForbidden(validatedContent, expandedAllergens) && 
+          !validatedContent.toLowerCase().includes("undefined") && 
+          !validatedContent.toLowerCase().includes("null")) {
+        finalContent = validatedContent;
+        break;
+      }
+      
+      console.warn(`[AI Generate] Attempt ${attempts} failed allergen or safety check. Retrying...`);
+      lastAiContent = validatedContent; // Use the validated content for the next prompt if possible
+      if (attempts === maxAttempts) {
+        finalContent = validatedContent; // Fallback to last validated content if all attempts fail
+      }
+    }
 
     // Consistency wrapper for storage
     const aiData = {
@@ -171,10 +199,9 @@ ${aiContent}`;
         ai_generation_status: "ready",
         ai_generated_plan: aiData,
         ai_prompt_input: {
-          system_prompt: systemPrompt,
-          user_prompt: userPrompt,
           trainer_notes: trainerNotes,
-          validation_step: true
+          validation_step: true,
+          attempts: attempts
         },
         ai_generated_at: new Date().toISOString()
       })
