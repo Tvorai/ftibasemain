@@ -18,6 +18,7 @@ interface MealPlanDay {
 }
 
 interface AiMealPlan {
+  format?: "structured" | "text";
   client_summary?: string;
   goal_summary?: string;
   calorie_target?: string;
@@ -110,7 +111,11 @@ export default function TrainerMealPlanAI({ trainerId }: TrainerMealPlanAIProps)
 
   const formatAiPlan = (plan: AiMealPlan): string => {
     if (!plan) return "";
-    if (plan.raw_text) return plan.raw_text;
+    
+    // If it's explicitly text format or we have raw_text
+    if (plan.format === "text" || plan.raw_text) {
+      return plan.raw_text || "";
+    }
 
     // Structured JSON to readable text for editing
     let text = "";
@@ -158,7 +163,16 @@ export default function TrainerMealPlanAI({ trainerId }: TrainerMealPlanAIProps)
         })
       });
 
-      const result = await response.json();
+      let result;
+      const responseText = await response.text();
+      
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Failed to parse AI response as JSON:", responseText);
+        throw new Error("AI generovanie zlyhalo (neplatná odpoveď zo servera). Skúste to znova.");
+      }
+
       if (!response.ok) throw new Error(result.message || "Chyba pri generovaní.");
 
       await fetchRequests(); // Refresh data to get the new AI draft

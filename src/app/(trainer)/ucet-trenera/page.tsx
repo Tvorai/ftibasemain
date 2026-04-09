@@ -138,7 +138,8 @@ export default function TrainerDashboardPage() {
   const [stripeBusy, setStripeBusy] = useState<null | "connect" | "onboarding" | "dashboard">(null);
   const [stripeError, setStripeError] = useState<string | null>(null);
 
-  const profileUrl = `${siteUrl.replace(/\/$/, "")}/${toSlug(username)}`;
+  const displaySiteUrl = typeof window !== "undefined" && window.location.hostname === "localhost" ? "https://fitbase.sk" : siteUrl;
+  const profileUrl = `${displaySiteUrl.replace(/\/$/, "")}/${toSlug(username)}`;
   const locationText = [city.trim(), gymName.trim()].filter(Boolean).join(" - ");
 
   const [pricePersonalEuro, setPricePersonalEuro] = useState("");

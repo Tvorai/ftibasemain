@@ -6,7 +6,7 @@ export const appEnv: AppEnv =
 export const siteUrl =
   process.env.NEXT_PUBLIC_APP_URL || 
   process.env.NEXT_PUBLIC_SITE_URL || 
-  "https://fitbase.sk";
+  (appEnv === "production" ? "https://fitbase.sk" : "http://localhost:3000");
 
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 export const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
