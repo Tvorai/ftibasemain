@@ -126,7 +126,7 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
     try {
       const { data, error } = await supabase
         .from("bookings")
-        .select("id, starts_at, ends_at, booking_status, payment_status, client_name, client_email, client_phone, client_note, service_id, service_type")
+        .select("*") // Načítame všetky stĺpce pre istotu
         .eq("trainer_id", trainerId)
         .order("starts_at", { ascending: true });
 
@@ -235,7 +235,7 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
   if (error) return <div className="text-red-400">Chyba: {error}</div>;
 
   const filteredBookings = bookings.filter((b) => {
-    if (activeCategory === "personal_training") return b.serviceType === "personal";
+    if (activeCategory === "personal_training") return b.serviceType === "personal" || b.serviceType === null;
     if (activeCategory === "online_consultation") return b.serviceType === "online";
     if (activeCategory === "transformation") return b.serviceType === "transformation";
     return false;
@@ -334,7 +334,12 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
                       )}
                     </td>
                     <td className="px-6 py-4 text-zinc-400">
-                      {booking.clientNote && <div className="text-xs opacity-60 mt-1">{booking.clientNote}</div>}
+                      {booking.clientNote ? (
+                        <div className="text-xs opacity-60 mt-1">{booking.clientNote}</div>
+                      ) : booking.clientNote === null ? (
+                        // Fallback pre staršie záznamy ktoré môžu používať 'note' namiesto 'client_note'
+                        <div className="text-xs opacity-60 mt-1">{(booking as any).note}</div>
+                      ) : null}
                     </td>
                     <td className="px-6 py-4">
                       {(() => {
