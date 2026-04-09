@@ -603,20 +603,25 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
               Objednať jedálniček
             </button>
           )}
-          {services.transformation && (
-            <button
-              onClick={() => setIsTransformationModalOpen(true)}
-              className="w-full bg-emerald-500 text-black font-bold py-4 md:py-5 px-4 md:px-6 rounded-[22px] text-[12px] sm:text-[13px] md:text-lg uppercase tracking-normal md:tracking-wide whitespace-nowrap leading-none border border-emerald-400/20 shadow-[0_18px_40px_-22px_rgba(16,185,129,0.75)] transition-all duration-200 hover:bg-emerald-400 hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-2 focus:ring-offset-black"
-            >
-              Mesačná premena
-            </button>
-          )}
           {services.brands && trainer.brands && trainer.brands.length > 0 && (
             <button
               onClick={() => setIsBrandsModalOpen(true)}
               className="w-full bg-emerald-500 text-black font-bold py-4 md:py-5 px-4 md:px-6 rounded-[22px] text-[12px] sm:text-[13px] md:text-lg uppercase tracking-normal md:tracking-wide whitespace-nowrap leading-none border border-emerald-400/20 shadow-[0_18px_40px_-22px_rgba(16,185,129,0.75)] transition-all duration-200 hover:bg-emerald-400 hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:ring-offset-2 focus:ring-offset-black"
             >
               Moje odporúčané značky
+            </button>
+          )}
+          {services.transformation && (
+            <button
+              onClick={() => setIsTransformationModalOpen(true)}
+              className="w-full group relative overflow-hidden bg-zinc-950 text-white font-bold py-5 md:py-6 px-4 md:px-6 rounded-[22px] text-[13px] sm:text-[14px] md:text-xl uppercase tracking-widest leading-none border-2 border-emerald-500/50 shadow-[0_0_30px_-10px_rgba(16,185,129,0.5)] transition-all duration-300 hover:border-emerald-500 hover:shadow-[0_0_40px_-5px_rgba(16,185,129,0.6)] hover:-translate-y-1 active:translate-y-0 focus:outline-none"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/10 to-emerald-500/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-in-out" />
+              <span className="relative z-10 flex items-center justify-center gap-3">
+                <span className="text-xl md:text-2xl">✨</span>
+                Mesačná premena
+                <span className="text-xl md:text-2xl">✨</span>
+              </span>
             </button>
           )}
         </div>
