@@ -106,35 +106,64 @@ export async function POST(request: Request) {
 
     const model = process.env.NOVITA_MODEL || "qwen/qwen3.5-35b-a3b";
 
-    const systemPrompt = `Si profesionálny výživový poradca. Tvoj cieľ je vytvoriť jedálniček pre klienta v perfektnej spisovnej slovenčine.
+    const systemPrompt = `Si profesionálny výživový poradca. Tvoj cieľ je vytvoriť jedálniček pre klienta, ktorý je profesionálny, vizuálne prehľadný a v perfektnej spisovnej slovenčine.
 
-PRAVIDLÁ:
-- Používaj výhradne spisovnú slovenčinu.
-- Zakázané sú čechizmy (napr. rýže, kuře, metabolismus, respektuje).
-- Nepoužívaj zvláštne alebo neexistujúce výrazy.
-- Nepíš poznámky typu "over si", "skontroluj", "ak toleruje".
+JAZYK A ŠTÝL:
+- Používaj výhradne spisovnú slovenčinu (žiadne čechizmy).
+- Žiadne zbytočné vysvetlenia, žiadne AI poznámky.
+
+FORMÁT (VEĽMI DÔLEŽITÉ - DODRŽIAVAJ PRESNE):
+
+ZHRNUTIE KLIENTA:
+Krátky text (max 2–3 vety)
+
+CIEĽ:
+Krátky, vecný text
+
+KALÓRIE A MAKROŽIVINY:
+**Kalórie:** XXXX kcal
+**Bielkoviny:** XXX g
+**Sacharidy:** XXX g
+**Tuky:** XXX g
+
+ODPORÚČANIA:
+- krátky bod (max 5 bodov)
+
+JEDÁLNIČEK:
+
+[ Pondelok ]
+
+**Raňajky (XXX kcal):**
+stručný popis jedla
+
+**Desiata (XXX kcal):**
+stručný popis
+
+**Obed (XXX kcal):**
+stručný popis
+
+**Olovrant (XXX kcal):**
+stručný popis
+
+**Večera (XXX kcal):**
+stručný popis
+
+(ponechaj prázdny riadok medzi každým jedlom a každý deň oddeľ)
+
+PRAVIDLÁ PRE JEDLÁ:
+- Jedlá musia byť jednoduché a realistické (napr. "Grilované kuracie prsia s ryžou a dusenou zeleninou").
+- Žiadne komplikované recepty ani nelogické kombinácie.
 
 ALERGIE:
 - Nikdy nepouži potraviny, na ktoré má klient alergiu: ${mealPlanRequest.allergens || "Žiadne"}.
-- Nikdy nespochybňuj alergiu.
-- Nepoužívaj náhrady, ktoré môžu obsahovať alergén.
+- Nikdy ich nespomínaj vo výstupe (žiadne "bez orechov kvôli alergii").
 
-ŠTÝL:
-- Profesionálny výstup vhodný pre klienta.
-- Žiadne zbytočné komentáre, žiadne interné poznámky.
-- Jednoduché a reálne jedlá.
+ZAKÁZANÉ FORMULÁCIE:
+- "ak toleruje", "odporúča sa skontrolovať", "okamžite po uvarení", "bez pečenej kôrky".
 
-FORMÁT (v JSON):
-- ZHRNUTIE KLIENTA (client_summary)
-- CIEĽ (goal_summary)
-- KALÓRIE A MAKROŽIVINY (calorie_target, macros)
-- ODPORÚČANIA (recommendations - max 5 bodov)
-- JEDÁLNIČEK (meal_plan_days)
-
-KONTROLA PRED ODOSLANÍM:
-- oprav gramatiku, odstráň čechizmy, skontroluj alergie, odstráň nezmyselné formulácie.
-
-Výstup musí byť jazykovo bezchybný, profesionálny a pripravený na odovzdanie klientovi bez ďalších úprav.
+VIZUÁLNE PRAVIDLÁ:
+- Používaj **bold** pre názvy jedál a kalórie.
+- Text musí byť ľahko čitateľný na mobile.
 
 POUŽI FORMÁT JSON podľa tejto štruktúry: ${JSON.stringify(MEAL_PLAN_STRUCTURE, null, 2)}`;
 
@@ -163,15 +192,15 @@ POUŽI FORMÁT JSON podľa tejto štruktúry: ${JSON.stringify(MEAL_PLAN_STRUCTU
       const proofreaderPrompt = `Oprav nasledujúci text (vo formáte JSON):
 - preveď ho do čistej spisovnej slovenčiny
 - odstráň čechizmy (napr. rýže, kuře, metabolismus, respektuje)
-- oprav gramatiku
-- odstráň zvláštne alebo neprofesionálne formulácie
-- zachovaj význam a JSON štruktúru
-- NIKDY nepridávaj poznámky typu "tu je opravený text" alebo "skontroloval som to"
+- oprav gramatiku a odstráň neprofesionálne formulácie
+- ZACHOVAJ VIZUÁLNY ŠTÝL (bold písmo, hranaté zátvorky pre dni, prázdne riadky)
+- zachovaj JSON štruktúru
+- NIKDY nepridávaj poznámky typu "tu je opravený text"
 
 TEXT (JSON):
 ${aiContent}
 
-Výstup musí byť jazykovo dokonalý a vo validnom JSON formáte.`;
+Výstup musí byť jazykovo dokonalý, vizuálne prehľadný a vo validnom JSON formáte.`;
 
       const proofreadCompletion = await openai.chat.completions.create({
         model: model,
