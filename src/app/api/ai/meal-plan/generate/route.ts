@@ -137,7 +137,7 @@ JEDÁLNIČEK:
 - Výška: ${mealPlanRequest.height_cm} cm
 - Vek: ${mealPlanRequest.age} rokov
 - Pohlavie: ${mealPlanRequest.gender === "male" ? "Muž" : "Žena"}
-- Alergény (ZAKÁZANÉ): ${mealPlanRequest.allergens || "Žiadne"}
+- Alergény (ZAKÁZANÉ - NIKDY NEPOUŽÍVAŤ): ${expandedAllergens.length > 0 ? expandedAllergens.join(", ") : "Žiadne"}
 - Obľúbené jedlá: ${mealPlanRequest.favorite_foods || "Žiadne"}
 - Poznámky od trénera: ${trainerNotes || "Žiadne"}${attempts > 1 ? "\n\nUPOZORNENIE: Predchádzajúci pokus obsahoval chyby. Oprav gramatiku a nutričnú logiku." : ""}`;
 
@@ -155,7 +155,7 @@ JEDÁLNIČEK:
       const validationPrompt = `Si prísny revízor kvality a bezpečnosti. Skontroluj tento jedálniček:
 
 1. Obsahuje ZAKÁZANÉ POTRAVINY (ALERGÉNY)? 
-   - Alergény: ${mealPlanRequest.allergens || "Žiadne"}
+   - Alergény: ${expandedAllergens.length > 0 ? expandedAllergens.join(", ") : "Žiadne"}
 2. Obsahuje "undefined", "null" alebo prázdne hodnoty?
 3. Má každé jedlo kalórie v zátvorke?
 
