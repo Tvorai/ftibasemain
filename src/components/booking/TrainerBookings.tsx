@@ -6,6 +6,7 @@ import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
 import { BookingStatus } from "@/lib/types";
 import { sendBookingFollowUpEmailAction, updateBookingStatusAction } from "@/lib/booking/actions";
 import TrainerMealPlanRequests from "../trainer/TrainerMealPlanRequests";
+import TrainerMealPlanAI from "../trainer/TrainerMealPlanAI";
 import TrainerHistory from "../trainer/TrainerHistory";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -14,7 +15,7 @@ interface TrainerBookingsProps {
   trainerId: string;
 }
 
-type BookingCategory = "personal_training" | "online_consultation" | "meal_plan" | "history";
+type BookingCategory = "personal_training" | "online_consultation" | "meal_plan" | "ai_meal_plan" | "history";
 
 type TrainerBookingItem = {
   id: string;
@@ -271,6 +272,15 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
         </button>
         <button
           type="button"
+          onClick={() => setActiveCategory("ai_meal_plan")}
+          className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+            activeCategory === "ai_meal_plan" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+          }`}
+        >
+          AI
+        </button>
+        <button
+          type="button"
           onClick={() => setActiveCategory("history")}
           className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
             activeCategory === "history" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
@@ -283,6 +293,8 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
 
       {activeCategory === "meal_plan" ? (
         <TrainerMealPlanRequests trainerId={trainerId} />
+      ) : activeCategory === "ai_meal_plan" ? (
+        <TrainerMealPlanAI trainerId={trainerId} />
       ) : activeCategory === "history" ? (
         <TrainerHistory trainerId={trainerId} />
       ) : bookings.length > 0 ? (
