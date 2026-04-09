@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 import { expandAllergens, containsForbidden } from "@/lib/allergens";
+import { fixMealPlanGrammar } from "@/lib/ai/fixMealPlan";
 
 function getBearerToken(request: Request): string | null {
   const auth = request.headers.get("authorization");
@@ -228,10 +229,19 @@ ${validatedContent}`;
       }
     }
 
+    // --- STEP 5: FINAL GRAMMAR FIX ---
+    let fixedPlan = finalContent;
+    try {
+      fixedPlan = await fixMealPlanGrammar(finalContent);
+    } catch (e) {
+      console.error("[AI Generate] fixMealPlanGrammar failed, using original:", e);
+      fixedPlan = finalContent;
+    }
+
     // Consistency wrapper for storage
     const aiData = {
       format: "text",
-      raw_text: finalContent
+      raw_text: fixedPlan
     };
 
     // Save AI draft to DB
