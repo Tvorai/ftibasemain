@@ -130,6 +130,10 @@ export async function POST(request: Request) {
     })
     .eq("id", mealPlanRequestId);
 
+  let aiJson = null;
+  let systemPrompt = "";
+  let userPrompt = "";
+
   try {
     const openai = new OpenAI({
       apiKey: process.env.NOVITA_API_KEY,
@@ -138,7 +142,7 @@ export async function POST(request: Request) {
 
     const model = process.env.NOVITA_MODEL || "qwen/qwen3.5-35b-a3b";
 
-    const systemPrompt = `Si profesionálny výživový poradca. Tvoj cieľ je vytvoriť jedálniček pre klienta, ktorý je 100% bezpečný vzhľadom na alergie a v perfektnej spisovnej slovenčine.
+    systemPrompt = `Si profesionálny výživový poradca. Tvoj cieľ je vytvoriť jedálniček pre klienta, ktorý je 100% bezpečný vzhľadom na alergie a v perfektnej spisovnej slovenčine.
 
 PRAVIDLÁ:
 - Používaj výhradne spisovnú slovenčinu. Žiadne čechizmy (rýže, kuře, metabolismus, respektuje) ani preklepy.
@@ -174,7 +178,7 @@ JEDÁLNIČEK:
 
 POUŽI FORMÁT JSON podľa tejto štruktúry: ${JSON.stringify(MEAL_PLAN_STRUCTURE, null, 2)}`;
 
-    const userPrompt = `Prosím o vygenerovanie profesionálneho jedálnička:
+    userPrompt = `Prosím o vygenerovanie profesionálneho jedálnička:
 - Cieľ: ${mealPlanRequest.goal}
 - Výška: ${mealPlanRequest.height_cm} cm, Vek: ${mealPlanRequest.age}, Pohlavie: ${mealPlanRequest.gender === "male" ? "Muž" : "Žena"}
 - Alergie: ${mealPlanRequest.allergens || "Žiadne"}
@@ -182,7 +186,6 @@ POUŽI FORMÁT JSON podľa tejto štruktúry: ${JSON.stringify(MEAL_PLAN_STRUCTU
 - Poznámky od trénera: ${trainerNotes || "Žiadne"}`;
 
     const forbiddenWords = getForbiddenWords(mealPlanRequest.allergens);
-    let aiJson = null;
     let attempts = 0;
     const maxAttempts = 2;
 
