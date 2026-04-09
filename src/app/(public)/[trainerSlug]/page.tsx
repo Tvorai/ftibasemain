@@ -752,7 +752,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
         {trainer ? <MealPlanRequestForm trainerId={trainer.id} /> : null}
       </ModalWrapper>
 
-      <Modal
+      <ModalWrapper
         isOpen={isBrandsModalOpen}
         onClose={() => setIsBrandsModalOpen(false)}
         title="Moje odporúčané značky"
@@ -789,9 +789,9 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
         ) : (
           <p className="text-zinc-400 italic">Pre tohto trénera nie sú zatiaľ dostupné žiadne odporúčané značky.</p>
         )}
-      </Modal>
+      </ModalWrapper>
 
-      <Modal
+      <ModalWrapper
         isOpen={isReviewsModalOpen}
         onClose={() => setIsReviewsModalOpen(false)}
         title="Všetky recenzie"
@@ -830,9 +830,9 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
             <p className="text-center text-zinc-500 italic py-10">Zatiaľ žiadne recenzie.</p>
           )}
         </div>
-      </Modal>
+      </ModalWrapper>
 
-      <Modal
+      <ModalWrapper
         isOpen={isAllResultsModalOpen}
         onClose={() => setIsAllResultsModalOpen(false)}
         title="Všetky výsledky"
@@ -859,7 +859,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
             </div>
           ))}
         </div>
-      </Modal>
+      </ModalWrapper>
 
       {lightboxImage && (
         <div 
