@@ -810,18 +810,22 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
               )}
 
               <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">💪</span>
-                  <span className="text-zinc-200">
-                    <span className="font-bold text-white">{trainer.transformation?.personal_sessions_count}x</span> Osobný tréning
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">📱</span>
-                  <span className="text-zinc-200">
-                    <span className="font-bold text-white">{trainer.transformation?.online_calls_count}x</span> Online volanie
-                  </span>
-                </div>
+                {trainer.transformation?.personal_sessions_count && trainer.transformation.personal_sessions_count > 0 ? (
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">💪</span>
+                    <span className="text-zinc-200">
+                      <span className="font-bold text-white">{trainer.transformation.personal_sessions_count}x</span> Osobný tréning
+                    </span>
+                  </div>
+                ) : null}
+                {trainer.transformation?.online_calls_count && trainer.transformation.online_calls_count > 0 ? (
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">📱</span>
+                    <span className="text-zinc-200">
+                      <span className="font-bold text-white">{trainer.transformation.online_calls_count}x</span> Online volanie
+                    </span>
+                  </div>
+                ) : null}
                 <div className="flex items-center gap-3">
                   <span className="text-xl">🥗</span>
                   <span className="text-zinc-200">
