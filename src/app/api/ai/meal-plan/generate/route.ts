@@ -181,11 +181,19 @@ ${lastAiContent}`;
       let validatedContent = validationCompletion.choices[0].message.content || lastAiContent;
 
       // --- STEP 3: CLEANUP PASS (Language & Professionalism) ---
-      const cleanupPrompt = `Oprav nasledujúci jedálniček tak, aby:
-- bol v čistej spisovnej slovenčine bez gramatických chýb a čechizmov
-- neobsahoval divné formulácie (napr. "jedno pomaranč", "omeléta", "salát")
-- pôsobil ako profesionálny text od trénera (stručný, jasný)
-- ZACHOVAL všetky alergény, kalórie a štruktúru dní.
+      const cleanupPrompt = `Oprav nasledujúci jedálniček.
+
+CIEĽ:
+- odstrániť všetky gramatické chyby (napr. 'bielej rýb', 'sezmový', 'krajka chleba', 'podliateho na zelenine')
+- odstrániť neprofesionálne formulácie a čechizmy
+- zabezpečiť konzistentný štýl ako od trénera (stručný, jasný)
+- každé jedlo musí byť realistické (zakázané sú kombinácie ako ovocie+mäso v jednej desiate, alebo tuniak+voda+uhorka)
+- žiadne texty typu 'časť z obeda', 'zvyšky z prípravy'
+- zachovať kcal, štruktúru dní a VŠETKY alergénové obmedzenia.
+
+AK NÁJDEŠ CHYBU:
+👉 PREPÍŠ CELÉ JEDLO, NIE LEN OPRAV SLOVO.
+👉 VRÁŤ LEN OPRAVENÝ JEDÁLNIČEK BEZ KOMENTÁRA.
 
 TEXT NA OPRAVU:
 ${validatedContent}`;
@@ -193,7 +201,7 @@ ${validatedContent}`;
       const cleanupCompletion = await openai.chat.completions.create({
         model: model,
         messages: [
-          { role: "system", content: "Si profesionálny copywriter a tréner. Vždy vraciaš len finálny upravený text jedálnička v správnom formáte." },
+          { role: "system", content: "Si špičkový nutričný editor. Vždy vraciaš len finálny, gramaticky dokonalý a profesionálny text jedálnička." },
           { role: "user", content: cleanupPrompt }
         ]
       });
