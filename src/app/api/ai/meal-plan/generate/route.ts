@@ -4,30 +4,62 @@ import OpenAI from "openai";
 
 // Define the expected output structure for the AI
 const MEAL_PLAN_STRUCTURE = {
-  client_summary: "Brief summary of the client and their needs",
-  goal_summary: "Detailed explanation of how the plan meets the user's goal",
-  calorie_target: "Estimated daily calorie target",
+  client_summary: "Brief summary of the client and their needs (max 2 sentences)",
+  goal_summary: "Brief explanation of how the plan meets the user's goal",
+  calorie_target: "Estimated daily calorie target (XXXX kcal)",
   macros: {
-    protein: "Protein target in grams",
-    carbs: "Carbs target in grams",
-    fats: "Fats target in grams"
+    protein: "Protein target (XXX g)",
+    carbs: "Carbs target (XXX g)",
+    fats: "Fats target (XXX g)"
   },
   recommendations: [
-    "List of general health and nutrition recommendations"
+    "List of max 5 short, professional recommendations"
   ],
   meal_plan_days: [
     {
-      day: "Day name (e.g. Pondelok)",
+      day: "Day name in brackets [ Pondelok ]",
       meals: [
         {
-          name: "Meal name (e.g. Raňajky)",
-          description: "Meal description and ingredients",
-          approx_calories: "Calories for this meal"
+          name: "Meal name in bold **Raňajky (XXX kcal):**",
+          description: "Stručný a profesionálny popis jedla",
+          approx_calories: "Calories (XXX kcal)"
         }
       ]
     }
   ]
 };
+
+// Mapovanie alergií na konkrétne zakázané výrazy
+const ALLERGY_MAP: Record<string, string[]> = {
+  "orechy": ["mandle", "orech", "lieskov", "vlašsk", "arašid", "kešu", "pistáci", "para orech", "pekanov"],
+  "ryby": ["ryba", "ryby", "losos", "tuniak", "pstruh", "treska", "makrela", "zubáč", "kapor", "pražma", "morské plody", "krevety"],
+  "cibuľa": ["cibuľa", "cibuľka", "jarná cibuľka", "šalotka"],
+  "mlieko": ["mlieko", "smotana", "tvaroh", "jogurt", "syr", "maslo", "srvátka", "laktóza"],
+  "lepok": ["pšenica", "raž", "jačmeň", "ovos", "lepok", "múka", "pečivo", "chlieb", "cestoviny"],
+  "vajíčka": ["vajce", "vajíčko", "žĺtok", "bielok"],
+  "sója": ["sója", "sójov", "tofu", "tempeh", "edamame"]
+};
+
+function getForbiddenWords(allergens: string | null): string[] {
+  const words: string[] = ["rýže", "ketchup", "metabolismus", "respektuje", "kuře", "ak toleruje", "štrúdľa", "koláč", "sladkosť"];
+  if (!allergens) return words;
+  
+  const userAllergens = allergens.toLowerCase().split(",").map(a => a.trim());
+  
+  for (const allergen of userAllergens) {
+    // Pridať samotný alergén
+    words.push(allergen);
+    
+    // Pridať podkategórie z mapy
+    for (const [key, subWords] of Object.entries(ALLERGY_MAP)) {
+      if (allergen.includes(key)) {
+        words.push(...subWords);
+      }
+    }
+  }
+  
+  return Array.from(new Set(words));
+}
 
 function getBearerToken(request: Request): string | null {
   const auth = request.headers.get("authorization");
@@ -106,172 +138,109 @@ export async function POST(request: Request) {
 
     const model = process.env.NOVITA_MODEL || "qwen/qwen3.5-35b-a3b";
 
-    const systemPrompt = `Si profesionálny výživový poradca. Tvoj cieľ je vytvoriť jedálniček pre klienta, ktorý je profesionálny, vizuálne prehľadný a v perfektnej spisovnej slovenčine.
+    const systemPrompt = `Si profesionálny výživový poradca. Tvoj cieľ je vytvoriť jedálniček pre klienta, ktorý je 100% bezpečný vzhľadom na alergie a v perfektnej spisovnej slovenčine.
 
-JAZYK A ŠTÝL:
-- Používaj výhradne spisovnú slovenčinu (žiadne čechizmy).
-- Žiadne zbytočné vysvetlenia, žiadne AI poznámky.
+PRAVIDLÁ:
+- Používaj výhradne spisovnú slovenčinu. Žiadne čechizmy (rýže, kuře, metabolismus, respektuje) ani preklepy.
+- Štýl: stručný, profesionálny, bez zbytočných viet a AI poznámok.
+- Jedlá: jednoduché, realistické, vhodné pre cieľ: ${mealPlanRequest.goal}.
+- ZAKÁZANÉ: koláče, štrúdle, sladkosti (ak je cieľom chudnutie).
 
-FORMÁT (VEĽMI DÔLEŽITÉ - DODRŽIAVAJ PRESNE):
+ALERGIE (KRITICKÉ):
+- Nikdy nepouži potraviny, na ktoré má klient alergiu: ${mealPlanRequest.allergens || "Žiadne"}.
+- NESMIEŠ použiť ani podkategórie (napr. ak je alergia na orechy, nepouži mandle, arašidy atď.).
+- Nikdy ich nespomínaj vo výstupe ani ich nenahrádzaj rizikovými alternatívami.
 
-ZHRNUTIE KLIENTA:
-Krátky text (max 2–3 vety)
-
-CIEĽ:
-Krátky, vecný text
-
+FORMÁT (DODRŽIAVAJ PRESNE):
+ZHRNUTIE KLIENTA: (max 2 vety)
+CIEĽ: (stručne)
 KALÓRIE A MAKROŽIVINY:
 **Kalórie:** XXXX kcal
 **Bielkoviny:** XXX g
 **Sacharidy:** XXX g
 **Tuky:** XXX g
 
-ODPORÚČANIA:
-- krátky bod (max 5 bodov)
+ODPORÚČANIA: (max 5 bodov)
 
 JEDÁLNIČEK:
-
 [ Pondelok ]
+**Raňajky (XXX kcal):** stručný popis
+**Desiata (XXX kcal):** stručný popis
+**Obed (XXX kcal):** stručný popis
+**Olovrant (XXX kcal):** stručný popis
+**Večera (XXX kcal):** stručný popis
 
-**Raňajky (XXX kcal):**
-stručný popis jedla
-
-**Desiata (XXX kcal):**
-stručný popis
-
-**Obed (XXX kcal):**
-stručný popis
-
-**Olovrant (XXX kcal):**
-stručný popis
-
-**Večera (XXX kcal):**
-stručný popis
-
-(ponechaj prázdny riadok medzi každým jedlom a každý deň oddeľ)
-
-PRAVIDLÁ PRE JEDLÁ:
-- Jedlá musia byť jednoduché a realistické (napr. "Grilované kuracie prsia s ryžou a dusenou zeleninou").
-- Žiadne komplikované recepty ani nelogické kombinácie.
-
-ALERGIE:
-- Nikdy nepouži potraviny, na ktoré má klient alergiu: ${mealPlanRequest.allergens || "Žiadne"}.
-- Nikdy ich nespomínaj vo výstupe (žiadne "bez orechov kvôli alergii").
-
-ZAKÁZANÉ FORMULÁCIE:
-- "ak toleruje", "odporúča sa skontrolovať", "okamžite po uvarení", "bez pečenej kôrky".
-
-VIZUÁLNE PRAVIDLÁ:
-- Používaj **bold** pre názvy jedál a kalórie.
-- Text musí byť ľahko čitateľný na mobile.
+(Každý deň oddel prázdnym riadkom)
 
 POUŽI FORMÁT JSON podľa tejto štruktúry: ${JSON.stringify(MEAL_PLAN_STRUCTURE, null, 2)}`;
 
-    const userPrompt = `Prosím o vygenerovanie draftu jedálnička pre klienta s týmito parametrami:
+    const userPrompt = `Prosím o vygenerovanie profesionálneho jedálnička:
 - Cieľ: ${mealPlanRequest.goal}
-- Výška: ${mealPlanRequest.height_cm} cm
-- Vek: ${mealPlanRequest.age} rokov
-- Pohlavie: ${mealPlanRequest.gender === "male" ? "Muž" : "Žena"}
-- Alergény: ${mealPlanRequest.allergens || "Žiadne"}
+- Výška: ${mealPlanRequest.height_cm} cm, Vek: ${mealPlanRequest.age}, Pohlavie: ${mealPlanRequest.gender === "male" ? "Muž" : "Žena"}
+- Alergie: ${mealPlanRequest.allergens || "Žiadne"}
 - Obľúbené jedlá: ${mealPlanRequest.favorite_foods || "Žiadne"}
 - Poznámky od trénera: ${trainerNotes || "Žiadne"}`;
 
-    const completion = await openai.chat.completions.create({
-      model: model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      response_format: { type: "json_object" }
-    });
+    const forbiddenWords = getForbiddenWords(mealPlanRequest.allergens);
+    let aiJson = null;
+    let attempts = 0;
+    const maxAttempts = 2;
 
-    let aiContent = completion.choices[0].message.content;
-    
-    // --- STEP 2: PROOFREADER ---
-    if (aiContent) {
-      const proofreaderPrompt = `Oprav nasledujúci text (vo formáte JSON):
-- preveď ho do čistej spisovnej slovenčiny
-- odstráň čechizmy (napr. rýže, kuře, metabolismus, respektuje)
-- oprav gramatiku a odstráň neprofesionálne formulácie
-- ZACHOVAJ VIZUÁLNY ŠTÝL (bold písmo, hranaté zátvorky pre dni, prázdne riadky)
-- zachovaj JSON štruktúru
-- NIKDY nepridávaj poznámky typu "tu je opravený text"
-
-TEXT (JSON):
-${aiContent}
-
-Výstup musí byť jazykovo dokonalý, vizuálne prehľadný a vo validnom JSON formáte.`;
-
-      const proofreadCompletion = await openai.chat.completions.create({
+    while (attempts < maxAttempts) {
+      attempts++;
+      const completion = await openai.chat.completions.create({
         model: model,
         messages: [
-          { role: "system", content: "Si expert na slovenský jazyk a profesionálnu komunikáciu. Opravuješ texty v JSON formáte." },
-          { role: "user", content: proofreaderPrompt }
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
         ],
         response_format: { type: "json_object" }
       });
-      
-      if (proofreadCompletion.choices[0].message.content) {
-        aiContent = proofreadCompletion.choices[0].message.content;
+
+      let aiContent = completion.choices[0].message.content;
+
+      // Proofreader
+      if (aiContent) {
+        const proofreadCompletion = await openai.chat.completions.create({
+          model: model,
+          messages: [
+            { role: "system", content: "Si expert na slovenský jazyk. Oprav gramatiku, odstráň čechizmy a zachovaj profesionálny štýl a JSON štruktúru. NIKDY nepridávaj komentáre." },
+            { role: "user", content: `Oprav tento JSON text (markdown formátovanie a štýl zachovaj): ${aiContent}` }
+          ],
+          response_format: { type: "json_object" }
+        });
+        aiContent = proofreadCompletion.choices[0].message.content || aiContent;
       }
-    }
 
-    let aiJson = null;
-
-    try {
-      aiJson = aiContent ? JSON.parse(aiContent) : null;
-      
-      // --- STEP 3 & 4: VALIDATION & POST-PROCESSING ---
-      if (aiJson) {
-        const forbiddenWords = ["rýže", "ketchup", "metabolismus", "respektuje", "kuře", "ak toleruje"];
-        const rawString = JSON.stringify(aiJson).toLowerCase();
-        
-        const foundForbidden = forbiddenWords.filter(word => rawString.includes(word.toLowerCase()));
-        if (foundForbidden.length > 0) {
-          console.error("[AI Validation] Forbidden words found:", foundForbidden);
-          // Post-processing as a fallback/bonus
-          let processedStr = JSON.stringify(aiJson);
-          processedStr = processedStr.replace(/rýže/gi, "ryža")
-                                   .replace(/ketchup/gi, "kečup")
-                                   .replace(/metabolismus/gi, "metabolizmus")
-                                   .replace(/kuře/gi, "kuracie mäso")
-                                   .replace(/respektuje/gi, "rešpektuje");
+      if (aiContent) {
+        try {
+          const tempJson = JSON.parse(aiContent);
+          const rawString = JSON.stringify(tempJson).toLowerCase();
           
-          aiJson = JSON.parse(processedStr);
+          // Validácia alergií a čechizmov
+          const foundForbidden = forbiddenWords.filter(word => rawString.includes(word.toLowerCase()));
           
-          // Double check after replacement - if still has issues, we might want to throw but let's try to be resilient
-          const finalRaw = JSON.stringify(aiJson).toLowerCase();
-          if (forbiddenWords.some(word => finalRaw.includes(word.toLowerCase()))) {
-            throw new Error(`Výstup obsahuje zakázané výrazy aj po korekcii: ${foundForbidden.join(", ")}`);
+          if (foundForbidden.length === 0) {
+            aiJson = tempJson;
+            break; // Úspech
+          } else {
+            console.warn(`[AI Generate] Attempt ${attempts} failed. Forbidden words: ${foundForbidden.join(", ")}`);
+            if (attempts === maxAttempts) {
+              // Ak zlyhá aj posledný pokus, skúsime aspoň post-processing pre bežné chyby
+              let processedStr = JSON.stringify(tempJson);
+              processedStr = processedStr.replace(/rýže/gi, "ryža").replace(/metabolismus/gi, "metabolizmus").replace(/kuře/gi, "kuracie");
+              aiJson = JSON.parse(processedStr);
+            }
           }
+        } catch (e) {
+          console.error("[AI Generate] JSON error:", e);
         }
       }
-    } catch (parseError) {
-      console.error("[AI Generate] JSON parse error:", parseError);
-      // Fallback: store as raw text if JSON parsing fails
-      aiJson = { raw_text: aiContent };
     }
 
-    // Save AI draft to DB
-    await supabase
-      .from("meal_plan_requests")
-      .update({
-        ai_generation_status: "ready",
-        ai_generated_plan: aiJson,
-        ai_prompt_input: {
-          system_prompt: systemPrompt,
-          user_prompt: userPrompt,
-          trainer_notes: trainerNotes
-        },
-        ai_generated_at: new Date().toISOString()
-      })
-      .eq("id", mealPlanRequestId);
-
-    return NextResponse.json({
-      status: "ready",
-      data: aiJson
-    });
-
+    if (!aiJson) {
+      throw new Error("Nepodarilo sa vygenerovať validný jedálniček bez zakázaných slov.");
+    }
   } catch (error: unknown) {
     console.error("[AI Generate] error:", error);
     const errorMessage = error instanceof Error ? error.message : "An error occurred during AI generation.";
@@ -286,4 +255,24 @@ Výstup musí byť jazykovo dokonalý, vizuálne prehľadný a vo validnom JSON 
 
     return NextResponse.json({ message: errorMessage }, { status: 500 });
   }
+
+  // Save AI draft to DB
+  await supabase
+    .from("meal_plan_requests")
+    .update({
+      ai_generation_status: "ready",
+      ai_generated_plan: aiJson,
+      ai_prompt_input: {
+        system_prompt: systemPrompt,
+        user_prompt: userPrompt,
+        trainer_notes: trainerNotes
+      },
+      ai_generated_at: new Date().toISOString()
+    })
+    .eq("id", mealPlanRequestId);
+
+  return NextResponse.json({
+    status: "ready",
+    data: aiJson
+  });
 }
