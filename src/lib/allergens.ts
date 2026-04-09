@@ -58,6 +58,22 @@ export const ALLERGEN_MAP: Record<string, string[]> = {
   ]
 };
 
+export const ALLERGEN_NORMALIZATION: Record<string, string> = {
+  "syr": "mliečne výrobky",
+  "mlieko": "mliečne výrobky",
+  "jogurt": "mliečne výrobky",
+  "tvaroh": "mliečne výrobky",
+
+  "arašidy": "orechy",
+  "mandle": "orechy",
+
+  "paradajka": "paradajky",
+  "kečup": "paradajky",
+
+  "losos": "ryby",
+  "tuniak": "ryby"
+};
+
 /**
  * Expands a list of allergens into a set of specific forbidden ingredients.
  */
@@ -66,11 +82,14 @@ export function expandAllergens(input: string[]): string[] {
 
   input.forEach(a => {
     const key = a.toLowerCase().trim();
-    if (ALLERGEN_MAP[key]) {
-      ALLERGEN_MAP[key].forEach(item => result.add(item));
-    } else {
-      result.add(key);
+
+    const normalized = ALLERGEN_NORMALIZATION[key] || key;
+
+    if (ALLERGEN_MAP[normalized]) {
+      ALLERGEN_MAP[normalized].forEach(item => result.add(item));
     }
+
+    result.add(key);
   });
 
   return Array.from(result);

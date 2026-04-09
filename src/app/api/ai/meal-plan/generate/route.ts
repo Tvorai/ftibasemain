@@ -83,6 +83,7 @@ export async function POST(request: Request) {
     // Prepare allergens for validation
     const rawAllergens = mealPlanRequest.allergens ? mealPlanRequest.allergens.split(",").map((a: string) => a.trim()) : [];
     const expandedAllergens = expandAllergens(rawAllergens);
+    console.log("EXPANDED ALLERGENS:", expandedAllergens);
 
     let finalContent = "";
     let attempts = 0;
