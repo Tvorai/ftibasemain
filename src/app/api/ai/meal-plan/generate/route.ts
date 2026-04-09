@@ -85,6 +85,11 @@ export async function POST(request: Request) {
     const expandedAllergens = expandAllergens(rawAllergens);
     console.log("EXPANDED ALLERGENS:", expandedAllergens);
 
+    const FORBIDDEN_EXPRESSIONS = [
+      "omeléta", "jedno pomaranč", "salát", "kuracia guláš", "mliečneho omáčkovej",
+      "slepačie vajcia natvrdo", "polejte troškou", "podávané s 100 g uvarenými zemiakmi"
+    ];
+
     let finalContent = "";
     let attempts = 0;
     const maxAttempts = 3;
@@ -94,9 +99,14 @@ export async function POST(request: Request) {
       attempts++;
       
       // --- STEP 1: GENERATE PLAN ---
-      const systemPrompt = `Si špičkový nutričný poradca a asistent pre osobných trénerov. Tvojou úlohou je vygenerovať draft (návrh) jedálnička pre klienta.
+      const systemPrompt = `Si špičkový nutričný poradca a osobný tréner. Tvojou úlohou je vygenerovať profesionálny draft jedálnička.
 VÝSTUP MUSÍ BYŤ V ČISTOM TEXTE (NIE JSON).
-JAZYK: SLOVENČINA (čistá, bez češtiny, správna gramatika).
+JAZYK: SPISOVNÁ SLOVENČINA (profesionálna, bez gramatických chýb a čechizmov).
+
+NUTRIČNÁ LOGIKA:
+- Jedlá musia byť jednoduché, realistické a sýte.
+- Ak je cieľ CHUDNUTIE, nepoužívaj sladené džúsy, tekuté kalórie ani náhodné sladké doplnky.
+- Zameraj sa na čisté suroviny a vyvážené makroživiny.
 
 KRITICKÉ PRAVIDLÁ PRE ALERGÉNY (ABSOLÚTNY ZÁKAZ):
 1. Ak má klient alergiu na ORECHY, NESMIE sa objaviť: arašidy, mandle, vlašské orechy, kešu, pistácie, orechové maslá ani ich stopy.
@@ -108,7 +118,7 @@ KRITICKÉ PRAVIDLÁ PRE ALERGÉNY (ABSOLÚTNY ZÁKAZ):
 - NIKDY nepoužívaj slová "undefined", "null" alebo prázdne hodnoty.
 - Každé jedlo MUSÍ mať kalórie v zátvorke (napr. 350 kcal).
 - Používaj prirodzenú slovenčinu (napr. "1 kus", nie "jedna kus").
-- Žiadne preklepy, profesionálny tón ako od skúseného trénera.
+- Žiadne preklepy, profesionálny tón.
 
 FORMÁT VÝSTUPU:
 JEDÁLNIČEK:
@@ -122,14 +132,14 @@ JEDÁLNIČEK:
 
 (prázdny riadok medzi dňami)`;
 
-      const userPrompt = `Prosím o vygenerovanie draftu jedálnička pre klienta s týmito parametrami:
+      const userPrompt = `Prosím o vygenerovanie profesionálneho draftu jedálnička pre klienta:
 - Cieľ: ${mealPlanRequest.goal}
 - Výška: ${mealPlanRequest.height_cm} cm
 - Vek: ${mealPlanRequest.age} rokov
 - Pohlavie: ${mealPlanRequest.gender === "male" ? "Muž" : "Žena"}
-- Alergény (ZAKÁZANÉ POTRAVINY): ${mealPlanRequest.allergens || "Žiadne"}
+- Alergény (ZAKÁZANÉ): ${mealPlanRequest.allergens || "Žiadne"}
 - Obľúbené jedlá: ${mealPlanRequest.favorite_foods || "Žiadne"}
-- Poznámky od trénera: ${trainerNotes || "Žiadne"}${attempts > 1 ? "\n\nUPOZORNENIE: Predchádzajúci pokus obsahoval chyby alebo alergény. Prosím o opravu a striktné dodržanie pravidiel." : ""}`;
+- Poznámky od trénera: ${trainerNotes || "Žiadne"}${attempts > 1 ? "\n\nUPOZORNENIE: Predchádzajúci pokus obsahoval chyby. Oprav gramatiku a nutričnú logiku." : ""}`;
 
       const completion = await openai.chat.completions.create({
         model: model,
@@ -141,49 +151,68 @@ JEDÁLNIČEK:
 
       lastAiContent = completion.choices[0].message.content || "";
 
-      // --- STEP 2: VALIDATE + FIX PLAN ---
-      const validationPrompt = `Si prísny revízor kvality a bezpečnosti jedálničkov. Tvojou úlohou je vykonať AUTO-CHECK vygenerovaného textu.
+      // --- STEP 2: VALIDATE + FIX (Allergens & Basics) ---
+      const validationPrompt = `Si prísny revízor kvality a bezpečnosti. Skontroluj tento jedálniček:
 
-KRITICKÁ KONTROLA:
-1. Obsahuje text ZAKÁZANÉ POTRAVINY (ALERGÉNY)? 
+1. Obsahuje ZAKÁZANÉ POTRAVINY (ALERGÉNY)? 
    - Alergény: ${mealPlanRequest.allergens || "Žiadne"}
-   - Pozor na skryté alergény (napr. maslo pri mlieku, arašidy pri orechoch).
-2. Obsahuje slová "undefined", "null" alebo prázdne hodnoty?
-3. Sú v texte logické chyby alebo gramatické preklepy?
-4. Má každé jedno jedlo uvedené kalórie v zátvorke (napr. 350 kcal)?
+2. Obsahuje "undefined", "null" alebo prázdne hodnoty?
+3. Má každé jedlo kalórie v zátvorke?
 
-AK NÁJDEŠ AKÚKOĽVEK CHYBU (najmä alergén):
-👉 OKAMŽITE VYGENERUJ CELÚ OPRAVENÚ VERZIU.
-👉 Ak je alergia na orechy/mlieko, striktne odstráň všetky súvisiace produkty.
+AK NÁJDEŠ CHYBU:
+👉 VYGENERUJ CELÚ OPRAVENÚ VERZIU.
+👉 Ak je v poriadku, VRÁŤ HO BEZ ZMENY.
 
-AK JE JEDÁLNIČEK 100% BEZPEČNÝ A SPRÁVNY:
-👉 VRÁŤ HO BEZ ZMENY.
-
-JEDÁLNIČEK NA KONTROLU:
+TEXT NA KONTROLU:
 ${lastAiContent}`;
 
       const validationCompletion = await openai.chat.completions.create({
         model: model,
         messages: [
-          { role: "system", content: "Si prísny revízor kvality. Vždy vraciaš len finálny text jedálnička." },
+          { role: "system", content: "Si prísny revízor. Vždy vraciaš len finálny text jedálnička." },
           { role: "user", content: validationPrompt }
         ]
       });
 
-      const validatedContent = validationCompletion.choices[0].message.content || lastAiContent;
+      let validatedContent = validationCompletion.choices[0].message.content || lastAiContent;
 
-      // --- STEP 3: FINAL PROGRAMMATIC ALLERGEN CHECK ---
-      if (!containsForbidden(validatedContent, expandedAllergens) && 
-          !validatedContent.toLowerCase().includes("undefined") && 
-          !validatedContent.toLowerCase().includes("null")) {
-        finalContent = validatedContent;
+      // --- STEP 3: CLEANUP PASS (Language & Professionalism) ---
+      const cleanupPrompt = `Oprav nasledujúci jedálniček tak, aby:
+- bol v čistej spisovnej slovenčine bez gramatických chýb a čechizmov
+- neobsahoval divné formulácie (napr. "jedno pomaranč", "omeléta", "salát")
+- pôsobil ako profesionálny text od trénera (stručný, jasný)
+- ZACHOVAL všetky alergény, kalórie a štruktúru dní.
+
+TEXT NA OPRAVU:
+${validatedContent}`;
+
+      const cleanupCompletion = await openai.chat.completions.create({
+        model: model,
+        messages: [
+          { role: "system", content: "Si profesionálny copywriter a tréner. Vždy vraciaš len finálny upravený text jedálnička v správnom formáte." },
+          { role: "user", content: cleanupPrompt }
+        ]
+      });
+
+      let finalStepContent = cleanupCompletion.choices[0].message.content || validatedContent;
+
+      // --- STEP 4: PROGRAMMATIC QUALITY CHECK ---
+      const hasForbiddenExpressions = FORBIDDEN_EXPRESSIONS.some(expr => 
+        finalStepContent.toLowerCase().includes(expr.toLowerCase())
+      );
+      
+      const hasAllergens = containsForbidden(finalStepContent, expandedAllergens);
+      const hasNulls = finalStepContent.toLowerCase().includes("undefined") || finalStepContent.toLowerCase().includes("null");
+
+      if (!hasForbiddenExpressions && !hasAllergens && !hasNulls) {
+        finalContent = finalStepContent;
         break;
       }
       
-      console.warn(`[AI Generate] Attempt ${attempts} failed allergen or safety check. Retrying...`);
-      lastAiContent = validatedContent; // Use the validated content for the next prompt if possible
+      console.warn(`[AI Generate] Attempt ${attempts} failed quality check. Expressions: ${hasForbiddenExpressions}, Allergens: ${hasAllergens}, Nulls: ${hasNulls}. Retrying...`);
+      lastAiContent = finalStepContent;
       if (attempts === maxAttempts) {
-        finalContent = validatedContent; // Fallback to last validated content if all attempts fail
+        finalContent = finalStepContent;
       }
     }
 
