@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
-import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
+import { supabaseUrl, supabaseAnonKey, siteUrl } from "@/lib/config";
 import TrainerCalendar from "@/components/trainer/TrainerCalendar";
 import CalendarSettings from "@/components/trainer/CalendarSettings";
 import TrainerBookings from "@/components/booking/TrainerBookings";
@@ -138,7 +138,6 @@ export default function TrainerDashboardPage() {
   const [stripeBusy, setStripeBusy] = useState<null | "connect" | "onboarding" | "dashboard">(null);
   const [stripeError, setStripeError] = useState<string | null>(null);
 
-  const siteUrl = "https://fitbasemain.vercel.app/";
   const profileUrl = `${siteUrl}${toSlug(username)}`;
   const locationText = [city.trim(), gymName.trim()].filter(Boolean).join(" - ");
 

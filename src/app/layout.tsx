@@ -2,11 +2,12 @@ import "@/app/globals.css";
 import type { Metadata } from "next";
 import { I18nProvider } from "@/providers/i18n";
 import { AppShell } from "@/components/AppShell";
+import { siteUrl } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: "Fitbase",
   description: "Platforma pre trénerov a klientov - mobile-first, i18n-ready",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000")
+  metadataBase: new URL(siteUrl)
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

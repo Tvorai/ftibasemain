@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
+import { siteUrl } from "@/lib/config";
 
 export const runtime = "nodejs";
 
@@ -143,8 +144,8 @@ export async function POST(request: Request) {
         },
       },
     ],
-    success_url: `https://fitbasemain.vercel.app/success?booking_id=${booking.id}`,
-    cancel_url: "https://fitbasemain.vercel.app/cancel",
+    success_url: `${siteUrl.replace(/\/$/, "")}/success?booking_id=${booking.id}`,
+    cancel_url: `${siteUrl.replace(/\/$/, "")}/cancel`,
     metadata: {
       booking_id: booking.id,
       trainer_id: booking.trainer_id,

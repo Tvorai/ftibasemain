@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { siteUrl } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, message: "Stripe účet nie je vytvorený." }, { status: 400 });
   }
 
-  const origin = request.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "https://fitbasemain.vercel.app";
+  const origin = request.headers.get("origin") || siteUrl || "https://fitbase.sk";
   const returnUrl = new URL("/ucet-trenera", origin);
   const refreshUrl = new URL("/ucet-trenera", origin);
   returnUrl.searchParams.set("stripe", "return");
