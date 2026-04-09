@@ -124,10 +124,13 @@ export async function POST(request: Request) {
 
       // Inkrementovať used_count ak bol použitý kód
       if (discountCode && trainerId) {
-        await supabase.rpc("increment_discount_usage", { 
+        const { error: rpcErr } = await supabase.rpc("increment_discount_usage", { 
           t_id: trainerId, 
           d_code: discountCode 
         });
+        if (rpcErr) {
+          console.warn("[Platform Webhook] Error incrementing discount usage for meal plan:", rpcErr.message);
+        }
       }
 
       return NextResponse.json({ received: true, action: "inserted_meal_plan", id: inserted?.id });
@@ -242,10 +245,13 @@ export async function POST(request: Request) {
 
       // Inkrementovať used_count ak bol použitý kód
       if (discountCode && trainerId) {
-        await supabase.rpc("increment_discount_usage", { 
+        const { error: rpcErr } = await supabase.rpc("increment_discount_usage", { 
           t_id: trainerId, 
           d_code: discountCode 
         });
+        if (rpcErr) {
+          console.warn("[Platform Webhook] Error incrementing discount usage for transformation:", rpcErr.message);
+        }
       }
 
       return NextResponse.json({ received: true, action: "inserted_transformation", id: inserted?.id });
@@ -296,6 +302,20 @@ export async function POST(request: Request) {
         console.error("[Platform Webhook] Error updating booking:", updateErr.message);
         return NextResponse.json({ message: updateErr.message }, { status: 500 });
       }
+
+      // Inkrementovať used_count ak bol použitý kód pri update existujúceho bookingu
+      const discountCode = getStringField(meta, "discount_code");
+      const trainerId = getStringField(meta, "trainer_id");
+      if (discountCode && trainerId) {
+        const { error: rpcErr } = await supabase.rpc("increment_discount_usage", { 
+          t_id: trainerId, 
+          d_code: discountCode 
+        });
+        if (rpcErr) {
+          console.warn("[Platform Webhook] Error incrementing discount usage for updated booking:", rpcErr.message);
+        }
+      }
+
       return NextResponse.json({ received: true, action: "updated", booking_id: existingBookingId });
     } else {
       // Vytvorenie nového bookingu (pre flow z create-checkout, kde booking ešte nie je v DB)
@@ -391,10 +411,13 @@ export async function POST(request: Request) {
 
       // Inkrementovať used_count ak bol použitý kód
       if (discountCode && trainerId) {
-        await supabase.rpc("increment_discount_usage", { 
+        const { error: rpcErr } = await supabase.rpc("increment_discount_usage", { 
           t_id: trainerId, 
           d_code: discountCode 
         });
+        if (rpcErr) {
+          console.warn("[Platform Webhook] Error incrementing discount usage for booking:", rpcErr.message);
+        }
       }
 
       return NextResponse.json({ received: true, action: "inserted", booking_id: inserted?.id });
