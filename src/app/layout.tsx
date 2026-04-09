@@ -7,7 +7,11 @@ import { siteUrl } from "@/lib/config";
 export const metadata: Metadata = {
   title: "Fitbase",
   description: "Platforma pre trénerov a klientov - mobile-first, i18n-ready",
-  metadataBase: new URL(siteUrl)
+  metadataBase: new URL(siteUrl),
+  icons: {
+    icon: "/simplelogo.png",
+    apple: "/simplelogo.png",
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
