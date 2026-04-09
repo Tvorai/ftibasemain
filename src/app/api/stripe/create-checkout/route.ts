@@ -263,6 +263,12 @@ export async function POST(request: Request) {
   const platformFeePercent = trainerRes.data.platform_fee_percent ?? 10;
   const applicationFeeAmount = Math.round((finalPriceCents * platformFeePercent) / 100);
 
+  // Pre transformation musíme poslať aj original_price_cents ak existuje
+  if (input.service_type === "transformation") {
+    metadata.original_price_cents = String(priceCents);
+  }
+  metadata.final_price_cents = String(finalPriceCents);
+
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: [

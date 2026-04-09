@@ -23,7 +23,7 @@ type ClientBookingItem = {
   startsAt: string;
   endsAt: string;
   status: BookingStatus;
-  serviceType: "personal" | "online" | null;
+  serviceType: "personal" | "online" | "transformation" | null;
   trainerId: string;
   trainerName: string;
   trainerEmail: string | null;
@@ -186,7 +186,7 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
   const router = useRouter();
   const [items, setItems] = useState<ClientServiceItem[]>([]);
   const [activeCategory, setActiveCategory] = useState<
-    "personal_training" | "online_consultation" | "meal_plan" | "history"
+    "personal_training" | "online_consultation" | "meal_plan" | "transformation" | "history"
   >(kind === "meal_plan" ? "meal_plan" : "personal_training");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -247,7 +247,11 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
                     if (!isBookingStatus(x.status)) return null;
                     const serviceTypeRaw = x.serviceType;
                     const serviceType =
-                      serviceTypeRaw === "personal" || serviceTypeRaw === "online" ? serviceTypeRaw : null;
+                      serviceTypeRaw === "personal" ||
+                      serviceTypeRaw === "online" ||
+                      serviceTypeRaw === "transformation"
+                        ? (serviceTypeRaw as "personal" | "online" | "transformation")
+                        : "personal";
                     if (typeof x.trainerName !== "string") return null;
                     if (!(typeof x.trainerEmail === "string" || x.trainerEmail === null)) return null;
                     if (!(typeof (x as Record<string, unknown>).trainerPhone === "string" || (x as Record<string, unknown>).trainerPhone === null || typeof (x as Record<string, unknown>).trainerPhone === "undefined")) return null;
@@ -359,7 +363,12 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
 
         const mappedFromDb: ClientBookingItem[] = rows.map((r: BookingRow) => {
           const contact = contactsByTrainerId.get(r.trainer_id);
-          const serviceType = r.service_type === "personal" || r.service_type === "online" ? r.service_type : null;
+          const serviceType =
+            r.service_type === "personal" ||
+            r.service_type === "online" ||
+            r.service_type === "transformation"
+              ? (r.service_type as "personal" | "online" | "transformation")
+              : "personal";
           const normalized = isBookingStatus(r.booking_status) ? normalizeBookingStatus(r.booking_status) : "pending_payment";
           return {
             kind: "booking",
@@ -397,7 +406,12 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
     if (item.kind === "meal_plan") {
       return { ...item, category: "meal_plan" as const, isHistory: item.status === "completed" || item.status === "cancelled" };
     }
-    const category = item.serviceType === "online" ? "online_consultation" : "personal_training";
+    const category =
+      item.serviceType === "online"
+        ? "online_consultation"
+        : item.serviceType === "transformation"
+        ? "transformation"
+        : "personal_training";
     const normalizedStatus = normalizeBookingStatus(item.status);
     const isHistory = normalizedStatus === "completed" || normalizedStatus === "cancelled";
     return { ...item, status: normalizedStatus, category, isHistory } as const;
@@ -445,6 +459,15 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
           }`}
         >
           Objednávka jedálničku
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveCategory("transformation")}
+          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
+            activeCategory === "transformation" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+          }`}
+        >
+          Premena
         </button>
         <button
           type="button"
@@ -510,12 +533,20 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
                   <div>
                     {item.kind === "booking" ? (
                       <>
-                        <p className="font-bold text-zinc-200">{new Date(item.startsAt).toLocaleDateString("sk-SK")}</p>
-                        <p className="text-xs text-zinc-500">
-                          {new Date(item.startsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })} - {new Date(item.endsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
+                        <p className="font-bold text-zinc-200">
+                          {item.serviceType === "transformation" ? "Program na 30 dní" : new Date(item.startsAt).toLocaleDateString("sk-SK")}
                         </p>
+                        {item.serviceType !== "transformation" && (
+                          <p className="text-xs text-zinc-500">
+                            {new Date(item.startsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })} - {new Date(item.endsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        )}
                         <p className="text-xs text-zinc-500">
-                          {item.serviceType === "online" ? "Online konzultácia" : "Osobný tréning"}
+                          {item.serviceType === "online" 
+                            ? "Online konzultácia" 
+                            : item.serviceType === "transformation"
+                            ? "Mesačná premena"
+                            : "Osobný tréning"}
                         </p>
                       </>
                     ) : (

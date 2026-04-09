@@ -67,7 +67,12 @@ export async function POST(request: Request) {
       const allergens = getStringField(meta, "allergens");
       const favoriteFoods = getStringField(meta, "favorite_foods");
       const priceCentsRaw = getStringField(meta, "price_cents");
-      const priceCents = priceCentsRaw ? Number(priceCentsRaw) : null;
+      const amountTotal = typeof session.amount_total === "number" ? session.amount_total : null;
+      const priceCents = amountTotal || (priceCentsRaw ? Number(priceCentsRaw) : null);
+      
+      const originalPriceCentsRaw = getStringField(meta, "original_price_cents");
+      const originalPriceCents = originalPriceCentsRaw ? Number(originalPriceCentsRaw) : priceCents;
+      const finalPriceCents = priceCents;
       const discountCode = getStringField(meta, "discount_code");
       const discountAmountRaw = getStringField(meta, "discount_amount_cents");
       const discountAmountCents = discountAmountRaw ? Number(discountAmountRaw) : 0;
@@ -136,7 +141,13 @@ export async function POST(request: Request) {
       const clientPhone = getStringField(meta, "client_phone");
       const note = getStringField(meta, "note");
       const priceCentsRaw = getStringField(meta, "price_cents");
-      const priceCents = priceCentsRaw ? Number(priceCentsRaw) : null;
+      const amountTotal = typeof session.amount_total === "number" ? session.amount_total : null;
+      const priceCents = amountTotal || (priceCentsRaw ? Number(priceCentsRaw) : null);
+      
+      const originalPriceCentsRaw = getStringField(meta, "original_price_cents");
+      const originalPriceCents = originalPriceCentsRaw ? Number(originalPriceCentsRaw) : priceCents;
+      const finalPriceCents = priceCents;
+
       const discountCode = getStringField(meta, "discount_code");
       const discountAmountRaw = getStringField(meta, "discount_amount_cents");
       const discountAmountCents = discountAmountRaw ? Number(discountAmountRaw) : 0;
@@ -172,6 +183,8 @@ export async function POST(request: Request) {
         payment_status: "paid",
         service_type: "transformation",
         price_cents: priceCents,
+        original_price_cents: originalPriceCents,
+        final_price_cents: finalPriceCents,
         discount_code: discountCode,
         discount_amount_cents: discountAmountCents,
         currency: "eur",
@@ -272,9 +285,13 @@ export async function POST(request: Request) {
 
       const currency = typeof session.currency === "string" ? session.currency.toLowerCase() : "eur";
       const amountTotal = typeof session.amount_total === "number" ? session.amount_total : null;
-      const priceCentsFromMetaRaw = getStringField(meta, "price_cents");
-      const priceCentsFromMeta = priceCentsFromMetaRaw ? Number(priceCentsFromMetaRaw) : null;
+      const priceCentsRaw = getStringField(meta, "price_cents");
+      const priceCentsFromMeta = priceCentsRaw ? Number(priceCentsRaw) : null;
       const priceCents = amountTotal || priceCentsFromMeta || null;
+
+      const originalPriceCentsRaw = getStringField(meta, "original_price_cents");
+      const originalPriceCents = originalPriceCentsRaw ? Number(originalPriceCentsRaw) : priceCents;
+      const finalPriceCents = priceCents;
 
       const discountCode = getStringField(meta, "discount_code");
       const discountAmountRaw = getStringField(meta, "discount_amount_cents");
@@ -291,6 +308,8 @@ export async function POST(request: Request) {
         stripe_payment_intent_id: stripePaymentIntentId,
         service_type: type,
         currency,
+        original_price_cents: originalPriceCents,
+        final_price_cents: finalPriceCents,
         discount_code: discountCode,
         discount_amount_cents: discountAmountCents,
       };

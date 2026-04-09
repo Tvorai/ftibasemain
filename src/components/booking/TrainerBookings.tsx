@@ -14,7 +14,7 @@ interface TrainerBookingsProps {
   trainerId: string;
 }
 
-type BookingCategory = "personal_training" | "online_consultation" | "meal_plan" | "history";
+type BookingCategory = "personal_training" | "online_consultation" | "meal_plan" | "transformation" | "history";
 
 type TrainerBookingItem = {
   id: string;
@@ -46,9 +46,11 @@ function inferBookingCategory(serviceType: string | null, serviceName: string | 
   // 1. Priorita: service_type priamo z tabuľky bookings
   if (serviceType === "online") return "online_consultation";
   if (serviceType === "personal") return "personal_training";
+  if (serviceType === "transformation") return "transformation";
 
   // 2. Fallback: inferencia z názvu služby (pôvodná logika)
   const raw = (serviceName || "").toLowerCase();
+  if (raw.includes("premena") || raw.includes("transformation")) return "transformation";
   if (raw.includes("online") || raw.includes("konzult")) return "online_consultation";
   if (raw.includes("jedál") || raw.includes("jedal") || raw.includes("meal") || raw.includes("plan")) return "meal_plan";
   
@@ -227,6 +229,7 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
   const filteredBookings = bookings.filter((b) => {
     if (activeCategory === "personal_training") return b.serviceType === "personal";
     if (activeCategory === "online_consultation") return b.serviceType === "online";
+    if (activeCategory === "transformation") return b.serviceType === "transformation";
     return false;
   });
 
@@ -240,45 +243,37 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
         />
       )}
 
-      <div className="w-full overflow-x-auto overscroll-x-contain">
-        <div className="inline-flex rounded-full bg-zinc-950/60 border border-zinc-800 p-1 whitespace-nowrap">
+      <div className="flex flex-wrap gap-2 mb-8 p-1.5 bg-zinc-900/50 backdrop-blur-md rounded-2xl border border-white/5 w-fit">
         <button
-          type="button"
           onClick={() => setActiveCategory("personal_training")}
-          className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
-            activeCategory === "personal_training" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
-          }`}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeCategory === "personal_training" ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20" : "text-zinc-400 hover:text-white"}`}
         >
           Osobný tréning
         </button>
         <button
-          type="button"
           onClick={() => setActiveCategory("online_consultation")}
-          className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
-            activeCategory === "online_consultation" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
-          }`}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeCategory === "online_consultation" ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20" : "text-zinc-400 hover:text-white"}`}
         >
           Online konzultácia
         </button>
         <button
-          type="button"
           onClick={() => setActiveCategory("meal_plan")}
-          className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
-            activeCategory === "meal_plan" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
-          }`}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeCategory === "meal_plan" ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20" : "text-zinc-400 hover:text-white"}`}
         >
           Jedálniček na mieru
         </button>
         <button
-          type="button"
+          onClick={() => setActiveCategory("transformation")}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeCategory === "transformation" ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20" : "text-zinc-400 hover:text-white"}`}
+        >
+          Mesačná premena
+        </button>
+        <button
           onClick={() => setActiveCategory("history")}
-          className={`shrink-0 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
-            activeCategory === "history" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
-          }`}
+          className={`px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${activeCategory === "history" ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20" : "text-zinc-400 hover:text-white"}`}
         >
           História
         </button>
-        </div>
       </div>
 
       {activeCategory === "meal_plan" ? (
@@ -301,20 +296,36 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
               <tbody className="divide-y divide-zinc-800">
                 {filteredBookings.map((booking) => (
                   <tr key={booking.id} className="hover:bg-zinc-800/30 transition-colors">
-                    <td className="px-6 py-4 font-medium text-white">
-                      {booking.clientName}
+                    <td className="px-6 py-4 font-medium">
+                      <div className="text-white font-bold mb-1">{booking.clientName}</div>
+                      <div className="text-zinc-500 text-xs">{booking.clientEmail}</div>
+                      <div className="text-zinc-500 text-xs">{booking.clientPhone}</div>
+                      {booking.serviceType === "transformation" && (
+                        <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase tracking-widest">
+                          Mesačná premena
+                        </div>
+                      )}
                     </td>
-                    <td className="px-6 py-4 text-zinc-300">
-                      <div className="font-bold">
-                        {new Date(booking.startsAt).toLocaleDateString("sk-SK")}
+                    <td className="px-6 py-4">
+                      <div className="text-emerald-500 font-bold mb-1">
+                        {booking.serviceName}
                       </div>
-                      <div className="text-[10px] text-zinc-500">
-                        {new Date(booking.startsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })} - {new Date(booking.endsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
-                      </div>
+                      {booking.serviceType === "transformation" ? (
+                        <div className="text-zinc-500 text-[10px] uppercase tracking-wider font-bold">
+                          Program na 30 dní
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-zinc-300 font-bold">
+                            {new Date(booking.startsAt).toLocaleDateString("sk-SK")}
+                          </div>
+                          <div className="text-[10px] text-zinc-500">
+                            {new Date(booking.startsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })} - {new Date(booking.endsAt).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
+                          </div>
+                        </>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-zinc-400">
-                      <div>{booking.clientEmail || "—"}</div>
-                      {booking.clientPhone && <div className="text-xs opacity-60">{booking.clientPhone}</div>}
                       {booking.clientNote && <div className="text-xs opacity-60 mt-1">{booking.clientNote}</div>}
                     </td>
                     <td className="px-6 py-4">
