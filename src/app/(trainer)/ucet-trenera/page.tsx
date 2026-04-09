@@ -9,11 +9,12 @@ import TrainerCalendar from "@/components/trainer/TrainerCalendar";
 import CalendarSettings from "@/components/trainer/CalendarSettings";
 import TrainerBookings from "@/components/booking/TrainerBookings";
 import TrainerClientResults from "@/components/trainer/TrainerClientResults";
+import TrainerMealPlanAI from "@/components/trainer/TrainerMealPlanAI";
 import { listTrainerReviewsForDashboardAction } from "@/lib/booking/actions";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-type TabId = "profil" | "rezervacie" | "sluzby" | "kalendar" | "online-konzultacie" | "recenzie" | "vysledky" | "znacky" | "nastavenia";
+type TabId = "profil" | "rezervacie" | "sluzby" | "kalendar" | "online-konzultacie" | "recenzie" | "vysledky" | "znacky" | "ai-jedalnicek" | "nastavenia";
 type CalendarTabId = "moj_kalendar" | "nastavenia_kalendara";
 type BrandSubTabId = "pridat" | "zoznam";
 type SettingsTabId = "payment_account" | "pricing";
@@ -1224,6 +1225,17 @@ export default function TrainerDashboardPage() {
           </div>
         );
 
+      case "ai-jedalnicek":
+        return (
+          <div className="flex flex-col gap-6 w-full max-w-[1100px] ml-auto">
+            <h2 className="text-4xl font-display uppercase tracking-wider mb-2">AI jedálniček</h2>
+            <p className="text-zinc-400 text-sm mb-4">
+              Urobte klientovi jedálniček pomocou AI, aby ste si ušetrili čas. Vygenerujte jedálniček, ktorý môžete upravovať a následne poslať klientovi.
+            </p>
+            <TrainerMealPlanAI trainerId={trainerId} />
+          </div>
+        );
+
       case "nastavenia":
         return (
           <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
@@ -1507,6 +1519,7 @@ export default function TrainerDashboardPage() {
     { id: "recenzie", label: "Recenzie" },
     { id: "vysledky", label: "Výsledky klientov" },
     { id: "znacky", label: "Moje značky" },
+    { id: "ai-jedalnicek", label: "AI jedálniček" },
     { id: "nastavenia", label: "Nadstavenia" },
   ];
 

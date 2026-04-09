@@ -208,25 +208,25 @@ export default function TrainerMealPlanAI({ trainerId }: TrainerMealPlanAIProps)
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Sidebar - List of requests */}
       <div className="lg:col-span-1 space-y-4">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-500 px-2">Požiadavky</h3>
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 px-2">Požiadavky</h3>
         <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
           {requests.map((req) => (
             <button
               key={req.id}
               onClick={() => setSelectedRequestId(req.id)}
-              className={`w-full text-left p-4 rounded-xl border transition-all ${
+              className={`w-full text-left p-4 rounded-2xl border transition-all ${
                 selectedRequestId === req.id
                   ? "bg-emerald-500/10 border-emerald-500/50 ring-1 ring-emerald-500/20"
-                  : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700"
+                  : "bg-zinc-900/30 border-zinc-800/50 hover:border-emerald-500/30"
               }`}
             >
               <div className="font-bold text-white mb-1">{req.name}</div>
-              <div className="text-xs text-zinc-400 mb-2">{req.goal}</div>
+              <div className="text-[10px] text-emerald-500 font-bold uppercase tracking-wider mb-2">{req.goal}</div>
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-zinc-500">
+                <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">
                   {new Date(req.created_at).toLocaleDateString("sk-SK")}
                 </span>
-                <span className={`text-[10px] font-bold uppercase ${
+                <span className={`text-[10px] font-bold uppercase tracking-widest ${
                   req.ai_generation_status === "ready" ? "text-emerald-500" :
                   req.ai_generation_status === "generating" ? "text-orange-400 animate-pulse" :
                   req.ai_generation_status === "failed" ? "text-red-400" :
@@ -248,76 +248,76 @@ export default function TrainerMealPlanAI({ trainerId }: TrainerMealPlanAIProps)
       {/* Main Content - Detail and AI Editor */}
       <div className="lg:col-span-2 space-y-6">
         {selectedRequest ? (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
+          <div className="bg-zinc-900/30 border border-emerald-500/20 rounded-[30px] overflow-hidden backdrop-blur-sm">
             {/* Header / Client Info */}
-            <div className="p-6 border-b border-zinc-800 bg-zinc-800/30">
-              <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
+            <div className="p-6 md:p-8 border-b border-emerald-500/10 bg-zinc-800/20">
+              <div className="flex flex-wrap justify-between items-start gap-4 mb-6">
                 <div>
-                  <h2 className="text-xl font-bold text-white">{selectedRequest.name}</h2>
-                  <p className="text-sm text-zinc-400">{selectedRequest.email} | {selectedRequest.phone}</p>
+                  <h2 className="text-2xl font-bold text-white">{selectedRequest.name}</h2>
+                  <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">{selectedRequest.email} • {selectedRequest.phone}</p>
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={handleGenerate}
                     disabled={isGenerating}
-                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 text-black text-xs font-bold rounded-lg transition-colors flex items-center gap-2"
+                    className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 text-black text-[10px] font-bold uppercase tracking-widest rounded-full transition-all shadow-lg shadow-emerald-500/20"
                   >
                     {isGenerating ? "Generujem..." : selectedRequest.ai_generated_plan ? "Regenerovať" : "Vygenerovať návrh"}
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
                 <div>
-                  <div className="text-zinc-500 uppercase font-bold text-[10px] mb-1">Cieľ</div>
-                  <div className="text-emerald-500 font-bold">{selectedRequest.goal}</div>
+                  <div className="text-zinc-500 uppercase font-bold text-[10px] tracking-widest mb-1.5">Cieľ</div>
+                  <div className="text-emerald-400 font-bold text-sm">{selectedRequest.goal}</div>
                 </div>
                 <div>
-                  <div className="text-zinc-500 uppercase font-bold text-[10px] mb-1">Parametre</div>
-                  <div className="text-zinc-300">
+                  <div className="text-zinc-500 uppercase font-bold text-[10px] tracking-widest mb-1.5">Parametre</div>
+                  <div className="text-zinc-300 text-sm font-medium">
                     {selectedRequest.gender === "male" ? "Muž" : "Žena"}, {selectedRequest.age} r., {selectedRequest.height_cm} cm
                   </div>
                 </div>
                 <div>
-                  <div className="text-zinc-500 uppercase font-bold text-[10px] mb-1">Alergény</div>
-                  <div className="text-red-400">{selectedRequest.allergens || "Žiadne"}</div>
+                  <div className="text-zinc-500 uppercase font-bold text-[10px] tracking-widest mb-1.5">Alergény</div>
+                  <div className="text-red-400/80 text-sm font-bold">{selectedRequest.allergens || "Žiadne"}</div>
                 </div>
                 <div>
-                  <div className="text-zinc-500 uppercase font-bold text-[10px] mb-1">Obľúbené jedlá</div>
-                  <div className="text-zinc-300">{selectedRequest.favorite_foods || "Žiadne"}</div>
+                  <div className="text-zinc-500 uppercase font-bold text-[10px] tracking-widest mb-1.5">Obľúbené jedlá</div>
+                  <div className="text-zinc-300 text-sm font-medium">{selectedRequest.favorite_foods || "Žiadne"}</div>
                 </div>
               </div>
             </div>
 
             {/* AI Settings and Editor */}
-            <div className="p-6 space-y-6">
+            <div className="p-6 md:p-8 space-y-8">
               {error && (
-                <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
+                <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-xs font-bold uppercase tracking-widest">
                   {error}
                 </div>
               )}
 
               {/* Trainer Notes for AI */}
-              <div>
-                <label className="block text-xs font-bold uppercase text-zinc-500 mb-2">
+              <div className="space-y-3">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 ml-2">
                   Poznámky pre AI (nepovinné)
                 </label>
                 <textarea
                   value={trainerNotes}
                   onChange={(e) => setTrainerNotes(e.target.value)}
                   placeholder="Napr. 'Zameraj sa na vysoký obsah bielkovín', 'Vynechaj ryžu', 'Navrhni 4 jedlá denne'..."
-                  className="w-full h-20 bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-zinc-300 focus:border-emerald-500 outline-none transition-colors resize-none"
+                  className="w-full h-24 bg-zinc-950/50 border border-emerald-500/20 rounded-2xl p-4 text-sm text-zinc-300 focus:border-emerald-500 outline-none transition-all resize-none placeholder:text-zinc-700"
                 />
               </div>
 
               {/* Editable Draft */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs font-bold uppercase text-zinc-500">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center px-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
                     Draft jedálnička (editovateľný)
                   </label>
                   {selectedRequest.ai_generated_at && (
-                    <span className="text-[10px] text-zinc-600">
+                    <span className="text-[10px] text-zinc-600 font-bold uppercase tracking-widest">
                       Vygenerované: {new Date(selectedRequest.ai_generated_at).toLocaleString("sk-SK")}
                     </span>
                   )}
@@ -326,15 +326,15 @@ export default function TrainerMealPlanAI({ trainerId }: TrainerMealPlanAIProps)
                   value={editedPlan}
                   onChange={(e) => setEditedPlan(e.target.value)}
                   placeholder="Tu sa zobrazí vygenerovaný jedálniček, ktorý môžete upraviť..."
-                  className="w-full h-96 bg-zinc-950 border border-zinc-800 rounded-xl p-4 text-sm text-zinc-300 font-mono focus:border-emerald-500 outline-none transition-colors resize-y"
+                  className="w-full h-[500px] bg-zinc-950/50 border border-emerald-500/20 rounded-2xl p-5 text-sm text-zinc-300 font-mono focus:border-emerald-500 outline-none transition-all resize-y custom-scrollbar placeholder:text-zinc-700"
                 />
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-end pt-2">
                 <button
                   onClick={handleSaveDraft}
                   disabled={isSaving || !editedPlan}
-                  className="px-6 py-3 bg-white hover:bg-zinc-200 disabled:bg-zinc-700 text-black font-bold rounded-xl transition-all flex items-center gap-2"
+                  className="px-10 py-3.5 bg-white hover:bg-zinc-200 disabled:bg-zinc-800 disabled:text-zinc-500 text-black text-[10px] font-bold uppercase tracking-widest rounded-full transition-all shadow-xl"
                 >
                   {isSaving ? "Ukladám..." : "Uložiť draft"}
                 </button>
@@ -342,12 +342,12 @@ export default function TrainerMealPlanAI({ trainerId }: TrainerMealPlanAIProps)
             </div>
           </div>
         ) : (
-          <div className="h-[400px] flex flex-col items-center justify-center text-center bg-zinc-900/30 border border-zinc-800 border-dashed rounded-2xl p-8">
-            <div className="w-16 h-16 bg-zinc-800/50 rounded-full flex items-center justify-center mb-4">
-              <span className="text-2xl text-zinc-500">✨</span>
+          <div className="h-[500px] flex flex-col items-center justify-center text-center bg-zinc-900/20 border border-emerald-500/20 border-dashed rounded-[30px] p-8 backdrop-blur-sm">
+            <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mb-6">
+              <span className="text-3xl">✨</span>
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">Vyberte objednávku</h3>
-            <p className="text-sm text-zinc-500 max-w-xs">
+            <h3 className="text-xl font-bold text-white mb-3">Vyberte objednávku</h3>
+            <p className="text-sm text-zinc-500 max-w-xs font-medium">
               Vyberte klienta zo zoznamu vľavo pre vygenerovanie alebo úpravu AI draftu jedálnička.
             </p>
           </div>
