@@ -102,7 +102,14 @@ export default function TrainerMealPlanAI({ trainerId }: TrainerMealPlanAIProps)
       if (selectedRequest.trainer_edited_plan) {
         setEditedPlan(selectedRequest.trainer_edited_plan);
       } else if (selectedRequest.ai_generated_plan) {
-        setEditedPlan(formatAiPlan(selectedRequest.ai_generated_plan));
+        const formatted = formatAiPlan(selectedRequest.ai_generated_plan);
+        
+        // Safety fallback if the content is empty or contains "undefined"/"null" in a way that suggests a failed generation
+        if (!formatted || formatted.trim() === "" || formatted.toLowerCase().includes("undefined") || formatted.toLowerCase().includes("null")) {
+          setEditedPlan("Nepodarilo sa vygenerovať jedálniček, skúste znova.");
+        } else {
+          setEditedPlan(formatted);
+        }
       } else {
         setEditedPlan("");
       }
