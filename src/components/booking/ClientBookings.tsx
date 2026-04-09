@@ -432,52 +432,54 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
 
   return (
     <div className="space-y-4">
-      <div className="inline-flex rounded-full bg-zinc-950/60 border border-zinc-800 p-1">
-        <button
-          type="button"
-          onClick={() => setActiveCategory("personal_training")}
-          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
-            activeCategory === "personal_training" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
-          }`}
-        >
-          Osobný tréning
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveCategory("online_consultation")}
-          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
-            activeCategory === "online_consultation" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
-          }`}
-        >
-          Online konzultácia
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveCategory("meal_plan")}
-          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
-            activeCategory === "meal_plan" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
-          }`}
-        >
-          Objednávka jedálničku
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveCategory("transformation")}
-          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
-            activeCategory === "transformation" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
-          }`}
-        >
-          Premena
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveCategory("history")}
-          className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
-            activeCategory === "history" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
-          }`}
-        >
-          História
-        </button>
+      <div className="w-full overflow-x-auto custom-scrollbar-hidden">
+        <div className="inline-flex rounded-full bg-zinc-950/60 border border-zinc-800 p-1 min-w-max">
+          <button
+            type="button"
+            onClick={() => setActiveCategory("personal_training")}
+            className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${
+              activeCategory === "personal_training" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+            }`}
+          >
+            Osobný tréning
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveCategory("online_consultation")}
+            className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${
+              activeCategory === "online_consultation" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+            }`}
+          >
+            Online konzultácia
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveCategory("meal_plan")}
+            className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${
+              activeCategory === "meal_plan" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+            }`}
+          >
+            Objednávka jedálničku
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveCategory("transformation")}
+            className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${
+              activeCategory === "transformation" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+            }`}
+          >
+            Premena
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveCategory("history")}
+            className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${
+              activeCategory === "history" ? "bg-emerald-500 text-black" : "text-zinc-300 hover:text-white"
+            }`}
+          >
+            História
+          </button>
+        </div>
       </div>
 
       {items.length > 0 ? (

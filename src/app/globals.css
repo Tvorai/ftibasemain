@@ -24,4 +24,11 @@ body {
   .scroll-sm-120 {
     scroll-margin-bottom: 120px;
   }
+  .custom-scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .custom-scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
 }
