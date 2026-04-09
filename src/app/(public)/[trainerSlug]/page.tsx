@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Script from "next/script";
-import { Modal } from "@/components/Modal";
+import { ModalWrapper } from "@/components/ModalWrapper";
 import AvailableSlots from "@/components/booking/AvailableSlots";
 import BookingForm from "@/components/booking/BookingForm";
 import { AvailableSlot } from "@/lib/booking/getAvailableSlots";
@@ -682,33 +682,29 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
     </div>
   </div>
 
-      <Modal
+      <ModalWrapper
         isOpen={isPersonalTrainingModalOpen}
         onClose={() => {
           setIsPersonalTrainingModalOpen(false);
           setSelectedSlot(null);
-          setPendingFormValues(null);
         }}
         title="Rezervovať osobný tréning"
       >
         {!selectedSlot ? (
-          <div className="text-gray-800">
-            <AvailableSlots 
-              trainerId={trainer.id} 
-              onSlotSelect={(slot) => setSelectedSlot(slot)}
-              selectedSlot={selectedSlot}
-            />
-          </div>
+          <AvailableSlots 
+            trainerId={trainer.id} 
+            onSlotSelect={setSelectedSlot} 
+            serviceType="personal"
+            slotDuration={60}
+          />
         ) : (
           <BookingForm 
-            selectedSlot={selectedSlot}
-            trainerName={trainer.profiles?.full_name || "Tréner"}
-            trainerEmail={trainer.profiles?.email || undefined}
-            initialValues={pendingFormValues || undefined}
+            selectedSlot={selectedSlot} 
+            trainerName={trainer.profiles?.full_name || ""} 
             onSuccess={() => {
               setIsPersonalTrainingModalOpen(false);
               setSelectedSlot(null);
-              setPendingFormValues(null);
+              alert("Rezervácia bola úspešne odoslaná.");
             }}
             onCancel={() => {
               setSelectedSlot(null);
@@ -716,9 +712,9 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
             }}
           />
         )}
-      </Modal>
+      </ModalWrapper>
 
-      <Modal
+      <ModalWrapper
         isOpen={isOnlineConsultationModalOpen}
         onClose={() => {
           setIsOnlineConsultationModalModalOpen(false);
@@ -727,14 +723,12 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
         title="Rezervovať online konzultáciu"
       >
         {!selectedSlot ? (
-          <div className="max-h-[70vh] overflow-y-auto">
-            <AvailableSlots 
-              trainerId={trainer.id} 
-              onSlotSelect={setSelectedSlot} 
-              serviceType="online"
-              slotDuration={30}
-            />
-          </div>
+          <AvailableSlots 
+            trainerId={trainer.id} 
+            onSlotSelect={setSelectedSlot} 
+            serviceType="online"
+            slotDuration={30}
+          />
         ) : (
           <BookingForm 
             selectedSlot={selectedSlot} 
@@ -748,15 +742,15 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
             serviceType="online"
           />
         )}
-      </Modal>
+      </ModalWrapper>
 
-      <Modal
+      <ModalWrapper
         isOpen={isMealPlanModalOpen}
         onClose={() => setIsMealPlanModalOpen(false)}
         title="Objednať jedálniček"
       >
         {trainer ? <MealPlanRequestForm trainerId={trainer.id} /> : null}
-      </Modal>
+      </ModalWrapper>
 
       <Modal
         isOpen={isBrandsModalOpen}

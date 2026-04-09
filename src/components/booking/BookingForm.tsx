@@ -425,29 +425,29 @@ export default function BookingForm({
                 <div>
                   <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Meno a priezvisko *</label>
                   <input
-                    {...register("client_name")}
-                    className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 ${errors.client_name ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
-                    placeholder="Janko Hraško"
-                  />
+                  {...register("client_name")}
+                  className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 scroll-sm-120 ${errors.client_name ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
+                  placeholder="Janko Hraško"
+                />
                   {errors.client_name && <p className="text-red-400 text-[10px] mt-1 font-bold uppercase tracking-tighter">{errors.client_name.message}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Email *</label>
                   <input
-                    {...register("client_email")}
-                    className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 ${errors.client_email ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
-                    placeholder="janko@priklad.sk"
-                    type="email"
-                  />
+                  {...register("client_email")}
+                  className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 scroll-sm-120 ${errors.client_email ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
+                  placeholder="janko@priklad.sk"
+                  type="email"
+                />
                   {errors.client_email && <p className="text-red-400 text-[10px] mt-1 font-bold uppercase tracking-tighter">{errors.client_email.message}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Telefónne číslo</label>
                   <input
-                    {...register("client_phone")}
-                    className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600"
-                    placeholder="+421 900 000 000"
-                  />
+                  {...register("client_phone")}
+                  className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 scroll-sm-120"
+                  placeholder="+421 900 000 000"
+                />
                 </div>
                 <div className="flex justify-end">
                   <button
@@ -470,7 +470,7 @@ export default function BookingForm({
               <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Meno a priezvisko *</label>
               <input
                 {...register("client_name")}
-                className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 ${errors.client_name ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
+                className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 scroll-sm-120 ${errors.client_name ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
                 placeholder="Janko Hraško"
               />
               {errors.client_name && <p className="text-red-400 text-[10px] mt-1 font-bold uppercase tracking-tighter">{errors.client_name.message}</p>}
@@ -479,7 +479,7 @@ export default function BookingForm({
               <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Email *</label>
               <input
                 {...register("client_email")}
-                className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 ${errors.client_email ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
+                className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 scroll-sm-120 ${errors.client_email ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
                 placeholder="janko@priklad.sk"
                 type="email"
               />
@@ -489,7 +489,7 @@ export default function BookingForm({
               <label className="block text-xs font-bold text-zinc-400 mb-1 uppercase tracking-tight">Telefónne číslo</label>
               <input
                 {...register("client_phone")}
-                className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600"
+                className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 scroll-sm-120"
                 placeholder="+421 900 000 000"
               />
             </div>

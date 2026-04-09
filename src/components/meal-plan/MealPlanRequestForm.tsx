@@ -351,7 +351,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
                       type="text"
                       placeholder="Meno"
                       disabled={disabled}
-                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 scroll-sm-120"
                       {...form.register("name")}
                     />
                     {form.formState.errors.name?.message && <div className="text-xs text-red-300">{form.formState.errors.name.message}</div>}
@@ -360,7 +360,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
                       type="email"
                       placeholder="Email"
                       disabled={disabled}
-                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 scroll-sm-120"
                       {...form.register("email")}
                     />
                     {form.formState.errors.email?.message && <div className="text-xs text-red-300">{form.formState.errors.email.message}</div>}
@@ -369,7 +369,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
                       type="tel"
                       placeholder="Tel. číslo"
                       disabled={disabled}
-                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 scroll-sm-120"
                       {...form.register("phone")}
                     />
                     {form.formState.errors.phone?.message && <div className="text-xs text-red-300">{form.formState.errors.phone.message}</div>}
@@ -399,7 +399,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
                   type="text"
                   placeholder="Meno"
                   disabled={disabled}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 scroll-sm-120"
                   {...form.register("name")}
                 />
                 {form.formState.errors.name?.message && <div className="text-xs text-red-300">{form.formState.errors.name.message}</div>}
@@ -408,7 +408,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
                   type="email"
                   placeholder="Email"
                   disabled={disabled}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 scroll-sm-120"
                   {...form.register("email")}
                 />
                 {form.formState.errors.email?.message && <div className="text-xs text-red-300">{form.formState.errors.email.message}</div>}
@@ -417,7 +417,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
                   type="tel"
                   placeholder="Tel. číslo"
                   disabled={disabled}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 scroll-sm-120"
                   {...form.register("phone")}
                 />
                 {form.formState.errors.phone?.message && <div className="text-xs text-red-300">{form.formState.errors.phone.message}</div>}
@@ -482,7 +482,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
               type="text"
               placeholder="Alergény (voliteľné)"
               disabled={disabled}
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 scroll-sm-120"
               {...form.register("allergens")}
             />
 
@@ -490,7 +490,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
               type="text"
               placeholder="Obľúbené potraviny (voliteľné)"
               disabled={disabled}
-              className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 scroll-sm-120"
               {...form.register("favorite_foods")}
             />
 
