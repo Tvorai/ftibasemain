@@ -48,9 +48,14 @@ export async function POST(request: Request) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  console.log("[EMAIL FLOW] webhook entered");
+  console.log("[EMAIL FLOW] event type:", event.type);
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const meta: Record<string, unknown> = isRecord(session.metadata) ? session.metadata : {};
+    
+    console.log("[EMAIL FLOW] processing checkout.session.completed", { sessionId: session.id });
     
     const type = getStringField(meta, "type") || getStringField(meta, "service_type");
     const stripePaymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : null;
@@ -126,6 +131,10 @@ export async function POST(request: Request) {
       // ODOVZDANIE EMAILU KLIENTOVI (Meal Plan)
       if (clientEmail) {
         const sender = "Fitbase <noreply@fitbase.sk>";
+        console.log(`[EMAIL FLOW] about to send email`, { 
+          service_type: "meal_plan", 
+          to: clientEmail 
+        });
         console.log(`[EMAIL FLOW] source=webhook event=checkout.session.completed service_type=meal_plan to=${clientEmail} subject="Potvrdenie platby - Fitbase"`);
         try {
           // Získať meno trénera
@@ -213,6 +222,7 @@ export async function POST(request: Request) {
         }
       }
 
+      console.log("[EMAIL FLOW] meal_plan flow completed, returning success");
       return NextResponse.json({ received: true, action: "inserted_meal_plan", id: inserted?.id });
     }
 
@@ -326,6 +336,10 @@ export async function POST(request: Request) {
       // ODOVZDANIE EMAILU KLIENTOVI (Transformation)
       if (clientEmail) {
         const sender = "Fitbase <noreply@fitbase.sk>";
+        console.log(`[EMAIL FLOW] about to send email`, { 
+          service_type: "transformation", 
+          to: clientEmail 
+        });
         console.log(`[EMAIL FLOW] source=webhook event=checkout.session.completed service_type=transformation to=${clientEmail} subject="Potvrdenie platby - Fitbase"`);
         try {
           const { data: trainer, error: trainerErr } = await supabase
@@ -405,6 +419,7 @@ export async function POST(request: Request) {
         }
       }
 
+      console.log("[EMAIL FLOW] transformation flow completed, returning success");
       return NextResponse.json({ received: true, action: "inserted_transformation", id: inserted?.id });
     }
 
@@ -439,6 +454,7 @@ export async function POST(request: Request) {
 
     if (existingBookingId) {
       // Update existujúceho bookingu
+      console.log("[EMAIL FLOW] updating existing booking", { existingBookingId });
       const { error: updateErr } = await supabase
         .from("bookings")
         .update({
@@ -464,6 +480,10 @@ export async function POST(request: Request) {
       
       if (clientEmail && trainerIdFromMeta) {
         const sender = "Fitbase <noreply@fitbase.sk>";
+        console.log(`[EMAIL FLOW] about to send email`, { 
+          service_type: type || "booking", 
+          to: clientEmail 
+        });
         console.log(`[EMAIL FLOW] source=webhook event=checkout.session.completed service_type=booking_update to=${clientEmail} subject="Potvrdenie platby - Fitbase"`);
         try {
           const { data: trainer, error: trainerErr } = await supabase
@@ -545,9 +565,11 @@ export async function POST(request: Request) {
         }
       }
 
+      console.log("[EMAIL FLOW] booking_update flow completed, returning success");
       return NextResponse.json({ received: true, action: "updated", booking_id: existingBookingId });
     } else {
       // Vytvorenie nového bookingu (pre flow z create-checkout, kde booking ešte nie je v DB)
+      console.log("[EMAIL FLOW] creating new booking");
       if (!trainerId || !userId || !startsAt || !endsAt || !type) {
         console.warn("[Platform Webhook] Missing metadata for new booking creation");
         return NextResponse.json({ message: "Chýbajú povinné metadata pre vytvorenie bookingu." }, { status: 400 });
@@ -633,9 +655,56 @@ export async function POST(request: Request) {
             console.error("[Platform Webhook] Fallback insert failed:", retryErr.message);
             return NextResponse.json({ message: retryErr.message }, { status: 500 });
           }
+
+          // EMAIL PO FALLBACK INSERTE
+          if (clientEmail) {
+            const sender = "Fitbase <noreply@fitbase.sk>";
+            console.log(`[EMAIL FLOW] about to send email (fallback insert)`, { service_type: type, to: clientEmail });
+            try {
+              const { data: trainer } = await supabase.from("trainers").select("full_name").eq("id", trainerId).maybeSingle();
+              const trainerName = trainer?.full_name || "Váš tréner";
+              const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
+              const html = getEmailTemplateHtml({
+                title: "Potvrdenie platby - Rezervácia",
+                clientName: clientName || "zákazník",
+                serviceName: type === "online" ? "Online konzultácia" : "Osobný tréning",
+                trainerName,
+                price: priceStr,
+                content: "Vaša platba za rezerváciu bola úspešne prijatá. Termín je potvrdený."
+              });
+              const emailResult = await sendEmail({ to: clientEmail, subject: "Potvrdenie platby - Fitbase", html });
+              console.log(`[EMAIL FLOW] result=${emailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${clientEmail}`);
+            } catch (err) {
+              console.error("[EMAIL FLOW] Exception in fallback email:", err);
+            }
+          }
+
           return NextResponse.json({ received: true, action: "inserted_fallback", id: retryInserted?.id });
         }
         return NextResponse.json({ message: insertErr.message }, { status: 500 });
+      }
+
+      // EMAIL PO NORMALNOM INSERTE
+      if (clientEmail) {
+        const sender = "Fitbase <noreply@fitbase.sk>";
+        console.log(`[EMAIL FLOW] about to send email (new insert)`, { service_type: type, to: clientEmail });
+        try {
+          const { data: trainer } = await supabase.from("trainers").select("full_name").eq("id", trainerId).maybeSingle();
+          const trainerName = trainer?.full_name || "Váš tréner";
+          const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
+          const html = getEmailTemplateHtml({
+            title: "Potvrdenie platby - Rezervácia",
+            clientName: clientName || "zákazník",
+            serviceName: type === "online" ? "Online konzultácia" : "Osobný tréning",
+            trainerName,
+            price: priceStr,
+            content: "Vaša platba za rezerváciu bola úspešne prijatá. Termín je potvrdený."
+          });
+          const emailResult = await sendEmail({ to: clientEmail, subject: "Potvrdenie platby - Fitbase", html });
+          console.log(`[EMAIL FLOW] result=${emailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${clientEmail}`);
+        } catch (err) {
+          console.error("[EMAIL FLOW] Exception in normal insert email:", err);
+        }
       }
 
       // Inkrementovať used_count ak bol použitý kód
