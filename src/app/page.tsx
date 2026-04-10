@@ -13,6 +13,10 @@ export default function HomePage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const vantaRef = useRef<HTMLDivElement>(null);
+  const vantaEffectRef = useRef<{ destroy: () => void } | null>(null);
+  const [threeReady, setThreeReady] = useState(false);
+  const [p5Ready, setP5Ready] = useState(false);
+  const [vantaReady, setVantaReady] = useState(false);
   const [activeIndex, setActiveIndex] = useState(2);
   const [user, setUser] = useState<any>(null);
   const [isTrainer, setIsTrainer] = useState(false);
@@ -70,53 +74,50 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    let effect: any = null;
+    if (!threeReady || !vantaReady || !p5Ready) return;
+    if (!vantaRef.current) return;
+    if (vantaEffectRef.current) return;
 
-    const initVanta = () => {
-      if (typeof window !== "undefined" && (window as any).VANTA && (window as any).VANTA.TOPOLOGY && vantaRef.current && !effect) {
-        try {
-          effect = (window as any).VANTA.TOPOLOGY({
-            el: vantaRef.current,
-            mouseControls: true,
-            touchControls: true,
-            gyroControls: false,
-            minHeight: 200.00,
-            minWidth: 200.00,
-            scale: 1.00,
-            scaleMobile: 1.00,
-            color: 0x97e6c0,
-            backgroundColor: 0x0
-          });
-          
-          if (effect && effect.resize) {
-            setTimeout(() => effect.resize(), 100);
-          }
-        } catch (err) {
-          console.error("Vanta init error:", err);
-        }
+    const VANTA = (window as any).VANTA;
+    if (!VANTA?.TOPOLOGY) return;
+
+    try {
+      vantaEffectRef.current = VANTA.TOPOLOGY({
+        el: vantaRef.current,
+        mouseControls: true,
+        touchControls: true,
+        gyroControls: false,
+        minHeight: 200.0,
+        minWidth: 200.0,
+        scale: 1.0,
+        scaleMobile: 1.0,
+        color: 0x97e6c0,
+        backgroundColor: 0x0,
+      });
+
+      if (vantaEffectRef.current && (vantaEffectRef.current as any).resize) {
+        setTimeout(() => (vantaEffectRef.current as any).resize(), 100);
       }
-    };
+    } catch (err) {
+      console.error("Vanta init error:", err);
+    }
 
     const handleResize = () => {
-      if (effect && effect.resize) {
-        effect.resize();
+      if (vantaEffectRef.current && (vantaEffectRef.current as any).resize) {
+        (vantaEffectRef.current as any).resize();
       }
     };
 
-    const timer = setTimeout(initVanta, 1000);
     window.addEventListener("resize", handleResize);
     window.addEventListener("orientationchange", handleResize);
 
     return () => {
-      clearTimeout(timer);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("orientationchange", handleResize);
-      if (effect) {
-        effect.destroy();
-        effect = null;
-      }
+      vantaEffectRef.current?.destroy?.();
+      vantaEffectRef.current = null;
     };
-  }, []);
+  }, [p5Ready, threeReady, vantaReady]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -151,31 +152,21 @@ export default function HomePage() {
         }}
       />
 
-      <div className="min-h-screen text-white selection:bg-emerald-500/30 relative z-0">
+      <div className="min-h-screen text-white selection:bg-emerald-500/30 relative z-0 bg-transparent">
         <Script
           src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
+          onLoad={() => setP5Ready(true)}
+        />
+        <Script
+          src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"
+          strategy="afterInteractive"
+          onLoad={() => setThreeReady(true)}
         />
         <Script
           src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.topology.min.js"
           strategy="afterInteractive"
-          onLoad={() => {
-            const vantaInit = (window as any).VANTA?.TOPOLOGY;
-            if (vantaInit && vantaRef.current) {
-              vantaInit({
-                el: vantaRef.current,
-                mouseControls: true,
-                touchControls: true,
-                gyroControls: false,
-                minHeight: 200.00,
-                minWidth: 200.00,
-                scale: 1.00,
-                scaleMobile: 1.00,
-                color: 0x97e6c0,
-                backgroundColor: 0x0
-              });
-            }
-          }}
+          onLoad={() => setVantaReady(true)}
         />
 
         {/* Navigation */}
