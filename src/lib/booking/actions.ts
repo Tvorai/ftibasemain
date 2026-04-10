@@ -228,6 +228,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
 
     // ODOVZDANIE EMAILY PO VYTVORENÍ BOOKINGU
     try {
+      console.log(`[Booking Action] createBookingAction - sending notifications. Recipient: ${client_email}, Trainer: ${trainer_email || 'N/A'}`);
       const priceStr = `${(priceCents / 100).toFixed(2)} €`;
       const dateFormatted = new Date(starts_at).toLocaleString("sk-SK", {
         timeZone: "Europe/Bratislava",

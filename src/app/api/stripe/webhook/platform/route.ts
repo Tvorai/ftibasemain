@@ -125,6 +125,7 @@ export async function POST(request: Request) {
 
       // ODOVZDANIE EMAILU KLIENTOVI (Meal Plan)
       if (clientEmail) {
+        console.log(`[Stripe Webhook] Event: checkout.session.completed, Type: meal_plan, Recipient: ${clientEmail}`);
         try {
           // Získať meno trénera
           const { data: trainer } = await supabase
@@ -313,6 +314,7 @@ export async function POST(request: Request) {
 
       // ODOVZDANIE EMAILU KLIENTOVI (Transformation)
       if (clientEmail) {
+        console.log(`[Stripe Webhook] Event: checkout.session.completed, Type: transformation, Recipient: ${clientEmail}`);
         try {
           const { data: trainer } = await supabase
             .from("trainers")
@@ -439,6 +441,7 @@ export async function POST(request: Request) {
       const trainerIdFromMeta = getStringField(meta, "trainer_id");
       
       if (clientEmail && trainerIdFromMeta) {
+        console.log(`[Stripe Webhook] Event: checkout.session.completed, Type: booking_update, Recipient: ${clientEmail}`);
         try {
           const { data: trainer } = await supabase
             .from("trainers")

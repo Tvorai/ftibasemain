@@ -11,45 +11,70 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Hlavná funkcia na odosielanie emailov cez Resend API.
- * Používa fetch pre maximálnu kompatibilitu a minimálnu veľkosť bundle-u.
+ * Hlavná funkcia na odosielanie emailov cez Resend API s rozšíreným debugovaním.
  */
-export async function sendEmail({ to, subject, html }: EmailParams): Promise<{ success: boolean }> {
+export async function sendEmail({ to, subject, html }: EmailParams): Promise<{ success: boolean; error?: string; details?: any }> {
   const resendApiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM || "Fitbase <onboarding@resend.dev>";
+  const from = process.env.RESEND_FROM || "Fitbase <info@fitbase.sk>";
+
+  console.log("[Email Service] --- Debug Start ---");
+  console.log(`[Email Service] To: ${to}`);
+  console.log(`[Email Service] From: ${from}`);
+  console.log(`[Email Service] Subject: ${subject}`);
+  console.log(`[Email Service] HTML Length: ${html.length} chars`);
+  console.log(`[Email Service] API Key exists: ${!!resendApiKey}`);
 
   if (!resendApiKey) {
-    console.warn("[Email Service] RESEND_API_KEY chýba, email preskakujem.");
-    return { success: false };
+    const errorMsg = "RESEND_API_KEY is undefined";
+    console.error(`[Email Service] CRITICAL ERROR: ${errorMsg}`);
+    return { success: false, error: errorMsg };
   }
 
   try {
+    const payload = {
+      from,
+      to,
+      subject,
+      html,
+    };
+
+    console.log("[Email Service] Sending request to Resend API...");
+    
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from,
-        to,
-        subject,
-        html,
-      }),
+      body: JSON.stringify(payload),
     });
 
+    console.log(`[Email Service] Resend HTTP Status: ${res.status} ${res.statusText}`);
+
+    const responseData: unknown = await res.json().catch(() => null);
+    
     if (!res.ok) {
-      const payload: unknown = await res.json().catch(() => null);
-      const details = isRecord(payload) && typeof payload.message === "string" ? payload.message : `HTTP ${res.status}`;
-      console.warn(`[Email Service] Resend zlyhal: ${details}`);
-      return { success: false };
+      console.error("[Email Service] Resend API Error Response:", JSON.stringify(responseData, null, 2));
+      const details = isRecord(responseData) && typeof responseData.message === "string" 
+        ? responseData.message 
+        : `HTTP ${res.status}`;
+      
+      return { 
+        success: false, 
+        error: `Resend API Error: ${details}`,
+        details: responseData 
+      };
     }
 
-    return { success: true };
+    console.log("[Email Service] Email sent successfully!", JSON.stringify(responseData, null, 2));
+    return { success: true, details: responseData };
+
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.warn(`[Email Service] Resend request zlyhal: ${message}`);
-    return { success: false };
+    console.error(`[Email Service] Request failed: ${message}`);
+    return { success: false, error: message };
+  } finally {
+    console.log("[Email Service] --- Debug End ---");
   }
 }
 
@@ -77,13 +102,14 @@ export function getEmailTemplateHtml({
     <head>
       <meta charset="utf-8">
       <style>
-        body { font-family: sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; }
-        .header { border-bottom: 2px solid #10b981; padding-bottom: 10px; margin-bottom: 20px; }
-        .header h1 { color: #10b981; margin: 0; font-size: 24px; }
-        .details { background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0; }
-        .details p { margin: 5px 0; }
-        .footer { margin-top: 30px; font-size: 12px; color: #666; text-align: center; }
+        body { font-family: sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; background-color: #ffffff; }
+        .header { border-bottom: 2px solid #10b981; padding-bottom: 10px; margin-bottom: 20px; text-align: center; }
+        .header h1 { color: #10b981; margin: 0; font-size: 28px; font-weight: bold; }
+        .details { background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb; }
+        .details p { margin: 8px 0; color: #374151; }
+        .footer { margin-top: 30px; font-size: 12px; color: #6b7280; text-align: center; }
+        .button-placeholder { display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 9999px; font-weight: bold; margin-top: 10px; }
       </style>
     </head>
     <body>
@@ -91,7 +117,7 @@ export function getEmailTemplateHtml({
         <div class="header">
           <h1>Fitbase</h1>
         </div>
-        <h2>${title}</h2>
+        <h2 style="color: #111827; margin-top: 0;">${title}</h2>
         <p>Ahoj ${clientName},</p>
         <p>${content}</p>
         
@@ -101,7 +127,7 @@ export function getEmailTemplateHtml({
           <p><strong>Cena:</strong> ${price}</p>
         </div>
 
-        <p>V prípade otázok nás neváhajte kontaktovať.</p>
+        <p>V prípade otázok nás neváhajte kontaktovať odpoveďou na tento email.</p>
         
         <div class="footer">
           <p>&copy; ${new Date().getFullYear()} Fitbase. Všetky práva vyhradené.</p>

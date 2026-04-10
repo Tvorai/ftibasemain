@@ -1820,7 +1820,7 @@ export default function TrainerDashboardPage() {
                       </div>
                       <div className="flex items-center gap-4 text-zinc-300">
                         <span className="w-24 text-zinc-500 text-xs font-bold uppercase tracking-widest">Mail:</span>
-                        <span className="text-zinc-500 italic">...</span>
+                        <a href="mailto:info@fitbase.sk" className="hover:text-emerald-400 transition-colors">info@fitbase.sk</a>
                       </div>
                     </div>
                   </div>
