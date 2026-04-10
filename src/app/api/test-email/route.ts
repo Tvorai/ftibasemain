@@ -1,31 +1,24 @@
 import { NextResponse } from "next/server";
-import { sendEmail, getEmailTemplateHtml } from "@/lib/email/emailService";
+import { sendEmail } from "@/lib/email/emailService";
 
 export async function GET() {
-  const testEmail = "info@fitbase.sk";
+  const testEmail = "tvojemail@gmail.com"; // Používateľ si tu doplní svoj email
   
-  console.log(`[Test Email API] Iniciujem testovací email na: ${testEmail}`);
+  console.log(`[Test Email API] Iniciujem testovací email cez Resend SDK na: ${testEmail}`);
   
-  const html = getEmailTemplateHtml({
-    title: "Testovací email - Fitbase",
-    clientName: "Testovací používateľ",
-    serviceName: "Testovacia služba",
-    trainerName: "Systém Fitbase",
-    price: "0.00 €",
-    content: "Tento email bol odoslaný automaticky ako test integrácie služby Resend. Ak ho vidíte, prepojenie funguje správne."
-  });
-
   try {
+    // Presne podľa požiadavky používateľa
     const result = await sendEmail({
+      from: "onboarding@resend.dev",
       to: testEmail,
-      subject: "Test Fitbase - Resend Integration",
-      html
+      subject: "TEST",
+      html: "<h1>Test OK</h1>"
     });
 
     if (result.success) {
       return NextResponse.json({
         success: true,
-        message: `Email bol úspešne odoslaný na ${testEmail}`,
+        message: `Email bol úspešne odoslaný na ${testEmail} (cez onboarding@resend.dev)`,
         details: result.details
       });
     } else {

@@ -1,27 +1,25 @@
 // src/lib/email/emailService.ts
+import { Resend } from "resend";
 
 type EmailParams = {
   to: string;
   subject: string;
   html: string;
+  from?: string;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
 /**
- * Hlavná funkcia na odosielanie emailov cez Resend API s rozšíreným debugovaním.
+ * Hlavná funkcia na odosielanie emailov cez Resend SDK.
  */
-export async function sendEmail({ to, subject, html }: EmailParams): Promise<{ success: boolean; error?: string; details?: any }> {
+export async function sendEmail({ to, subject, html, from }: EmailParams): Promise<{ success: boolean; error?: string; details?: any }> {
   const resendApiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM || "Fitbase <info@fitbase.sk>";
+  // Ak nie je definovaný odosielateľ, skúsime ENV alebo default (onboarding je najbezpečnejší pre testy)
+  const finalFrom = from || process.env.RESEND_FROM || "onboarding@resend.dev";
 
-  console.log("[Email Service] --- Debug Start ---");
+  console.log("[Email Service] --- Resend SDK Start ---");
   console.log(`[Email Service] To: ${to}`);
-  console.log(`[Email Service] From: ${from}`);
+  console.log(`[Email Service] From: ${finalFrom}`);
   console.log(`[Email Service] Subject: ${subject}`);
-  console.log(`[Email Service] HTML Length: ${html.length} chars`);
   console.log(`[Email Service] API Key exists: ${!!resendApiKey}`);
 
   if (!resendApiKey) {
@@ -30,51 +28,34 @@ export async function sendEmail({ to, subject, html }: EmailParams): Promise<{ s
     return { success: false, error: errorMsg };
   }
 
+  const resend = new Resend(resendApiKey);
+
   try {
-    const payload = {
-      from,
+    const { data, error } = await resend.emails.send({
+      from: finalFrom,
       to,
       subject,
       html,
-    };
-
-    console.log("[Email Service] Sending request to Resend API...");
-    
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
     });
 
-    console.log(`[Email Service] Resend HTTP Status: ${res.status} ${res.statusText}`);
-
-    const responseData: unknown = await res.json().catch(() => null);
-    
-    if (!res.ok) {
-      console.error("[Email Service] Resend API Error Response:", JSON.stringify(responseData, null, 2));
-      const details = isRecord(responseData) && typeof responseData.message === "string" 
-        ? responseData.message 
-        : `HTTP ${res.status}`;
-      
+    if (error) {
+      console.error("[Email Service] Resend SDK Error:", JSON.stringify(error, null, 2));
       return { 
         success: false, 
-        error: `Resend API Error: ${details}`,
-        details: responseData 
+        error: error.message,
+        details: error 
       };
     }
 
-    console.log("[Email Service] Email sent successfully!", JSON.stringify(responseData, null, 2));
-    return { success: true, details: responseData };
+    console.log("[Email Service] Email sent successfully!", JSON.stringify(data, null, 2));
+    return { success: true, details: data };
 
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error(`[Email Service] Request failed: ${message}`);
     return { success: false, error: message };
   } finally {
-    console.log("[Email Service] --- Debug End ---");
+    console.log("[Email Service] --- Resend SDK End ---");
   }
 }
 
@@ -109,7 +90,6 @@ export function getEmailTemplateHtml({
         .details { background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb; }
         .details p { margin: 8px 0; color: #374151; }
         .footer { margin-top: 30px; font-size: 12px; color: #6b7280; text-align: center; }
-        .button-placeholder { display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 9999px; font-weight: bold; margin-top: 10px; }
       </style>
     </head>
     <body>
