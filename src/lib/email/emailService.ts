@@ -16,8 +16,10 @@ export async function sendEmail({ to, subject, html, from }: EmailParams): Promi
   const finalFrom = from || process.env.RESEND_FROM || "Fitbase <noreply@fitbase.sk>";
 
   console.log("[Email Service] --- Resend SDK Call ---");
+  console.log(`[Email Service] From: ${finalFrom}`);
+  console.log(`[Email Service] To: ${to}`);
+  console.log(`[Email Service] Subject: ${subject}`);
   console.log(`[Email Service] API Key present: ${!!resendApiKey}`);
-  console.log(`[Email Service] Sending: From=${finalFrom}, To=${to}, Subject=${subject}`);
 
   if (!resendApiKey) {
     const errorMsg = "RESEND_API_KEY is not defined in environment variables.";
