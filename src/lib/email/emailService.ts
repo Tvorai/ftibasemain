@@ -13,7 +13,7 @@ type EmailParams = {
  */
 export async function sendEmail({ to, subject, html, from }: EmailParams): Promise<{ success: boolean; error?: string; data?: any }> {
   const resendApiKey = process.env.RESEND_API_KEY;
-  const finalFrom = from || process.env.RESEND_FROM || "onboarding@resend.dev";
+  const finalFrom = from || process.env.RESEND_FROM || "Fitbase <noreply@fitbase.sk>";
 
   console.log("[Email Service] --- Resend SDK Call ---");
   console.log(`[Email Service] API Key present: ${!!resendApiKey}`);
