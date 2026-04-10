@@ -126,15 +126,18 @@ export async function POST(request: Request) {
       // ODOVZDANIE EMAILU KLIENTOVI (Meal Plan)
       if (clientEmail) {
         const sender = "Fitbase <noreply@fitbase.sk>";
-        console.log(`[Stripe Webhook] Event: checkout.session.completed, Type: meal_plan`);
-        console.log(`[Stripe Webhook] Sender: ${sender}, Recipient: ${clientEmail}`);
+        console.log(`[EMAIL FLOW] source=webhook event=checkout.session.completed service_type=meal_plan to=${clientEmail} subject="Potvrdenie platby - Fitbase"`);
         try {
           // Získať meno trénera
-          const { data: trainer } = await supabase
+          const { data: trainer, error: trainerErr } = await supabase
             .from("trainers")
             .select("full_name")
             .eq("id", trainerId)
             .maybeSingle();
+          
+          if (trainerErr) {
+            console.error(`[EMAIL FLOW] DB Error fetching trainer name: ${trainerErr.message}`);
+          }
           
           const trainerName = trainer?.full_name || "Váš tréner";
           const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
@@ -148,14 +151,20 @@ export async function POST(request: Request) {
             content: "Vaša platba za jedálniček na mieru bola úspešne prijatá. Tréner začne na Vašom jedálničku pracovať."
           });
 
-          await sendEmail({
+          const emailResult = await sendEmail({
             to: clientEmail,
             subject: "Potvrdenie platby - Fitbase",
             html
           });
-        } catch (emailErr) {
-          console.error("[Platform Webhook] Email error (meal plan):", emailErr);
+          console.log(`[EMAIL FLOW] result=${emailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${clientEmail}`);
+          if (!emailResult.success) {
+            console.error(`[EMAIL FLOW] Resend error details:`, emailResult.error, emailResult.data);
+          }
+        } catch (emailErr: unknown) {
+          console.error("[EMAIL FLOW] Exception during meal plan email:", emailErr instanceof Error ? emailErr.stack : emailErr);
         }
+      } else {
+        console.warn("[EMAIL FLOW] Skip email (meal_plan): clientEmail is undefined/null");
       }
 
       // Inkrementovať used_count ak bol použitý kód
@@ -317,14 +326,17 @@ export async function POST(request: Request) {
       // ODOVZDANIE EMAILU KLIENTOVI (Transformation)
       if (clientEmail) {
         const sender = "Fitbase <noreply@fitbase.sk>";
-        console.log(`[Stripe Webhook] Event: checkout.session.completed, Type: transformation`);
-        console.log(`[Stripe Webhook] Sender: ${sender}, Recipient: ${clientEmail}`);
+        console.log(`[EMAIL FLOW] source=webhook event=checkout.session.completed service_type=transformation to=${clientEmail} subject="Potvrdenie platby - Fitbase"`);
         try {
-          const { data: trainer } = await supabase
+          const { data: trainer, error: trainerErr } = await supabase
             .from("trainers")
             .select("full_name")
             .eq("id", trainerId)
             .maybeSingle();
+          
+          if (trainerErr) {
+            console.error(`[EMAIL FLOW] DB Error fetching trainer name: ${trainerErr.message}`);
+          }
           
           const trainerName = trainer?.full_name || "Váš tréner";
           const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
@@ -338,14 +350,20 @@ export async function POST(request: Request) {
             content: "Vaša platba za program Mesačná premena bola úspešne prijatá. Tréner Vás bude čoskoro kontaktovať."
           });
 
-          await sendEmail({
+          const emailResult = await sendEmail({
             to: clientEmail,
             subject: "Potvrdenie platby - Fitbase",
             html
           });
-        } catch (emailErr) {
-          console.error("[Platform Webhook] Email error (transformation):", emailErr);
+          console.log(`[EMAIL FLOW] result=${emailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${clientEmail}`);
+          if (!emailResult.success) {
+            console.error(`[EMAIL FLOW] Resend error details:`, emailResult.error, emailResult.data);
+          }
+        } catch (emailErr: unknown) {
+          console.error("[EMAIL FLOW] Exception during transformation email:", emailErr instanceof Error ? emailErr.stack : emailErr);
         }
+      } else {
+        console.warn("[EMAIL FLOW] Skip email (transformation): clientEmail is undefined/null");
       }
 
       // Inkrementovať used_count ak bol použitý kód
@@ -446,14 +464,17 @@ export async function POST(request: Request) {
       
       if (clientEmail && trainerIdFromMeta) {
         const sender = "Fitbase <noreply@fitbase.sk>";
-        console.log(`[Stripe Webhook] Event: checkout.session.completed, Type: booking_update`);
-        console.log(`[Stripe Webhook] Sender: ${sender}, Recipient: ${clientEmail}`);
+        console.log(`[EMAIL FLOW] source=webhook event=checkout.session.completed service_type=booking_update to=${clientEmail} subject="Potvrdenie platby - Fitbase"`);
         try {
-          const { data: trainer } = await supabase
+          const { data: trainer, error: trainerErr } = await supabase
             .from("trainers")
             .select("full_name")
             .eq("id", trainerIdFromMeta)
             .maybeSingle();
+          
+          if (trainerErr) {
+            console.error(`[EMAIL FLOW] DB Error fetching trainer name: ${trainerErr.message}`);
+          }
           
           const trainerName = trainer?.full_name || "Váš tréner";
           const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
@@ -467,14 +488,20 @@ export async function POST(request: Request) {
             content: "Vaša platba za rezerváciu bola úspešne prijatá. Termín je potvrdený."
           });
 
-          await sendEmail({
+          const emailResult = await sendEmail({
             to: clientEmail,
             subject: "Potvrdenie platby - Fitbase",
             html
           });
-        } catch (emailErr) {
-          console.error("[Platform Webhook] Email error (booking update):", emailErr);
+          console.log(`[EMAIL FLOW] result=${emailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${clientEmail}`);
+          if (!emailResult.success) {
+            console.error(`[EMAIL FLOW] Resend error details:`, emailResult.error, emailResult.data);
+          }
+        } catch (emailErr: unknown) {
+          console.error("[EMAIL FLOW] Exception during booking update email:", emailErr instanceof Error ? emailErr.stack : emailErr);
         }
+      } else {
+        console.warn(`[EMAIL FLOW] Skip email (booking_update): clientEmail=${clientEmail}, trainerId=${trainerIdFromMeta}`);
       }
 
       // Inkrementovať used_count ak bol použitý kód pri update existujúceho bookingu

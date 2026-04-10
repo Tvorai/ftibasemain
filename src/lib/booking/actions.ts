@@ -229,10 +229,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
     // ODOVZDANIE EMAILY PO VYTVORENÍ BOOKINGU
     try {
       const sender = "Fitbase <noreply@fitbase.sk>";
-      console.log(`[Booking Action] createBookingAction - Sending notifications.`);
-      console.log(`[Booking Action] Sender: ${sender}`);
-      console.log(`[Booking Action] Recipient (Client): ${client_email}`);
-      console.log(`[Booking Action] Recipient (Trainer): ${trainer_email || 'N/A'}`);
+      console.log(`[EMAIL FLOW] source=action method=createBookingAction service_type=${normalizedServiceType} to=${client_email} subject="Nová rezervácia - Fitbase"`);
       
       const priceStr = `${(priceCents / 100).toFixed(2)} €`;
       const dateFormatted = new Date(starts_at).toLocaleString("sk-SK", {
@@ -254,14 +251,19 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
         content: `Vaša rezervácia na termín <strong>${dateFormatted}</strong> bola vytvorená. Pre potvrdenie termínu je potrebné dokončiť platbu.`
       });
 
-      await sendEmail({
+      const clientEmailResult = await sendEmail({
         to: client_email,
         subject: "Nová rezervácia - Fitbase",
         html: clientHtml
       });
+      console.log(`[EMAIL FLOW] result=${clientEmailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${client_email} (Client)`);
+      if (!clientEmailResult.success) {
+        console.error(`[EMAIL FLOW] Client Email Error:`, clientEmailResult.error, clientEmailResult.data);
+      }
 
       // 2. Email trénerovi
       if (trainer_email) {
+        console.log(`[EMAIL FLOW] source=action method=createBookingAction service_type=${normalizedServiceType} to=${trainer_email} subject="Nová rezervácia - Fitbase" (Trainer)`);
         const trainerHtml = getEmailTemplateHtml({
           title: "Nová rezervácia od klienta",
           clientName: "tréner",
@@ -271,14 +273,20 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
           content: `Máte novú rezerváciu od klienta <strong>${client_name}</strong> na termín <strong>${dateFormatted}</strong>. Rezervácia čaká na zaplatenie.`
         });
 
-        await sendEmail({
+        const trainerEmailResult = await sendEmail({
           to: trainer_email,
           subject: "Nová rezervácia - Fitbase",
           html: trainerHtml
         });
+        console.log(`[EMAIL FLOW] result=${trainerEmailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${trainer_email} (Trainer)`);
+        if (!trainerEmailResult.success) {
+          console.error(`[EMAIL FLOW] Trainer Email Error:`, trainerEmailResult.error, trainerEmailResult.data);
+        }
+      } else {
+        console.warn("[EMAIL FLOW] Skip trainer email: trainer_email is undefined/null");
       }
-    } catch (emailErr) {
-      console.error("createBookingAction: email error", emailErr);
+    } catch (emailErr: unknown) {
+      console.error("[EMAIL FLOW] Exception during createBookingAction emails:", emailErr instanceof Error ? emailErr.stack : emailErr);
     }
 
     return { status: "success", message: "Rezervácia bola vytvorená. Dokončite platbu pre potvrdenie.", bookingId: insertResult.data.id };
