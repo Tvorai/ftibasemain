@@ -1,38 +1,19 @@
-import { NextResponse } from "next/server";
-import { sendEmail } from "@/lib/email/emailService";
+import { Resend } from "resend"; 
 
-export async function GET() {
-  // Tento endpoint slúži na rýchle overenie Resend integrácie po deployi
-  const testEmail = "info@fitbase.sk"; 
-  
-  console.log(`[Test Email API] Iniciujem test cez Resend SDK na: ${testEmail}`);
-  
-  try {
-    const result = await sendEmail({
-      from: "onboarding@resend.dev",
-      to: testEmail,
-      subject: "Fitbase test",
-      html: "<p>Test OK - Resend SDK funguje!</p>"
-    });
-
-    if (result.success) {
-      return NextResponse.json({
-        success: true,
-        message: `Email bol úspešne odoslaný na ${testEmail} cez Resend SDK`,
-        data: result.data
-      });
-    } else {
-      return NextResponse.json({
-        success: false,
-        error: result.error,
-        data: result.data
-      }, { status: 500 });
-    }
-  } catch (err: any) {
-    console.error("[Test Email API] Exception:", err);
-    return NextResponse.json({
-      success: false,
-      error: err.message || "Neočakávaná chyba v test endpoint route"
-    }, { status: 500 });
-  }
-}
+export const dynamic = 'force-dynamic';
+ 
+ export async function GET() { 
+   const resend = new Resend(process.env.RESEND_API_KEY); 
+   try { 
+     const data = await resend.emails.send({ 
+       from: "onboarding@resend.dev", 
+       to: "info@fitbase.sk", 
+       subject: "Test", 
+       html: "<p>Funguje</p>", 
+     }); 
+ 
+     return Response.json({ success: true, data }); 
+   } catch (err) { 
+     return Response.json({ success: false, error: err }); 
+   } 
+ } 
