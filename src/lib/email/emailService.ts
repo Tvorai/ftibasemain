@@ -1,4 +1,3 @@
-// src/lib/email/emailService.ts
 import { Resend } from "resend";
 
 type EmailParams = {
@@ -9,22 +8,20 @@ type EmailParams = {
 };
 
 /**
- * Hlavná funkcia na odosielanie emailov cez Resend SDK.
+ * Hlavná funkcia na odosielanie emailov cez oficiálne Resend SDK.
+ * Custom fetch wrapper bol odstránený.
  */
-export async function sendEmail({ to, subject, html, from }: EmailParams): Promise<{ success: boolean; error?: string; details?: any }> {
+export async function sendEmail({ to, subject, html, from }: EmailParams): Promise<{ success: boolean; error?: string; data?: any }> {
   const resendApiKey = process.env.RESEND_API_KEY;
-  // Ak nie je definovaný odosielateľ, skúsime ENV alebo default (onboarding je najbezpečnejší pre testy)
   const finalFrom = from || process.env.RESEND_FROM || "onboarding@resend.dev";
 
-  console.log("[Email Service] --- Resend SDK Start ---");
-  console.log(`[Email Service] To: ${to}`);
-  console.log(`[Email Service] From: ${finalFrom}`);
-  console.log(`[Email Service] Subject: ${subject}`);
-  console.log(`[Email Service] API Key exists: ${!!resendApiKey}`);
+  console.log("[Email Service] --- Resend SDK Call ---");
+  console.log(`[Email Service] API Key present: ${!!resendApiKey}`);
+  console.log(`[Email Service] Sending: From=${finalFrom}, To=${to}, Subject=${subject}`);
 
   if (!resendApiKey) {
-    const errorMsg = "RESEND_API_KEY is undefined";
-    console.error(`[Email Service] CRITICAL ERROR: ${errorMsg}`);
+    const errorMsg = "RESEND_API_KEY is not defined in environment variables.";
+    console.error(`[Email Service] ${errorMsg}`);
     return { success: false, error: errorMsg };
   }
 
@@ -39,23 +36,23 @@ export async function sendEmail({ to, subject, html, from }: EmailParams): Promi
     });
 
     if (error) {
-      console.error("[Email Service] Resend SDK Error:", JSON.stringify(error, null, 2));
+      console.error("[Email Service] SDK returned error:", JSON.stringify(error, null, 2));
       return { 
         success: false, 
         error: error.message,
-        details: error 
+        data: error 
       };
     }
 
-    console.log("[Email Service] Email sent successfully!", JSON.stringify(data, null, 2));
-    return { success: true, details: data };
+    console.log("[Email Service] Success:", JSON.stringify(data, null, 2));
+    return { success: true, data };
 
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error(`[Email Service] Request failed: ${message}`);
+    const message = err instanceof Error ? err.message : "Unknown SDK error";
+    console.error(`[Email Service] SDK Exception: ${message}`);
     return { success: false, error: message };
   } finally {
-    console.log("[Email Service] --- Resend SDK End ---");
+    console.log("[Email Service] --- End of SDK Call ---");
   }
 }
 

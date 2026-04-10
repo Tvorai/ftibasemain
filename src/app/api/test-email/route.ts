@@ -2,36 +2,37 @@ import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/email/emailService";
 
 export async function GET() {
-  const testEmail = "tvojemail@gmail.com"; // Používateľ si tu doplní svoj email
+  // Tento endpoint slúži na rýchle overenie Resend integrácie po deployi
+  const testEmail = "info@fitbase.sk"; 
   
-  console.log(`[Test Email API] Iniciujem testovací email cez Resend SDK na: ${testEmail}`);
+  console.log(`[Test Email API] Iniciujem test cez Resend SDK na: ${testEmail}`);
   
   try {
-    // Presne podľa požiadavky používateľa
     const result = await sendEmail({
       from: "onboarding@resend.dev",
-      to: "info@fitbase.sk",
-      subject: "TEST",
-      html: "<h1>Test OK</h1>"
+      to: testEmail,
+      subject: "Fitbase test",
+      html: "<p>Test OK - Resend SDK funguje!</p>"
     });
 
     if (result.success) {
       return NextResponse.json({
         success: true,
-        message: `Email bol úspešne odoslaný na ${testEmail} (cez onboarding@resend.dev)`,
-        details: result.details
+        message: `Email bol úspešne odoslaný na ${testEmail} cez Resend SDK`,
+        data: result.data
       });
     } else {
       return NextResponse.json({
         success: false,
         error: result.error,
-        details: result.details
+        data: result.data
       }, { status: 500 });
     }
   } catch (err: any) {
+    console.error("[Test Email API] Exception:", err);
     return NextResponse.json({
       success: false,
-      error: err.message || "Neočakávaná chyba pri teste"
+      error: err.message || "Neočakávaná chyba v test endpoint route"
     }, { status: 500 });
   }
 }
