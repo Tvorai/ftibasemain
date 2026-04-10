@@ -136,7 +136,7 @@ export default function HomePage() {
   };
 
   return (
-    <>
+    <div className="fixed inset-0 z-50 text-white overflow-y-auto overflow-x-hidden selection:bg-emerald-500/30">
       {/* Base Black Background Layer */}
       <div className="fixed inset-0 z-[-1] bg-black" />
       
@@ -147,7 +147,7 @@ export default function HomePage() {
         style={{ zIndex: 0 }}
       />
 
-      <div className="relative z-10 min-h-screen text-white selection:bg-emerald-500/30 bg-transparent">
+      <div className="relative z-10 min-h-screen bg-transparent flex flex-col">
         <Script
           src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js"
           strategy="afterInteractive"
@@ -796,10 +796,6 @@ export default function HomePage() {
       </div>
 
       <style jsx global>{`
-        html, body {
-          background-color: black;
-          overscroll-behavior-y: none;
-        }
         @keyframes fitbaseBannerFloat {
           0%,
           100% {
@@ -814,6 +810,6 @@ export default function HomePage() {
           will-change: transform;
         }
       `}</style>
-    </>
+    </div>
   );
 }
