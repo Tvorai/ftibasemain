@@ -10,7 +10,7 @@ export async function GET() {
     // Presne podľa požiadavky používateľa
     const result = await sendEmail({
       from: "onboarding@resend.dev",
-      to: testEmail,
+      to: "info@fitbase.sk",
       subject: "TEST",
       html: "<h1>Test OK</h1>"
     });
