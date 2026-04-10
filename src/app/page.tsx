@@ -77,19 +77,15 @@ export default function HomePage() {
         try {
           effect = (window as any).VANTA.TOPOLOGY({
             el: vantaRef.current,
-            mouseControls: false,
-            touchControls: false,
+            mouseControls: true,
+            touchControls: true,
             gyroControls: false,
             minHeight: 200.00,
             minWidth: 200.00,
             scale: 1.00,
             scaleMobile: 1.00,
-            color: 0x56ca56,
-            backgroundColor: 0x0,
-            points: 8,
-            maxDistance: 15,
-            spacing: 20,
-            forceAnimate: true
+            color: 0x97e6c0,
+            backgroundColor: 0x0
           });
           
           if (effect && effect.resize) {
@@ -146,7 +142,7 @@ export default function HomePage() {
       {/* Vanta Background Container */}
       <div 
         ref={vantaRef} 
-        className="fixed inset-0 z-[-10] opacity-40 pointer-events-none w-full h-full" 
+        className="fixed inset-0 z-[-10] pointer-events-none w-full h-full" 
         style={{ 
           backfaceVisibility: 'hidden', 
           transform: 'translate3d(0,0,0)', 
@@ -168,19 +164,15 @@ export default function HomePage() {
             if (vantaInit && vantaRef.current) {
               vantaInit({
                 el: vantaRef.current,
-                mouseControls: false,
-                touchControls: false,
+                mouseControls: true,
+                touchControls: true,
                 gyroControls: false,
                 minHeight: 200.00,
                 minWidth: 200.00,
                 scale: 1.00,
                 scaleMobile: 1.00,
-                color: 0x56ca56,
-                backgroundColor: 0x0,
-                points: 8,
-                maxDistance: 15,
-                spacing: 20,
-                forceAnimate: true
+                color: 0x97e6c0,
+                backgroundColor: 0x0
               });
             }
           }}
