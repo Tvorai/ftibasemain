@@ -136,21 +136,21 @@ export default function HomePage() {
   };
 
   return (
-    <div>
-      {/* Vanta Background Container (Behind everything) */}
+    <div className="relative">
+      {/* Vanta Background Container (Base layer) */}
       <div 
         ref={vantaRef} 
         className="fixed inset-0 w-full h-full pointer-events-none" 
-        style={{ zIndex: -2 }}
+        style={{ zIndex: 0 }}
       />
 
-      {/* Global Black Overlay (Uniform across the whole page) */}
+      {/* Global Black Overlay (Light overlay to improve readability) */}
       <div 
-        className="fixed inset-0 w-full h-full pointer-events-none bg-black/50" 
-        style={{ zIndex: -1 }}
+        className="fixed inset-0 w-full h-full pointer-events-none bg-black/20" 
+        style={{ zIndex: 1 }}
       />
 
-      <div className="relative min-h-screen text-white selection:bg-emerald-500/30 bg-transparent flex flex-col">
+      <div className="relative z-10 min-h-screen text-white selection:bg-emerald-500/30 bg-transparent flex flex-col">
         <Script
           src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js"
           strategy="afterInteractive"
@@ -822,3 +822,4 @@ export default function HomePage() {
     </div>
   );
 }
+
