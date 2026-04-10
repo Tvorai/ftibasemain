@@ -141,6 +141,12 @@ export default function HomePage() {
       <div 
         ref={vantaRef} 
         className="fixed inset-0 w-full h-full pointer-events-none" 
+        style={{ zIndex: -2 }}
+      />
+
+      {/* Global Black Overlay (Uniform across the whole page) */}
+      <div 
+        className="fixed inset-0 w-full h-full pointer-events-none bg-black/50" 
         style={{ zIndex: -1 }}
       />
 
@@ -418,7 +424,7 @@ export default function HomePage() {
         </section>
 
         {/* Why Fitbase */}
-        <section id="why" className="pt-12 pb-24 md:py-24 bg-zinc-950/50">
+        <section id="why" className="pt-12 pb-24 md:py-24">
           <div className="container mx-auto px-4 md:px-6">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div className="space-y-6 text-center lg:text-left">
@@ -490,7 +496,7 @@ export default function HomePage() {
         </section>
 
         {/* Services */}
-        <section id="services" className="pt-12 pb-24 md:py-24 bg-zinc-950/50">
+        <section id="services" className="pt-12 pb-24 md:py-24">
           <div className="container mx-auto px-4 md:px-6">
             <div className="max-w-3xl mx-auto text-center mb-16">
               <h2 className="font-display text-4xl md:text-6xl uppercase tracking-tight">
@@ -551,7 +557,7 @@ export default function HomePage() {
         </section>
 
         {/* Preview */}
-        <section id="preview" className="pt-12 pb-24 md:py-24 bg-zinc-950/50 overflow-hidden relative">
+        <section id="preview" className="pt-12 pb-24 md:py-24 overflow-hidden relative">
           <div className="container mx-auto px-4 md:px-6 text-center relative z-10">
             <h2 className="font-display text-4xl md:text-6xl uppercase tracking-tight mb-4">
               Všetko navrhnuté jednoducho a prehľadne
@@ -685,7 +691,7 @@ export default function HomePage() {
         </section>
 
         {/* Pricing */}
-        <section id="pricing" className="pt-12 pb-24 md:py-24 bg-zinc-950/50">
+        <section id="pricing" className="pt-12 pb-24 md:py-24">
           <div className="container mx-auto px-4 md:px-6 text-center max-w-3xl">
             <h2 className="font-display text-4xl md:text-6xl uppercase tracking-tight mb-6">
               Jednoduchý a férový model
@@ -737,7 +743,7 @@ export default function HomePage() {
         </section>
 
         {/* Contact */}
-        <section id="contact" className="pt-12 pb-24 md:py-24 bg-zinc-950/50">
+        <section id="contact" className="pt-12 pb-24 md:py-24">
           <div className="container mx-auto px-4 md:px-6 text-center">
             <h2 className="font-display text-4xl md:text-6xl uppercase tracking-tight mb-6">
               Máš otázky?
