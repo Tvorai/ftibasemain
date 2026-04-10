@@ -137,22 +137,17 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Base Black Background */}
-      <div className="fixed inset-0 z-[-20] bg-black" />
+      {/* Base Black Background Layer */}
+      <div className="fixed inset-0 z-[-1] bg-black" />
       
-      {/* Vanta Background Container */}
+      {/* Vanta Background Container (Positive z-index) */}
       <div 
         ref={vantaRef} 
-        className="fixed inset-0 z-[-10] pointer-events-none w-full h-full" 
-        style={{ 
-          backfaceVisibility: 'hidden', 
-          transform: 'translate3d(0,0,0)', 
-          willChange: 'transform',
-          height: '100dvh'
-        }}
+        className="fixed inset-0 w-full h-full" 
+        style={{ zIndex: 0 }}
       />
 
-      <div className="min-h-screen text-white selection:bg-emerald-500/30 relative z-0 bg-transparent">
+      <div className="relative z-10 min-h-screen text-white selection:bg-emerald-500/30 bg-transparent">
         <Script
           src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js"
           strategy="afterInteractive"
