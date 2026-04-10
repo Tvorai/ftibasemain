@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
    const resend = new Resend(process.env.RESEND_API_KEY); 
    try { 
      const data = await resend.emails.send({ 
-       from: "onboarding@resend.dev", 
+       from: "info@fitbase.sk", 
        to: "mailfitbase@gmail.com", 
        subject: "Test", 
        html: "<p>Funguje</p>", 
