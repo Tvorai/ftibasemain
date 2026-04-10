@@ -11,7 +11,7 @@ import ClientBookings from "@/components/booking/ClientBookings";
 
 const supabase = featureFlags.supabaseEnabled ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
-type TabId = "profil" | "sluzby";
+type TabId = "profil" | "sluzby" | "support";
 
 export default function UserAccountPage() {
   const router = useRouter();
@@ -197,6 +197,55 @@ export default function UserAccountPage() {
           </div>
         );
 
+      case "support":
+        return (
+          <div className="flex flex-col gap-8 w-full max-w-[760px] ml-auto">
+            <div className="bg-black/30 border border-emerald-500/30 rounded-[30px] p-8 md:p-10 backdrop-blur-md">
+              <div className="max-w-[600px] space-y-8">
+                <div className="space-y-4">
+                  <h3 className="text-3xl font-display text-emerald-400 uppercase tracking-wider">Podpora</h3>
+                  <p className="text-zinc-200 leading-relaxed text-lg">
+                    Veľmi si vážim že ste začali používať našu platformu. Chceme Vám byť čo najviac nápomocný, aby ste predišli akým koľvek problémom... Pre viac informácií alebo ak sa vyskytne nejaký problém sa kludne na mňa obráťte.
+                  </p>
+                </div>
+
+                <div className="space-y-4 pt-6 border-t border-white/10">
+                  <div className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Moje kontaktné údaje:</div>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-6 text-zinc-200">
+                      <span className="w-24 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Instagram:</span>
+                      <a href="https://instagram.com/_patris.21" target="_blank" rel="noopener noreferrer" className="text-xl font-display hover:text-emerald-400 transition-colors">_patris.21</a>
+                    </div>
+                    <div className="flex items-center gap-6 text-zinc-200">
+                      <span className="w-24 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Mail:</span>
+                      <span className="text-zinc-500 italic">...</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-8">
+                  <a
+                    href="https://fitbase.sk/podpora"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center bg-zinc-950/50 text-emerald-400 border border-emerald-500/50 hover:bg-emerald-500 hover:text-black font-display text-2xl px-12 py-3 rounded-full uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/10 group"
+                  >
+                    <span>užitočné návody a rady</span>
+                    <svg
+                      className="ml-3 w-5 h-5 transition-transform group-hover:translate-x-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
       default:
         return <div className="flex items-center justify-center h-full text-zinc-500 italic">Obsah sa pripravuje...</div>;
     }
@@ -204,7 +253,8 @@ export default function UserAccountPage() {
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "profil", label: "Môj profil" },
-    { id: "sluzby", label: "Moje tréningy" }
+    { id: "sluzby", label: "Moje tréningy" },
+    { id: "support", label: "Podpora" }
   ];
 
   return (
