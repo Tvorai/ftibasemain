@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
    try { 
      const data = await resend.emails.send({ 
        from: "onboarding@resend.dev", 
-       to: "info@fitbase.sk", 
+       to: "mailfitbase@gmail.com", 
        subject: "Test", 
        html: "<p>Funguje</p>", 
      }); 
