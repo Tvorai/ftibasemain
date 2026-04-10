@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { sendEmail, getEmailTemplateHtml } from "@/lib/email/emailService";
 
 export const runtime = "nodejs";
 
@@ -120,6 +121,38 @@ export async function POST(request: Request) {
       if (insertErr) {
         console.error("[Platform Webhook] Error inserting meal plan:", insertErr.message);
         return NextResponse.json({ message: insertErr.message }, { status: 500 });
+      }
+
+      // ODOVZDANIE EMAILU KLIENTOVI (Meal Plan)
+      if (clientEmail) {
+        try {
+          // Získať meno trénera
+          const { data: trainer } = await supabase
+            .from("trainers")
+            .select("full_name")
+            .eq("id", trainerId)
+            .maybeSingle();
+          
+          const trainerName = trainer?.full_name || "Váš tréner";
+          const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
+
+          const html = getEmailTemplateHtml({
+            title: "Potvrdenie platby - Jedálniček",
+            clientName: clientName || "zákazník",
+            serviceName: "Jedálniček na mieru",
+            trainerName,
+            price: priceStr,
+            content: "Vaša platba za jedálniček na mieru bola úspešne prijatá. Tréner začne na Vašom jedálničku pracovať."
+          });
+
+          await sendEmail({
+            to: clientEmail,
+            subject: "Potvrdenie platby - Fitbase",
+            html
+          });
+        } catch (emailErr) {
+          console.error("[Platform Webhook] Email error (meal plan):", emailErr);
+        }
       }
 
       // Inkrementovať used_count ak bol použitý kód
@@ -278,6 +311,37 @@ export async function POST(request: Request) {
 
       console.log("[Platform Webhook] Transformation inserted successfully:", inserted?.id);
 
+      // ODOVZDANIE EMAILU KLIENTOVI (Transformation)
+      if (clientEmail) {
+        try {
+          const { data: trainer } = await supabase
+            .from("trainers")
+            .select("full_name")
+            .eq("id", trainerId)
+            .maybeSingle();
+          
+          const trainerName = trainer?.full_name || "Váš tréner";
+          const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
+
+          const html = getEmailTemplateHtml({
+            title: "Potvrdenie platby - Mesačná premena",
+            clientName: clientName || "zákazník",
+            serviceName: "Mesačná premena",
+            trainerName,
+            price: priceStr,
+            content: "Vaša platba za program Mesačná premena bola úspešne prijatá. Tréner Vás bude čoskoro kontaktovať."
+          });
+
+          await sendEmail({
+            to: clientEmail,
+            subject: "Potvrdenie platby - Fitbase",
+            html
+          });
+        } catch (emailErr) {
+          console.error("[Platform Webhook] Email error (transformation):", emailErr);
+        }
+      }
+
       // Inkrementovať used_count ak bol použitý kód
       if (discountCode && trainerId) {
         console.log(`[Platform Webhook] Attempting discount increment for code: ${discountCode}, trainer: ${trainerId}`);
@@ -364,6 +428,44 @@ export async function POST(request: Request) {
       if (updateErr) {
         console.error("[Platform Webhook] Error updating booking:", updateErr.message);
         return NextResponse.json({ message: updateErr.message }, { status: 500 });
+      }
+
+      // ODOVZDANIE EMAILU KLIENTOVI (Booking Update)
+      const clientEmail = getStringField(meta, "client_email");
+      const clientName = getStringField(meta, "client_name");
+      const priceCentsRaw = getStringField(meta, "price_cents");
+      const amountTotal = typeof session.amount_total === "number" ? session.amount_total : null;
+      const priceCents = amountTotal || (priceCentsRaw ? Number(priceCentsRaw) : null);
+      const trainerIdFromMeta = getStringField(meta, "trainer_id");
+      
+      if (clientEmail && trainerIdFromMeta) {
+        try {
+          const { data: trainer } = await supabase
+            .from("trainers")
+            .select("full_name")
+            .eq("id", trainerIdFromMeta)
+            .maybeSingle();
+          
+          const trainerName = trainer?.full_name || "Váš tréner";
+          const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
+
+          const html = getEmailTemplateHtml({
+            title: "Potvrdenie platby - Tréning",
+            clientName: clientName || "zákazník",
+            serviceName: "Osobný tréning / Konzultácia",
+            trainerName,
+            price: priceStr,
+            content: "Vaša platba za rezerváciu bola úspešne prijatá. Termín je potvrdený."
+          });
+
+          await sendEmail({
+            to: clientEmail,
+            subject: "Potvrdenie platby - Fitbase",
+            html
+          });
+        } catch (emailErr) {
+          console.error("[Platform Webhook] Email error (booking update):", emailErr);
+        }
       }
 
       // Inkrementovať used_count ak bol použitý kód pri update existujúceho bookingu

@@ -1,4 +1,4 @@
-// emailService.ts
+// src/lib/email/emailService.ts
 
 type EmailParams = {
   to: string;
@@ -10,6 +10,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+/**
+ * Hlavná funkcia na odosielanie emailov cez Resend API.
+ * Používa fetch pre maximálnu kompatibilitu a minimálnu veľkosť bundle-u.
+ */
 export async function sendEmail({ to, subject, html }: EmailParams): Promise<{ success: boolean }> {
   const resendApiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM || "Fitbase <onboarding@resend.dev>";
@@ -50,44 +54,60 @@ export async function sendEmail({ to, subject, html }: EmailParams): Promise<{ s
 }
 
 /**
- * Šablóna pre potvrdzovací email pre klienta.
+ * HTML šablóna pre emaily.
  */
-export function getClientConfirmationEmailHtml(
-  clientName: string,
-  dateStr: string,
-  trainerName: string,
-  trainerEmail?: string | null,
-  serviceName?: string | null
-) {
+export function getEmailTemplateHtml({
+  title,
+  clientName,
+  serviceName,
+  trainerName,
+  price,
+  content
+}: {
+  title: string;
+  clientName: string;
+  serviceName: string;
+  trainerName: string;
+  price: string;
+  content: string;
+}) {
   return `
-    <h1>Potvrdenie rezervácie</h1>
-    <p>Ahoj ${clientName},</p>
-    <p>Tvoja rezervácia${serviceName ? ` (<strong>${serviceName}</strong>)` : ``} na termín <strong>${dateStr}</strong> u trénera <strong>${trainerName}</strong> bola úspešne prijatá.</p>
-    ${trainerEmail ? `<p>Kontakt na trénera: <strong>${trainerEmail}</strong></p>` : ``}
-    <p>Tešíme sa na teba!</p>
-    <p>Tím Fitbase</p>
-  `;
-}
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px; }
+        .header { border-bottom: 2px solid #10b981; padding-bottom: 10px; margin-bottom: 20px; }
+        .header h1 { color: #10b981; margin: 0; font-size: 24px; }
+        .details { background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0; }
+        .details p { margin: 5px 0; }
+        .footer { margin-top: 30px; font-size: 12px; color: #666; text-align: center; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Fitbase</h1>
+        </div>
+        <h2>${title}</h2>
+        <p>Ahoj ${clientName},</p>
+        <p>${content}</p>
+        
+        <div class="details">
+          <p><strong>Služba:</strong> ${serviceName}</p>
+          <p><strong>Tréner:</strong> ${trainerName}</p>
+          <p><strong>Cena:</strong> ${price}</p>
+        </div>
 
-/**
- * Šablóna pre notifikačný email pre admina (trénera).
- */
-export function getAdminNotificationEmailHtml(
-  clientName: string,
-  clientEmail: string,
-  clientPhone: string | null,
-  dateStr: string,
-  note: string | null,
-  serviceName?: string | null
-) {
-  return `
-    <h1>Nová rezervácia</h1>
-    <p>Máte novú rezerváciu od klienta <strong>${clientName}</strong>.</p>
-    ${serviceName ? `<p><strong>Služba:</strong> ${serviceName}</p>` : ``}
-    <p><strong>Termín:</strong> ${dateStr}</p>
-    <p><strong>Email:</strong> ${clientEmail}</p>
-    <p><strong>Telefón:</strong> ${clientPhone || 'neuvedené'}</p>
-    <p><strong>Poznámka:</strong> ${note || 'žiadna'}</p>
-    <p>Rezerváciu nájdete vo svojom dashboarde.</p>
+        <p>V prípade otázok nás neváhajte kontaktovať.</p>
+        
+        <div class="footer">
+          <p>&copy; ${new Date().getFullYear()} Fitbase. Všetky práva vyhradené.</p>
+        </div>
+      </div>
+    </body>
+    </html>
   `;
 }

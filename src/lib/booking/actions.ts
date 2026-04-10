@@ -4,8 +4,7 @@ import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { 
   sendEmail, 
-  getClientConfirmationEmailHtml, 
-  getAdminNotificationEmailHtml 
+  getEmailTemplateHtml 
 } from "@/lib/email/emailService";
 import { BookingStatus } from "@/lib/types";
 
@@ -225,6 +224,55 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
 
     if (!insertResult.data?.id) {
       return { status: "error", message: "Rezerváciu sa nepodarilo vytvoriť." };
+    }
+
+    // ODOVZDANIE EMAILY PO VYTVORENÍ BOOKINGU
+    try {
+      const priceStr = `${(priceCents / 100).toFixed(2)} €`;
+      const dateFormatted = new Date(starts_at).toLocaleString("sk-SK", {
+        timeZone: "Europe/Bratislava",
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      // 1. Email klientovi
+      const clientHtml = getEmailTemplateHtml({
+        title: "Nová rezervácia - Čaká sa na platbu",
+        clientName: client_name,
+        serviceName: normalizedServiceType === "online" ? "Online konzultácia" : "Osobný tréning",
+        trainerName: trainer_name || "Váš tréner",
+        price: priceStr,
+        content: `Vaša rezervácia na termín <strong>${dateFormatted}</strong> bola vytvorená. Pre potvrdenie termínu je potrebné dokončiť platbu.`
+      });
+
+      await sendEmail({
+        to: client_email,
+        subject: "Nová rezervácia - Fitbase",
+        html: clientHtml
+      });
+
+      // 2. Email trénerovi
+      if (trainer_email) {
+        const trainerHtml = getEmailTemplateHtml({
+          title: "Nová rezervácia od klienta",
+          clientName: "tréner",
+          serviceName: normalizedServiceType === "online" ? "Online konzultácia" : "Osobný tréning",
+          trainerName: trainer_name || "Vy",
+          price: priceStr,
+          content: `Máte novú rezerváciu od klienta <strong>${client_name}</strong> na termín <strong>${dateFormatted}</strong>. Rezervácia čaká na zaplatenie.`
+        });
+
+        await sendEmail({
+          to: trainer_email,
+          subject: "Nová rezervácia - Fitbase",
+          html: trainerHtml
+        });
+      }
+    } catch (emailErr) {
+      console.error("createBookingAction: email error", emailErr);
     }
 
     return { status: "success", message: "Rezervácia bola vytvorená. Dokončite platbu pre potvrdenie.", bookingId: insertResult.data.id };
