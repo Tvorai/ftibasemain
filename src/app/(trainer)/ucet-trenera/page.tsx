@@ -17,11 +17,12 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 type TabId = "profil" | "rezervacie" | "sluzby" | "kalendar" | "online-konzultacie" | "recenzie" | "vysledky" | "znacky" | "ai-jedalnicek" | "nastavenia" | "transformation";
 type CalendarTabId = "moj_kalendar" | "nastavenia_kalendara";
 type BrandSubTabId = "pridat" | "zoznam";
-type SettingsTabId = "payment_account" | "pricing";
+type SettingsTabId = "payment_account" | "pricing" | "support";
 
 const settingsTabs: { id: SettingsTabId; label: string }[] = [
   { id: "payment_account", label: "Platobný účet" },
-  { id: "pricing", label: "Cenník" }
+  { id: "pricing", label: "Cenník" },
+  { id: "support", label: "Podpora" }
 ];
 
 type Brand = {
@@ -1791,6 +1792,56 @@ export default function TrainerDashboardPage() {
                         ))
                       )}
                     </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSettingsTab === "support" && (
+              <div className="bg-zinc-900/30 border border-emerald-500/30 rounded-[30px] p-8 md:p-10 backdrop-blur-sm">
+                <div className="max-w-[600px] space-y-8">
+                  <div className="space-y-4">
+                    <h3 className="text-2xl font-bold text-white uppercase tracking-wider">Podpora</h3>
+                    <p className="text-zinc-300 leading-relaxed text-lg">
+                      Veľmi si vážim že ste začali používať našu platformu. Chceme Vám byť čo najviac nápomocný, aby ste predišli akým koľvek problémom... Pre viac informácií alebo ak sa vyskytne nejaký problém sa kludne na mňa obráťte.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    <div className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Moje kontaktné údaje:</div>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-4 text-zinc-300">
+                        <span className="w-24 text-zinc-500 text-xs font-bold uppercase tracking-widest">Telefón:</span>
+                        <a href="tel:+421948263939" className="hover:text-emerald-400 transition-colors">+421 948 263 939</a>
+                      </div>
+                      <div className="flex items-center gap-4 text-zinc-300">
+                        <span className="w-24 text-zinc-500 text-xs font-bold uppercase tracking-widest">Instagram:</span>
+                        <a href="https://instagram.com/_patris.21" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">_patris.21</a>
+                      </div>
+                      <div className="flex items-center gap-4 text-zinc-300">
+                        <span className="w-24 text-zinc-500 text-xs font-bold uppercase tracking-widest">Mail:</span>
+                        <span className="text-zinc-500 italic">...</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-6">
+                    <a
+                      href="https://fitbase.sk/podpora"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center bg-zinc-950 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-black font-bold py-4 px-10 rounded-full text-sm uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/10 group"
+                    >
+                      <span>užitočné návody a rady</span>
+                      <svg
+                        className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </a>
                   </div>
                 </div>
               </div>
