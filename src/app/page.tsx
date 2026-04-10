@@ -136,18 +136,15 @@ export default function HomePage() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 text-white overflow-y-auto overflow-x-hidden selection:bg-emerald-500/30">
-      {/* Base Black Background Layer */}
-      <div className="fixed inset-0 z-[-1] bg-black" />
-      
-      {/* Vanta Background Container (Positive z-index) */}
+    <div>
+      {/* Vanta Background Container (Behind everything) */}
       <div 
         ref={vantaRef} 
-        className="fixed inset-0 w-full h-full" 
-        style={{ zIndex: 0 }}
+        className="fixed inset-0 w-full h-full pointer-events-none" 
+        style={{ zIndex: -1 }}
       />
 
-      <div className="relative z-10 min-h-screen bg-transparent flex flex-col">
+      <div className="relative min-h-screen text-white selection:bg-emerald-500/30 bg-transparent flex flex-col">
         <Script
           src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js"
           strategy="afterInteractive"
@@ -796,6 +793,12 @@ export default function HomePage() {
       </div>
 
       <style jsx global>{`
+        html, body {
+          background-color: black;
+          margin: 0;
+          padding: 0;
+          overflow-x: hidden;
+        }
         @keyframes fitbaseBannerFloat {
           0%,
           100% {
