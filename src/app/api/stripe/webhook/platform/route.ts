@@ -140,7 +140,8 @@ export async function POST(request: Request) {
             clientEmail: clientEmail,
             clientPhone: clientPhone || undefined,
             serviceType: "meal_plan",
-            priceStr
+            priceStr,
+            fallbackTrainerName: getStringField(meta, "trainer_name") || undefined
           });
         } catch (emailErr: unknown) {
           console.error("[NOTIF ERROR] meal plan payment confirmed:", emailErr);
@@ -315,7 +316,8 @@ export async function POST(request: Request) {
             clientEmail: clientEmail,
             clientPhone: clientPhone || undefined,
             serviceType: "transformation",
-            priceStr
+            priceStr,
+            fallbackTrainerName: getStringField(meta, "trainer_name") || undefined
           });
         } catch (emailErr: unknown) {
           console.error("[NOTIF ERROR] transformation payment confirmed:", emailErr);
@@ -431,7 +433,8 @@ export async function POST(request: Request) {
             clientPhone: getStringField(meta, "client_phone") || undefined,
             serviceType: (type as any) || "personal",
             priceStr,
-            startsAt: getStringField(meta, "starts_at") || undefined
+            startsAt: getStringField(meta, "starts_at") || undefined,
+            fallbackTrainerName: getStringField(meta, "trainer_name") || undefined
           });
         } catch (emailErr: unknown) {
           console.error("[NOTIF ERROR] booking update payment confirmed:", emailErr);
@@ -582,7 +585,8 @@ export async function POST(request: Request) {
                 clientPhone: clientPhone || undefined,
                 serviceType: (type as any) || "personal",
                 priceStr,
-                startsAt: startsAt || undefined
+                startsAt: startsAt || undefined,
+                fallbackTrainerName: getStringField(meta, "trainer_name") || undefined
               });
             } catch (err) {
               console.error("[NOTIF ERROR] booking fallback insert email:", err);
@@ -606,7 +610,8 @@ export async function POST(request: Request) {
             clientPhone: clientPhone || undefined,
             serviceType: (type as any) || "personal",
             priceStr,
-            startsAt: startsAt || undefined
+            startsAt: startsAt || undefined,
+            fallbackTrainerName: getStringField(meta, "trainer_name") || undefined
           });
         } catch (err) {
           console.error("[NOTIF ERROR] booking normal insert email:", err);

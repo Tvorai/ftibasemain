@@ -6,7 +6,7 @@ import {
   sendEmail, 
   getEmailTemplateHtml 
 } from "@/lib/email/emailService";
-import { notifyBookingCreated, notifyBookingCompleted, notifyBookingCancelled } from "@/lib/notifications/bookingNotifications";
+import { notifyBookingCreated, notifyBookingCompleted, notifyBookingCancelled, ServiceType } from "@/lib/notifications/bookingNotifications";
 import { BookingStatus } from "@/lib/types";
 
 // Schema pre validáciu booking formulára
@@ -314,7 +314,9 @@ export async function updateBookingStatusAction(
       return { status: "error", message: "Používateľ nie je tréner." };
     }
 
-    const updatePayload: any = { booking_status: booking_status as BookingStatus };
+    const updatePayload: { booking_status: BookingStatus; cancelled_reason?: string } = { 
+      booking_status: booking_status as BookingStatus 
+    };
     if (booking_status === "cancelled" && cancelled_reason) {
       updatePayload.cancelled_reason = cancelled_reason;
       console.log(`[CANCEL FLOW] saving cancelled_reason: ${cancelled_reason}`);
@@ -348,7 +350,7 @@ export async function updateBookingStatusAction(
             bookingId: updateRes.data.id,
             clientName: updateRes.data.client_name || "Ahoj",
             clientEmail: updateRes.data.client_email,
-            serviceType: st as any,
+            serviceType: st as ServiceType,
             priceCents: updateRes.data.price_cents
           });
         } catch (emailErr) {
@@ -367,7 +369,7 @@ export async function updateBookingStatusAction(
             trainerId: updateRes.data.trainer_id,
             clientName: updateRes.data.client_name || "Ahoj",
             clientEmail: updateRes.data.client_email,
-            serviceType: st as any,
+            serviceType: st as ServiceType,
             cancelledReason: updateRes.data.cancelled_reason
           });
           console.log(`[CANCEL FLOW] email sent`);
