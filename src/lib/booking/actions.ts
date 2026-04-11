@@ -268,9 +268,11 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
       // Získať trénera z DB (preferuj trainers.email, fallback profiles.email)
       const { data: trainerData, error: trainerQueryError } = await supabase
         .from("trainers")
-        .select("email, profile_id, full_name")
+        .select("email, profile_id")
         .eq("id", trainer_id)
         .maybeSingle();
+
+      console.log("[TRAINER EMAIL] trainers query result:", { trainerData, error: trainerQueryError });
 
       if (trainerQueryError) {
         console.error("[TRAINER EMAIL] Error fetching trainer from DB:", trainerQueryError);
@@ -278,21 +280,30 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
 
       const trainerEmailFromTrainer = trainerData?.email;
       let trainerEmailFromProfile: string | null = null;
+      let trainerNameFromProfile: string | null = null;
 
-      if (!trainerEmailFromTrainer && trainerData?.profile_id) {
-        const { data: profileData } = await supabase
+      if (trainerData?.profile_id) {
+        const { data: profileData, error: profileError } = await supabase
           .from("profiles")
-          .select("email")
+          .select("email, full_name")
           .eq("id", trainerData.profile_id)
           .maybeSingle();
-        trainerEmailFromProfile = profileData?.email || null;
+        
+        console.log("[TRAINER EMAIL] profile fallback query result:", { profileData, error: profileError });
+        
+        if (!trainerEmailFromTrainer) {
+          trainerEmailFromProfile = profileData?.email || null;
+        }
+        trainerNameFromProfile = profileData?.full_name || null;
       }
 
       const finalTrainerEmail = trainerEmailFromTrainer || trainerEmailFromProfile || trainer_email;
+      const finalTrainerDisplayName = trainerNameFromProfile || trainer_name || "Vy";
 
       console.log("[TRAINER EMAIL] trainers.email:", trainerEmailFromTrainer);
       console.log("[TRAINER EMAIL] fallback profiles.email:", trainerEmailFromProfile);
       console.log("[TRAINER EMAIL] final recipient:", finalTrainerEmail);
+      console.log("[TRAINER EMAIL] trainer display name:", finalTrainerDisplayName);
 
       if (finalTrainerEmail) {
         console.log("[TRAINER EMAIL] about to send");
@@ -300,7 +311,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
           title: "Nová rezervácia od klienta",
           clientName: "tréner",
           serviceName: normalizedServiceType === "online" ? "Online konzultácia" : "Osobný tréning",
-          trainerName: trainerData?.full_name || trainer_name || "Vy",
+          trainerName: finalTrainerDisplayName,
           price: priceStr,
           content: `Máte novú rezerváciu od klienta <strong>${client_name}</strong> na termín <strong>${dateFormatted}</strong>. Rezervácia čaká na zaplatenie.`
         });
