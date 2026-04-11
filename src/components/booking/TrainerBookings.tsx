@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
 import { BookingStatus } from "@/lib/types";
-import { sendBookingFollowUpEmailAction, updateBookingStatusAction } from "@/lib/booking/actions";
+import { updateBookingStatusAction } from "@/lib/booking/actions";
 import TrainerMealPlanRequests from "../trainer/TrainerMealPlanRequests";
 import TrainerHistory from "../trainer/TrainerHistory";
 
@@ -211,11 +211,6 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
         if (updateRes.status !== "success") {
           console.log("[TrainerBookings] request failed:", updateRes);
           throw new Error(updateRes.message);
-        }
-
-        if (status === "completed") {
-          console.log("[TrainerBookings] sending follow-up email:", { bookingId });
-          await sendBookingFollowUpEmailAction({ booking_id: bookingId, access_token: accessToken });
         }
 
         console.log("[TrainerBookings] request success:", { bookingId, status });

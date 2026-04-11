@@ -318,8 +318,8 @@ export async function updateBookingStatusAction(
       .update({ booking_status: booking_status as BookingStatus })
       .eq("id", booking_id)
       .eq("trainer_id", trainerRes.data.id)
-      .select("id, trainer_id, client_name, client_email, service_type")
-      .maybeSingle<{ id: string; trainer_id: string; client_name: string | null; client_email: string | null; service_type: string | null }>();
+      .select("id, trainer_id, client_name, client_email, service_type, price_cents")
+      .maybeSingle<{ id: string; trainer_id: string; client_name: string | null; client_email: string | null; service_type: string | null; price_cents: number | null }>();
 
     if (updateRes.error) {
       return { status: "error", message: updateRes.error.message };
@@ -339,7 +339,8 @@ export async function updateBookingStatusAction(
             bookingId: updateRes.data.id,
             clientName: updateRes.data.client_name || "Ahoj",
             clientEmail: updateRes.data.client_email,
-            serviceType: st
+            serviceType: st as any,
+            priceCents: updateRes.data.price_cents
           });
         } catch (emailErr) {
           console.error("[NOTIF ERROR] notifyBookingCompleted:", emailErr);
@@ -350,105 +351,6 @@ export async function updateBookingStatusAction(
     return { status: "success", message: "Status bol aktualizovaný." };
   } catch (error: unknown) {
     console.error("updateBookingStatusAction error:", error);
-    return { status: "error", message: getErrorMessage(error) };
-  }
-}
-
-export async function sendBookingFollowUpEmailAction(
-  input: z.infer<typeof followUpEmailSchema>
-): Promise<FollowUpEmailState> {
-  const parsed = followUpEmailSchema.safeParse(input);
-  if (!parsed.success) {
-    return { status: "error", message: "Neplatné údaje." };
-  }
-
-  const { booking_id, access_token } = parsed.data;
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceRoleKey) {
-    return { status: "error", message: "Chýba konfigurácia servera." };
-  }
-
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-
-  try {
-    const userResult = await supabase.auth.getUser(access_token);
-    const authUser = userResult.data.user;
-    if (!authUser) {
-      return { status: "error", message: "Neautorizované." };
-    }
-
-    const trainerRes = await supabase
-      .from("trainers")
-      .select("id")
-      .eq("profile_id", authUser.id)
-      .maybeSingle<{ id: string }>();
-
-    if (trainerRes.error) {
-      return { status: "error", message: "Nepodarilo sa overiť trénera." };
-    }
-    if (!trainerRes.data?.id) {
-      return { status: "error", message: "Používateľ nie je tréner." };
-    }
-
-    const bookingRes = await supabase
-      .from("bookings")
-      .select("id, trainer_id, client_name, client_email, starts_at")
-      .eq("id", booking_id)
-      .maybeSingle<{
-        id: string;
-        trainer_id: string;
-        client_name: string | null;
-        client_email: string | null;
-        starts_at: string;
-      }>();
-
-    if (bookingRes.error) {
-      return { status: "error", message: "Nepodarilo sa načítať rezerváciu." };
-    }
-    if (!bookingRes.data) {
-      return { status: "error", message: "Rezervácia neexistuje." };
-    }
-    if (bookingRes.data.trainer_id !== trainerRes.data.id) {
-      return { status: "error", message: "Nemáte oprávnenie." };
-    }
-
-    const to = bookingRes.data.client_email;
-    if (!to) {
-      return { status: "success", message: "Email klienta nie je dostupný." };
-    }
-
-    const clientName = bookingRes.data.client_name && bookingRes.data.client_name.trim() ? bookingRes.data.client_name : "Ahoj";
-    const dateFormatted = new Date(bookingRes.data.starts_at).toLocaleString("sk-SK", {
-      timeZone: "Europe/Bratislava",
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-    const html = `
-      <div style="font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; line-height: 1.5;">
-        <p>${clientName}, ďakujeme za tréning.</p>
-        <p>Termín: <strong>${dateFormatted}</strong></p>
-        <p>Budeme radi za krátku spätnú väzbu. Stačí odpovedať na tento email.</p>
-        <p>Fitbase</p>
-      </div>
-    `;
-
-    await sendEmail({
-      to,
-      subject: "Ďakujeme za tréning - Fitbase",
-      html,
-    });
-
-    return { status: "success", message: "Email bol odoslaný." };
-  } catch (error: unknown) {
-    console.error("sendBookingFollowUpEmailAction error:", error);
     return { status: "error", message: getErrorMessage(error) };
   }
 }

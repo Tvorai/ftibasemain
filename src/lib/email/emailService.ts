@@ -83,8 +83,7 @@ export function getEmailTemplateHtml({
   contactSectionHtml?: string;
 }) {
   const currentYear = new Date().getFullYear();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://fitbase.sk";
-  const logoUrl = `${siteUrl}/fitbase-logo.png`;
+  const logoUrl = "https://fitbase.sk/fitbase-logo.png";
 
   return `
     <!DOCTYPE html>

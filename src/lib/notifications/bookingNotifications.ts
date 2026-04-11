@@ -224,17 +224,24 @@ export async function notifyBookingCompleted(params: {
   clientName: string;
   clientEmail: string;
   serviceType: ServiceType;
+  priceCents?: number | null;
 }) {
-  const { supabase, trainerId, bookingId, clientName, clientEmail, serviceType } = params;
+  const { supabase, trainerId, bookingId, clientName, clientEmail, serviceType, priceCents } = params;
   
   const trainer = await resolveTrainerContact(supabase, trainerId);
-  const finalTrainerName = trainer.name;
+  // Priorita mena: profiles.full_name (v trainer.name) -> fallback "Váš tréner"
+  const finalTrainerName = trainer.name || "Váš tréner";
   
+  console.log(`[TRAINER EMAIL] trainer display name: ${finalTrainerName}`);
+
   const serviceLabel = getServiceLabel(serviceType);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://fitbase.sk";
 
-  // Linky pre CTA
-  const reviewUrl = `${siteUrl}/ucet?tab=sluzby&openReview=${bookingId}`;
+  // Cena
+  const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "-";
+
+  // Linky pre CTA - upravené podľa požiadavky
+  const reviewUrl = `${siteUrl}/ucet?reviewBookingId=${bookingId}`;
   
   // Získame slug trénera pre re-booking link
   const { data: trainerData } = await supabase
@@ -245,8 +252,8 @@ export async function notifyBookingCompleted(params: {
   
   const trainerSlug = trainerData?.slug;
   const bookingUrl = trainerSlug 
-    ? `${siteUrl}/${trainerSlug}?openBooking=true&serviceType=${serviceType}`
-    : `${siteUrl}/t/${trainerId}?openBooking=true&serviceType=${serviceType}`;
+    ? `${siteUrl}/${trainerSlug}?openBooking=1`
+    : `${siteUrl}/t/${trainerId}?openBooking=1`;
 
   const ctaText1 = serviceType === "online" ? "Rezervovať ďalšiu konzultáciu" : "Rezervovať ďalší tréning";
 
@@ -255,7 +262,7 @@ export async function notifyBookingCompleted(params: {
     clientName,
     serviceName: serviceLabel,
     trainerName: finalTrainerName,
-    price: "", // Cenu tu nepotrebujeme
+    price: priceStr,
     content: `Váš <strong>${serviceLabel}</strong> s trénerom <strong>${finalTrainerName}</strong> bol úspešne dokončený. Ak chcete pokračovať, môžete si rovno rezervovať ďalší termín alebo zanechať recenziu.`,
     ctaButtonText: ctaText1,
     ctaButtonUrl: bookingUrl,
@@ -266,11 +273,13 @@ export async function notifyBookingCompleted(params: {
     `
   });
 
-  await sendAppEmail({
+  console.log(`[EMAIL FLOW] sending to client: ${clientEmail}`);
+  const result = await sendAppEmail({
     to: clientEmail,
     subject: `✅ Tréning bol dokončený – čo ďalej?`,
     html: clientHtml
   });
+  console.log(`[EMAIL FLOW] result ${result.success ? 'SUCCESS' : 'FAILED'}`);
 }
 
 // Helpery
