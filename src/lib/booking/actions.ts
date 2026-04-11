@@ -261,32 +261,65 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
         console.error(`[EMAIL FLOW] Client Email Error:`, clientEmailResult.error, clientEmailResult.data);
       }
 
-      // 2. Email trénerovi
-      if (trainer_email) {
-        console.log(`[EMAIL FLOW] source=action method=createBookingAction service_type=${normalizedServiceType} to=${trainer_email} subject="Nová rezervácia - Fitbase" (Trainer)`);
+      // 2. Email trénerovi (Robustné načítanie emailu)
+      console.log("[TRAINER EMAIL] booking created");
+      console.log("[TRAINER EMAIL] trainer_id:", trainer_id);
+
+      // Získať trénera z DB (preferuj trainers.email, fallback profiles.email)
+      const { data: trainerData, error: trainerQueryError } = await supabase
+        .from("trainers")
+        .select("email, profile_id, full_name")
+        .eq("id", trainer_id)
+        .maybeSingle();
+
+      if (trainerQueryError) {
+        console.error("[TRAINER EMAIL] Error fetching trainer from DB:", trainerQueryError);
+      }
+
+      const trainerEmailFromTrainer = trainerData?.email;
+      let trainerEmailFromProfile: string | null = null;
+
+      if (!trainerEmailFromTrainer && trainerData?.profile_id) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("email")
+          .eq("id", trainerData.profile_id)
+          .maybeSingle();
+        trainerEmailFromProfile = profileData?.email || null;
+      }
+
+      const finalTrainerEmail = trainerEmailFromTrainer || trainerEmailFromProfile || trainer_email;
+
+      console.log("[TRAINER EMAIL] trainers.email:", trainerEmailFromTrainer);
+      console.log("[TRAINER EMAIL] fallback profiles.email:", trainerEmailFromProfile);
+      console.log("[TRAINER EMAIL] final recipient:", finalTrainerEmail);
+
+      if (finalTrainerEmail) {
+        console.log("[TRAINER EMAIL] about to send");
         const trainerHtml = getEmailTemplateHtml({
           title: "Nová rezervácia od klienta",
           clientName: "tréner",
           serviceName: normalizedServiceType === "online" ? "Online konzultácia" : "Osobný tréning",
-          trainerName: trainer_name || "Vy",
+          trainerName: trainerData?.full_name || trainer_name || "Vy",
           price: priceStr,
           content: `Máte novú rezerváciu od klienta <strong>${client_name}</strong> na termín <strong>${dateFormatted}</strong>. Rezervácia čaká na zaplatenie.`
         });
 
         const trainerEmailResult = await sendEmail({
-          to: trainer_email,
-          subject: "Nová rezervácia - Fitbase",
+          to: finalTrainerEmail,
+          subject: "🔥 NOVÁ REZERVÁCIA – Skontroluj Fitbase",
           html: trainerHtml
         });
-        console.log(`[EMAIL FLOW] result=${trainerEmailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${trainer_email} (Trainer)`);
+        
+        console.log("[TRAINER EMAIL] send success", trainerEmailResult);
         if (!trainerEmailResult.success) {
-          console.error(`[EMAIL FLOW] Trainer Email Error:`, trainerEmailResult.error, trainerEmailResult.data);
+          console.error("[TRAINER EMAIL] send failed", trainerEmailResult.error);
         }
       } else {
-        console.warn("[EMAIL FLOW] Skip trainer email: trainer_email is undefined/null");
+        console.warn("[TRAINER EMAIL] missing trainer email, skipping send");
       }
     } catch (emailErr: unknown) {
-      console.error("[EMAIL FLOW] Exception during createBookingAction emails:", emailErr instanceof Error ? emailErr.stack : emailErr);
+      console.error("[TRAINER EMAIL] send failed", emailErr);
     }
 
     return { status: "success", message: "Rezervácia bola vytvorená. Dokončite platbu pre potvrdenie.", bookingId: insertResult.data.id };

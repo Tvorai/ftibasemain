@@ -169,35 +169,45 @@ export async function POST(request: Request) {
           console.log(`[EMAIL FLOW] client_result=${emailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${clientEmail}`);
 
           // 2. Email trénerovi
-          if (trainer?.profile_id) {
+          const { data: trainerDetails } = await supabase
+            .from("trainers")
+            .select("email, profile_id")
+            .eq("id", trainerId)
+            .maybeSingle();
+
+          const trainerEmailFromTrainer = trainerDetails?.email;
+          let trainerEmailFromProfile: string | null = null;
+
+          if (!trainerEmailFromTrainer && trainerDetails?.profile_id) {
             const { data: profile } = await supabase
               .from("profiles")
               .select("email")
-              .eq("id", trainer.profile_id)
+              .eq("id", trainerDetails.profile_id)
               .maybeSingle();
-            
-            const trainerEmail = profile?.email;
-            console.log("[EMAIL FLOW] trainer email:", trainerEmail);
+            trainerEmailFromProfile = profile?.email || null;
+          }
 
-            if (trainerEmail) {
-              const trainerHtml = getEmailTemplateHtml({
-                title: "NOVÁ PLATBA - Jedálniček",
-                clientName: "tréner",
-                serviceName: "Jedálniček na mieru",
-                trainerName: trainerName,
-                price: priceStr,
-                content: `Klient <strong>${clientName || 'neznámy'}</strong> práve zaplatil za jedálniček na mieru. Môžete začať s prácou.`
-              });
+          const trainerEmail = trainerEmailFromTrainer || trainerEmailFromProfile;
+          console.log("[EMAIL FLOW] trainer email found:", trainerEmail);
 
-              const trainerEmailRes = await sendEmail({
-                to: trainerEmail,
-                subject: `🔥 NOVÁ PLATBA: Jedálniček - ${clientName || 'Klient'}`,
-                html: trainerHtml
-              });
-              console.log(`[EMAIL FLOW] trainer_result=${trainerEmailRes.success ? 'SUCCESS' : 'FAILED'} recipient=${trainerEmail}`);
-            } else {
-              console.warn("[EMAIL FLOW] trainer email missing");
-            }
+          if (trainerEmail) {
+            const trainerHtml = getEmailTemplateHtml({
+              title: "NOVÁ PLATBA - Jedálniček",
+              clientName: "tréner",
+              serviceName: "Jedálniček na mieru",
+              trainerName: trainerName,
+              price: priceStr,
+              content: `Klient <strong>${clientName || 'neznámy'}</strong> práve zaplatil za jedálniček na mieru. Môžete začať s prácou.`
+            });
+
+            const trainerEmailRes = await sendEmail({
+              to: trainerEmail,
+              subject: `🔥 NOVÁ PLATBA: Jedálniček - ${clientName || 'Klient'}`,
+              html: trainerHtml
+            });
+            console.log(`[EMAIL FLOW] trainer_result=${trainerEmailRes.success ? 'SUCCESS' : 'FAILED'} recipient=${trainerEmail}`);
+          } else {
+            console.warn("[EMAIL FLOW] trainer email missing");
           }
         } catch (emailErr: unknown) {
           console.error("[EMAIL FLOW] Exception during meal plan email:", emailErr instanceof Error ? emailErr.stack : emailErr);
@@ -403,35 +413,45 @@ export async function POST(request: Request) {
           console.log(`[EMAIL FLOW] client_result=${emailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${clientEmail}`);
 
           // 2. Email trénerovi
-          if (trainer?.profile_id) {
+          const { data: trainerDetails } = await supabase
+            .from("trainers")
+            .select("email, profile_id")
+            .eq("id", trainerId)
+            .maybeSingle();
+
+          const trainerEmailFromTrainer = trainerDetails?.email;
+          let trainerEmailFromProfile: string | null = null;
+
+          if (!trainerEmailFromTrainer && trainerDetails?.profile_id) {
             const { data: profile } = await supabase
               .from("profiles")
               .select("email")
-              .eq("id", trainer.profile_id)
+              .eq("id", trainerDetails.profile_id)
               .maybeSingle();
-            
-            const trainerEmail = profile?.email;
-            console.log("[EMAIL FLOW] trainer email:", trainerEmail);
+            trainerEmailFromProfile = profile?.email || null;
+          }
 
-            if (trainerEmail) {
-              const trainerHtml = getEmailTemplateHtml({
-                title: "NOVÁ PLATBA - Mesačná premena",
-                clientName: "tréner",
-                serviceName: "Mesačná premena",
-                trainerName: trainerName,
-                price: priceStr,
-                content: `Klient <strong>${clientName || 'neznámy'}</strong> práve zaplatil za program Mesačná premena. Môžete začať s prácou.`
-              });
+          const trainerEmail = trainerEmailFromTrainer || trainerEmailFromProfile;
+          console.log("[EMAIL FLOW] trainer email found:", trainerEmail);
 
-              const trainerEmailRes = await sendEmail({
-                to: trainerEmail,
-                subject: `🔥 NOVÁ PLATBA: Mesačná premena - ${clientName || 'Klient'}`,
-                html: trainerHtml
-              });
-              console.log(`[EMAIL FLOW] trainer_result=${trainerEmailRes.success ? 'SUCCESS' : 'FAILED'} recipient=${trainerEmail}`);
-            } else {
-              console.warn("[EMAIL FLOW] trainer email missing");
-            }
+          if (trainerEmail) {
+            const trainerHtml = getEmailTemplateHtml({
+              title: "NOVÁ PLATBA - Mesačná premena",
+              clientName: "tréner",
+              serviceName: "Mesačná premena",
+              trainerName: trainerName,
+              price: priceStr,
+              content: `Klient <strong>${clientName || 'neznámy'}</strong> práve zaplatil za program Mesačná premena. Môžete začať s prácou.`
+            });
+
+            const trainerEmailRes = await sendEmail({
+              to: trainerEmail,
+              subject: `🔥 NOVÁ PLATBA: Mesačná premena - ${clientName || 'Klient'}`,
+              html: trainerHtml
+            });
+            console.log(`[EMAIL FLOW] trainer_result=${trainerEmailRes.success ? 'SUCCESS' : 'FAILED'} recipient=${trainerEmail}`);
+          } else {
+            console.warn("[EMAIL FLOW] trainer email missing");
           }
         } catch (emailErr: unknown) {
           console.error("[EMAIL FLOW] Exception during transformation email:", emailErr instanceof Error ? emailErr.stack : emailErr);
@@ -577,35 +597,45 @@ export async function POST(request: Request) {
           console.log(`[EMAIL FLOW] client_result=${emailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${clientEmail}`);
 
           // 2. Email trénerovi
-          if (trainer?.profile_id) {
+          const { data: trainerDetails } = await supabase
+            .from("trainers")
+            .select("email, profile_id")
+            .eq("id", trainerIdFromMeta)
+            .maybeSingle();
+
+          const trainerEmailFromTrainer = trainerDetails?.email;
+          let trainerEmailFromProfile: string | null = null;
+
+          if (!trainerEmailFromTrainer && trainerDetails?.profile_id) {
             const { data: profile } = await supabase
               .from("profiles")
               .select("email")
-              .eq("id", trainer.profile_id)
+              .eq("id", trainerDetails.profile_id)
               .maybeSingle();
-            
-            const trainerEmail = profile?.email;
-            console.log("[EMAIL FLOW] trainer email:", trainerEmail);
+            trainerEmailFromProfile = profile?.email || null;
+          }
 
-            if (trainerEmail) {
-              const trainerHtml = getEmailTemplateHtml({
-                title: "NOVÁ PLATBA - Rezervácia",
-                clientName: "tréner",
-                serviceName: "Osobný tréning / Konzultácia",
-                trainerName: trainerName,
-                price: priceStr,
-                content: `Klient <strong>${clientName || 'neznámy'}</strong> práve zaplatil za rezerváciu. Termín je v systéme potvrdený.`
-              });
+          const trainerEmail = trainerEmailFromTrainer || trainerEmailFromProfile;
+          console.log("[EMAIL FLOW] trainer email found:", trainerEmail);
 
-              const trainerEmailRes = await sendEmail({
-                to: trainerEmail,
-                subject: `🔥 NOVÁ PLATBA: Rezervácia - ${clientName || 'Klient'}`,
-                html: trainerHtml
-              });
-              console.log(`[EMAIL FLOW] trainer_result=${trainerEmailRes.success ? 'SUCCESS' : 'FAILED'} recipient=${trainerEmail}`);
-            } else {
-              console.warn("[EMAIL FLOW] trainer email missing");
-            }
+          if (trainerEmail) {
+            const trainerHtml = getEmailTemplateHtml({
+              title: "NOVÁ PLATBA - Rezervácia",
+              clientName: "tréner",
+              serviceName: "Osobný tréning / Konzultácia",
+              trainerName: trainerName,
+              price: priceStr,
+              content: `Klient <strong>${clientName || 'neznámy'}</strong> práve zaplatil za rezerváciu. Termín je v systéme potvrdený.`
+            });
+
+            const trainerEmailRes = await sendEmail({
+              to: trainerEmail,
+              subject: `🔥 NOVÁ PLATBA: Rezervácia - ${clientName || 'Klient'}`,
+              html: trainerHtml
+            });
+            console.log(`[EMAIL FLOW] trainer_result=${trainerEmailRes.success ? 'SUCCESS' : 'FAILED'} recipient=${trainerEmail}`);
+          } else {
+            console.warn("[EMAIL FLOW] trainer email missing");
           }
         } catch (emailErr: unknown) {
           console.error("[EMAIL FLOW] Exception during booking update email:", emailErr instanceof Error ? emailErr.stack : emailErr);
