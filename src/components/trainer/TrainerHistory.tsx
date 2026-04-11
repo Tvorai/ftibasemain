@@ -17,6 +17,7 @@ interface HistoryItem {
   date: string; // Pre zobrazenie
   endsAt?: string; // Len pre bookingy
   timestamp: number; // Pre zoradenie
+  cancelledReason?: string | null;
 }
 
 interface TrainerHistoryProps {
@@ -52,7 +53,7 @@ export default function TrainerHistory({ trainerId }: TrainerHistoryProps) {
       // 1. Načítať uzavreté bookingy
       const bookingsPromise = supabase
         .from("bookings")
-        .select("id, starts_at, ends_at, booking_status, client_name, client_email, client_phone, service_id, service_type")
+        .select("id, starts_at, ends_at, booking_status, client_name, client_email, client_phone, service_id, service_type, cancelled_reason")
         .eq("trainer_id", trainerId)
         .in("booking_status", ["completed", "cancelled"]);
 
@@ -94,6 +95,7 @@ export default function TrainerHistory({ trainerId }: TrainerHistoryProps) {
           booking_status: string; 
           starts_at: string; 
           ends_at: string; 
+          cancelled_reason?: string | null;
         }) => {
           const serviceName = b.service_id ? serviceNameById.get(b.service_id) || null : null;
           const type = inferBookingCategory(b.service_type || null, serviceName);
@@ -107,6 +109,7 @@ export default function TrainerHistory({ trainerId }: TrainerHistoryProps) {
             date: b.starts_at,
             endsAt: b.ends_at,
             timestamp: new Date(b.starts_at).getTime(),
+            cancelledReason: b.cancelled_reason || null,
           });
         });
       }
@@ -214,13 +217,20 @@ export default function TrainerHistory({ trainerId }: TrainerHistoryProps) {
                 {item.clientPhone && <div className="text-[10px] opacity-60">{item.clientPhone}</div>}
               </td>
               <td className="px-6 py-4">
-                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                  item.status === "completed" ? "bg-emerald-500/20 text-emerald-500" :
-                  item.status === "cancelled" ? "bg-red-500/20 text-red-400" :
-                  "bg-zinc-700/50 text-zinc-400"
-                }`}>
-                  {item.status}
-                </span>
+                <div className="flex flex-col gap-1">
+                  <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md w-fit ${
+                    item.status === "completed" ? "bg-sky-500/10 text-sky-400" :
+                    item.status === "cancelled" ? "bg-red-500/10 text-red-400" :
+                    "bg-zinc-700/50 text-zinc-400"
+                  }`}>
+                    {item.status === "completed" ? "Dokončené" : item.status === "cancelled" ? "Zrušené trénerom" : item.status}
+                  </span>
+                  {item.status === "cancelled" && item.cancelledReason && (
+                    <div className="text-[11px] text-zinc-500 italic max-w-[200px] leading-tight">
+                      <span className="font-semibold not-italic">Dôvod:</span> {item.cancelledReason}
+                    </div>
+                  )}
+                </div>
               </td>
             </tr>
           ))}

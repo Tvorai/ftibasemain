@@ -119,6 +119,12 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<BookingCategory>("personal_training");
+  const [cancelModal, setCancelModal] = useState<{ isOpen: boolean; bookingId: string | null }>({
+    isOpen: false,
+    bookingId: null
+  });
+  const [cancelReason, setCancelReason] = useState<string>("");
+  const [customReason, setCancelCustomReason] = useState<string>("");
 
   const fetchBookings = useCallback(async () => {
     if (!trainerId) return;
@@ -189,8 +195,8 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
   type UpdatableBookingStatus = "completed" | "cancelled";
 
   const updateBookingStatus = useCallback(
-    async (bookingId: string, status: UpdatableBookingStatus) => {
-      console.log("[TrainerBookings] action click:", { bookingId, status });
+    async (bookingId: string, status: UpdatableBookingStatus, cancelledReason?: string) => {
+      console.log("[TrainerBookings] action click:", { bookingId, status, cancelledReason });
       setError(null);
       setUpdatingId(bookingId);
       try {
@@ -206,6 +212,7 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
           booking_id: bookingId,
           booking_status: status,
           access_token: accessToken,
+          cancelled_reason: cancelledReason,
         });
 
         if (updateRes.status !== "success") {
@@ -221,10 +228,20 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
       } finally {
         setUpdatingId(null);
         setOpenMenuId(null);
+        setCancelModal({ isOpen: false, bookingId: null });
+        setCancelReason("");
+        setCancelCustomReason("");
       }
     },
     [fetchBookings]
   );
+
+  const handleConfirmCancel = () => {
+    if (!cancelModal.bookingId) return;
+    const finalReason = cancelReason === "iné" ? customReason : cancelReason;
+    console.log("[CANCEL FLOW] selected reason:", finalReason);
+    void updateBookingStatus(cancelModal.bookingId, "cancelled", finalReason);
+  };
 
   if (loading) return <div className="text-zinc-500 animate-pulse">Načítavam rezervácie...</div>;
   if (error) return <div className="text-red-400">Chyba: {error}</div>;
@@ -409,8 +426,9 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
                                   disabled={updatingId === booking.id}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    console.log("[TrainerBookings] menu item: cancelled", booking.id);
-                                    void updateBookingStatus(booking.id, "cancelled");
+                                    console.log("[CANCEL FLOW] modal opened", booking.id);
+                                    setCancelModal({ isOpen: true, bookingId: booking.id });
+                                    setOpenMenuId(null);
                                   }}
                                 >
                                   Zrušiť tréning
@@ -435,6 +453,62 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
         </div>
       ) : (
         <p className="text-zinc-500 italic">Zatiaľ nemáte žiadne rezervácie.</p>
+      )}
+
+      {/* CANCEL MODAL */}
+      {cancelModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 w-full max-w-md shadow-2xl">
+            <h3 className="text-xl font-bold text-white mb-6">Vyberte dôvod zrušenia</h3>
+            
+            <div className="space-y-3 mb-6">
+              {[
+                "zdravotné dôvody",
+                "časová kolízia",
+                "osobné dôvody",
+                "technický problém",
+                "iné"
+              ].map((reason) => (
+                <label key={reason} className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors border border-transparent hover:border-white/10 group">
+                  <input
+                    type="radio"
+                    name="cancelReason"
+                    value={reason}
+                    checked={cancelReason === reason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    className="w-4 h-4 accent-emerald-500"
+                  />
+                  <span className="text-zinc-300 group-hover:text-white capitalize">{reason}</span>
+                </label>
+              ))}
+
+              {cancelReason === "iné" && (
+                <textarea
+                  value={customReason}
+                  onChange={(e) => setCancelCustomReason(e.target.value.slice(0, 200))}
+                  placeholder="Uveďte dôvod (max 200 znakov)..."
+                  className="w-full bg-black/40 border border-zinc-800 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-emerald-500/50 min-h-[100px] resize-none"
+                />
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCancelModal({ isOpen: false, bookingId: null })}
+                className="flex-1 px-4 py-3 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-white/5 transition-all"
+              >
+                Zavrieť
+              </button>
+              <button
+                onClick={handleConfirmCancel}
+                disabled={!cancelReason || (cancelReason === "iné" && !customReason.trim()) || updatingId !== null}
+                className="flex-1 px-4 py-3 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-red-500/20"
+              >
+                {updatingId ? "Ruším..." : "Potvrdiť zrušenie"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

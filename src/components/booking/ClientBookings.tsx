@@ -29,6 +29,7 @@ type ClientBookingItem = {
   trainerEmail: string | null;
   trainerPhone: string | null;
   trainerSlug: string | null;
+  cancelledReason: string | null;
 };
 
 type ClientMealPlanItem = {
@@ -60,6 +61,7 @@ type BookingRow = {
   ends_at: string;
   booking_status: string;
   service_type: string | null;
+  cancelled_reason: string | null;
 };
 
 type MealPlanRow = {
@@ -95,17 +97,19 @@ function toBookingRow(value: unknown): BookingRow | null {
   const endsAt = value.ends_at;
   const status = value.booking_status;
   const serviceType = value.service_type;
+  const cancelledReason = value.cancelled_reason;
   if (
     typeof id !== "string" ||
     typeof trainerId !== "string" ||
     typeof startsAt !== "string" ||
     typeof endsAt !== "string" ||
     typeof status !== "string" ||
-    !(typeof serviceType === "string" || serviceType === null)
+    !(typeof serviceType === "string" || serviceType === null) ||
+    !(typeof cancelledReason === "string" || cancelledReason === null)
   ) {
     return null;
   }
-  return { id, trainer_id: trainerId, starts_at: startsAt, ends_at: endsAt, booking_status: status, service_type: serviceType };
+  return { id, trainer_id: trainerId, starts_at: startsAt, ends_at: endsAt, booking_status: status, service_type: serviceType, cancelled_reason: cancelledReason };
 }
 
 function toMealPlanRow(value: unknown): MealPlanRow | null {
@@ -316,6 +320,7 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
                       trainerEmail: x.trainerEmail,
                       trainerPhone,
                       trainerSlug: null,
+                      cancelledReason: (x as any).cancelledReason || null,
                     };
                   }
                   if (kind === "meal_plan") {
@@ -374,7 +379,7 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
 
         const query = supabase
           .from("bookings")
-          .select("id, trainer_id, starts_at, ends_at, booking_status, service_type, client_profile_id, client_email")
+          .select("id, trainer_id, starts_at, ends_at, booking_status, service_type, client_profile_id, client_email, cancelled_reason")
           .order("starts_at", { ascending: false });
 
         const trimmedEmail = userEmail.trim().toLowerCase();
@@ -428,6 +433,7 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
             trainerEmail: contact?.email || null,
             trainerPhone: contact?.phone || null,
             trainerSlug: contact?.slug || null,
+            cancelledReason: r.cancelled_reason || null,
           };
         });
 
@@ -564,9 +570,16 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
                           ? "bg-red-500/20 text-red-400"
                           : "bg-zinc-800 text-zinc-500";
                   return (
-                    <span className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase ${cls}`}>
-                      {label}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`px-2 py-1 rounded-full text-[9px] font-bold uppercase ${cls}`}>
+                        {item.kind === "booking" && item.status === "cancelled" ? "Zrušené trénerom" : label}
+                      </span>
+                      {item.kind === "booking" && item.status === "cancelled" && item.cancelledReason && (
+                        <div className="text-[10px] text-zinc-500 italic text-right max-w-[150px] leading-tight">
+                          Dôvod: {item.cancelledReason}
+                        </div>
+                      )}
+                    </div>
                   );
                 })()}
               </div>

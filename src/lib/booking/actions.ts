@@ -6,7 +6,7 @@ import {
   sendEmail, 
   getEmailTemplateHtml 
 } from "@/lib/email/emailService";
-import { notifyBookingCreated, notifyBookingCompleted } from "@/lib/notifications/bookingNotifications";
+import { notifyBookingCreated, notifyBookingCompleted, notifyBookingCancelled } from "@/lib/notifications/bookingNotifications";
 import { BookingStatus } from "@/lib/types";
 
 // Schema pre validáciu booking formulára
@@ -267,6 +267,7 @@ const updateBookingStatusSchema = z.object({
   booking_id: z.string().uuid(),
   booking_status: z.enum(["pending", "confirmed", "completed", "cancelled"]),
   access_token: z.string().min(1),
+  cancelled_reason: z.string().optional().nullable(),
 });
 
 type UpdateBookingStatusState =
@@ -281,7 +282,7 @@ export async function updateBookingStatusAction(
     return { status: "error", message: "Neplatné údaje." };
   }
 
-  const { booking_id, booking_status, access_token } = parsed.data;
+  const { booking_id, booking_status, access_token, cancelled_reason } = parsed.data;
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -313,13 +314,19 @@ export async function updateBookingStatusAction(
       return { status: "error", message: "Používateľ nie je tréner." };
     }
 
+    const updatePayload: any = { booking_status: booking_status as BookingStatus };
+    if (booking_status === "cancelled" && cancelled_reason) {
+      updatePayload.cancelled_reason = cancelled_reason;
+      console.log(`[CANCEL FLOW] saving cancelled_reason: ${cancelled_reason}`);
+    }
+
     const updateRes = await supabase
       .from("bookings")
-      .update({ booking_status: booking_status as BookingStatus })
+      .update(updatePayload)
       .eq("id", booking_id)
       .eq("trainer_id", trainerRes.data.id)
-      .select("id, trainer_id, client_name, client_email, service_type, price_cents")
-      .maybeSingle<{ id: string; trainer_id: string; client_name: string | null; client_email: string | null; service_type: string | null; price_cents: number | null }>();
+      .select("id, trainer_id, client_name, client_email, service_type, price_cents, cancelled_reason")
+      .maybeSingle<{ id: string; trainer_id: string; client_name: string | null; client_email: string | null; service_type: string | null; price_cents: number | null; cancelled_reason: string | null }>();
 
     if (updateRes.error) {
       return { status: "error", message: updateRes.error.message };
@@ -328,10 +335,12 @@ export async function updateBookingStatusAction(
       return { status: "error", message: "Rezerváciu sa nepodarilo aktualizovať." };
     }
 
+    console.log(`[CANCEL FLOW] booking updated: ${booking_id} to ${booking_status}`);
+
     // ODOVZDANIE EMAILU PO DOKONČENÍ
     if (booking_status === "completed" && updateRes.data.client_email) {
       const st = updateRes.data.service_type;
-      if (st === "personal" || st === "online") {
+      if (st === "personal" || st === "online" || st === "transformation") {
         try {
           await notifyBookingCompleted({
             supabase,
@@ -344,6 +353,26 @@ export async function updateBookingStatusAction(
           });
         } catch (emailErr) {
           console.error("[NOTIF ERROR] notifyBookingCompleted:", emailErr);
+        }
+      }
+    }
+
+    // ODOVZDANIE EMAILU PO ZRUŠENÍ
+    if (booking_status === "cancelled" && updateRes.data.client_email) {
+      const st = updateRes.data.service_type;
+      if (st === "personal" || st === "online" || st === "transformation") {
+        try {
+          await notifyBookingCancelled({
+            supabase,
+            trainerId: updateRes.data.trainer_id,
+            clientName: updateRes.data.client_name || "Ahoj",
+            clientEmail: updateRes.data.client_email,
+            serviceType: st as any,
+            cancelledReason: updateRes.data.cancelled_reason
+          });
+          console.log(`[CANCEL FLOW] email sent`);
+        } catch (emailErr) {
+          console.error("[NOTIF ERROR] notifyBookingCancelled:", emailErr);
         }
       }
     }

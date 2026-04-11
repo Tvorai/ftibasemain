@@ -282,6 +282,50 @@ export async function notifyBookingCompleted(params: {
   console.log(`[EMAIL FLOW] result ${result.success ? 'SUCCESS' : 'FAILED'}`);
 }
 
+/**
+ * Notifikácia po zrušení rezervácie trénerom.
+ */
+export async function notifyBookingCancelled(params: {
+  supabase: SupabaseClient;
+  trainerId: string;
+  clientName: string;
+  clientEmail: string;
+  serviceType: ServiceType;
+  cancelledReason: string | null;
+}) {
+  const { supabase, trainerId, clientName, clientEmail, serviceType, cancelledReason } = params;
+  
+  const trainer = await resolveTrainerContact(supabase, trainerId);
+  const finalTrainerName = trainer.name || "Váš tréner";
+  const serviceLabel = getServiceLabel(serviceType);
+
+  const reasonText = cancelledReason || "Tréner neuviedol dôvod zrušenia.";
+
+  const clientContactHtml = `
+    <h3>Kontakt na trénera:</h3>
+    <p><strong>Meno:</strong> ${finalTrainerName}</p>
+    <p><strong>Email:</strong> ${trainer.email || "neuvedený"}</p>
+    ${trainer.phone ? `<p><strong>Telefón:</strong> ${trainer.phone}</p>` : ""}
+  `;
+
+  const clientHtml = getEmailTemplateHtml({
+    title: `❌ Rezervácia bola zrušená`,
+    clientName,
+    serviceName: serviceLabel,
+    trainerName: finalTrainerName,
+    price: "-",
+    content: `Vaša rezervácia na <strong>${serviceLabel}</strong> bola zrušená trénerom <strong>${finalTrainerName}</strong>.<br><br><strong>Dôvod zrušenia:</strong><br>${reasonText}`,
+    contactSectionHtml: clientContactHtml
+  });
+
+  console.log(`[CANCEL FLOW] email sent to: ${clientEmail}`);
+  await sendAppEmail({
+    to: clientEmail,
+    subject: `❌ Rezervácia bola zrušená – Fitbase`,
+    html: clientHtml
+  });
+}
+
 // Helpery
 function getServiceLabel(type: ServiceType): string {
   switch (type) {
