@@ -100,7 +100,11 @@ export default function UserAccountPage() {
     try {
       const url = new URL(window.location.href);
       const tab = url.searchParams.get("tab") as TabId;
-      if (tab && (tab === "profil" || tab === "sluzby" || tab === "support")) {
+      const hasReviewId = url.searchParams.has("reviewBookingId") || url.searchParams.has("openReview");
+
+      if (hasReviewId) {
+        setActiveTab("sluzby");
+      } else if (tab && (tab === "profil" || tab === "sluzby" || tab === "support")) {
         setActiveTab(tab);
       }
     } catch {}

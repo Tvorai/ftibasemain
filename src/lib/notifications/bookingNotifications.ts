@@ -241,7 +241,7 @@ export async function notifyBookingCompleted(params: {
   const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "-";
 
   // Linky pre CTA - upravené podľa požiadavky
-  const reviewUrl = `${siteUrl}/ucet?reviewBookingId=${bookingId}`;
+  const reviewUrl = `${siteUrl}/ucet?tab=sluzby&reviewBookingId=${bookingId}`;
   
   // Získame slug trénera pre re-booking link
   const { data: trainerData } = await supabase
