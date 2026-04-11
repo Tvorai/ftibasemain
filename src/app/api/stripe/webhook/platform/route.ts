@@ -138,6 +138,7 @@ export async function POST(request: Request) {
             trainerId: trainerId || "",
             clientName: clientName || "zákazník",
             clientEmail: clientEmail,
+            clientPhone: clientPhone || undefined,
             serviceType: "meal_plan",
             priceStr
           });
@@ -312,6 +313,7 @@ export async function POST(request: Request) {
             trainerId: trainerId || "",
             clientName: clientName || "zákazník",
             clientEmail: clientEmail,
+            clientPhone: clientPhone || undefined,
             serviceType: "transformation",
             priceStr
           });
@@ -426,6 +428,7 @@ export async function POST(request: Request) {
             trainerId: trainerIdFromMeta,
             clientName: clientName || "zákazník",
             clientEmail: clientEmail,
+            clientPhone: getStringField(meta, "client_phone") || undefined,
             serviceType: (type as any) || "personal",
             priceStr,
             startsAt: getStringField(meta, "starts_at") || undefined
@@ -576,6 +579,7 @@ export async function POST(request: Request) {
                 trainerId: trainerId,
                 clientName: clientName || "zákazník",
                 clientEmail: clientEmail,
+                clientPhone: clientPhone || undefined,
                 serviceType: (type as any) || "personal",
                 priceStr,
                 startsAt: startsAt || undefined
@@ -599,6 +603,7 @@ export async function POST(request: Request) {
             trainerId: trainerId,
             clientName: clientName || "zákazník",
             clientEmail: clientEmail,
+            clientPhone: clientPhone || undefined,
             serviceType: (type as any) || "personal",
             priceStr,
             startsAt: startsAt || undefined

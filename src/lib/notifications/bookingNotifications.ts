@@ -7,6 +7,7 @@ export type ServiceType = "personal" | "online" | "meal_plan" | "transformation"
 export type TrainerContact = {
   email: string | null;
   name: string;
+  phone: string | null;
 };
 
 /**
@@ -17,7 +18,6 @@ export async function resolveTrainerContact(
   trainerId: string
 ): Promise<TrainerContact> {
   try {
-    // Odstránime neexistujúci full_name z query a dočítame z profiles
     const { data: trainerData, error: trainerError } = await supabase
       .from("trainers")
       .select("email, profile_id")
@@ -31,25 +31,28 @@ export async function resolveTrainerContact(
     const trainerEmailFromTrainer = trainerData?.email;
     let trainerEmailFromProfile: string | null = null;
     let trainerNameFromProfile: string | null = null;
+    let trainerPhoneFromProfile: string | null = null;
 
     if (trainerData?.profile_id) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("email, full_name")
+        .select("email, full_name, phone")
         .eq("id", trainerData.profile_id)
         .maybeSingle();
       
       trainerEmailFromProfile = profile?.email || null;
       trainerNameFromProfile = profile?.full_name || null;
+      trainerPhoneFromProfile = profile?.phone || null;
     }
 
     return {
       email: trainerEmailFromTrainer || trainerEmailFromProfile || null,
-      name: trainerNameFromProfile || "Váš tréner"
+      name: trainerNameFromProfile || "Váš tréner",
+      phone: trainerPhoneFromProfile
     };
   } catch (err) {
     console.error(`[NOTIF] Exception in resolveTrainerContact:`, err);
-    return { email: null, name: "Váš tréner" };
+    return { email: null, name: "Váš tréner", phone: null };
   }
 }
 
@@ -61,13 +64,14 @@ export async function notifyBookingCreated(params: {
   trainerId: string;
   clientName: string;
   clientEmail: string;
+  clientPhone?: string;
   serviceType: ServiceType;
   startsAt: string;
   priceStr: string;
   fallbackTrainerName?: string;
   fallbackTrainerEmail?: string;
 }) {
-  const { supabase, trainerId, clientName, clientEmail, serviceType, startsAt, priceStr, fallbackTrainerName, fallbackTrainerEmail } = params;
+  const { supabase, trainerId, clientName, clientEmail, clientPhone, serviceType, startsAt, priceStr, fallbackTrainerName, fallbackTrainerEmail } = params;
   
   const trainer = await resolveTrainerContact(supabase, trainerId);
   const finalTrainerName = trainer.name || fallbackTrainerName || "Váš tréner";
@@ -77,30 +81,50 @@ export async function notifyBookingCreated(params: {
   const dateFormatted = formatDate(startsAt);
 
   // 1. Email klientovi
+  const clientContactHtml = `
+    <h3>Tréner:</h3>
+    <p><strong>Meno:</strong> ${finalTrainerName}</p>
+    <p><strong>Email:</strong> ${finalTrainerEmail || "neuvedený"}</p>
+    ${trainer.phone ? `<p><strong>Telefón:</strong> ${trainer.phone}</p>` : ""}
+  `;
+
   const clientHtml = getEmailTemplateHtml({
-    title: `Nová požiadavka - ${serviceLabel}`,
+    title: `✅ Potvrdenie rezervácie – Fitbase`,
     clientName,
     serviceName: serviceLabel,
     trainerName: finalTrainerName,
     price: priceStr,
-    content: `Vaša požiadavka na <strong>${serviceLabel}</strong> na termín <strong>${dateFormatted}</strong> bola prijatá. Pre potvrdenie je potrebné dokončiť platbu.`
+    content: `Vaša požiadavka na <strong>${serviceLabel}</strong> na termín <strong>${dateFormatted}</strong> bola prijatá. Pre potvrdenie je potrebné dokončiť platbu.`,
+    ctaButtonText: "👉 Zobraziť moje tréningy",
+    ctaButtonUrl: "https://fitbase.sk/ucet?tab=treningy",
+    contactSectionHtml: clientContactHtml
   });
 
   await sendAppEmail({
     to: clientEmail,
-    subject: `Nová rezervácia - Fitbase`,
+    subject: `✅ Potvrdenie rezervácie – Fitbase`,
     html: clientHtml
   });
 
   // 2. Email trénerovi
   if (finalTrainerEmail) {
+    const trainerContactHtml = `
+      <h3>Klient:</h3>
+      <p><strong>Meno:</strong> ${clientName}</p>
+      <p><strong>Email:</strong> ${clientEmail}</p>
+      ${clientPhone ? `<p><strong>Telefón:</strong> ${clientPhone}</p>` : ""}
+    `;
+
     const trainerHtml = getEmailTemplateHtml({
       title: "🔥 NOVÁ REZERVÁCIA",
       clientName: "tréner",
       serviceName: serviceLabel,
       trainerName: finalTrainerName,
       price: priceStr,
-      content: `Máte novú rezerváciu od klienta <strong>${clientName}</strong> na <strong>${serviceLabel}</strong> (termín: ${dateFormatted}). Čaká sa na platbu.`
+      content: `Máte novú rezerváciu od klienta <strong>${clientName}</strong> na <strong>${serviceLabel}</strong> (termín: ${dateFormatted}). Čaká sa na platbu.`,
+      ctaButtonText: "👉 Zobraziť rezervácie",
+      ctaButtonUrl: "https://fitbase.sk/ucet-trenera?tab=rezervacie",
+      contactSectionHtml: trainerContactHtml
     });
 
     await sendAppEmail({
@@ -121,11 +145,12 @@ export async function notifyPaymentConfirmed(params: {
   trainerId: string;
   clientName: string;
   clientEmail: string;
+  clientPhone?: string;
   serviceType: ServiceType;
   priceStr: string;
   startsAt?: string;
 }) {
-  const { supabase, trainerId, clientName, clientEmail, serviceType, priceStr, startsAt } = params;
+  const { supabase, trainerId, clientName, clientEmail, clientPhone, serviceType, priceStr, startsAt } = params;
   
   const trainer = await resolveTrainerContact(supabase, trainerId);
   const finalTrainerName = trainer.name;
@@ -135,30 +160,50 @@ export async function notifyPaymentConfirmed(params: {
   const dateInfo = startsAt ? ` na termín <strong>${formatDate(startsAt)}</strong>` : "";
 
   // 1. Email klientovi
+  const clientContactHtml = `
+    <h3>Tréner:</h3>
+    <p><strong>Meno:</strong> ${finalTrainerName}</p>
+    <p><strong>Email:</strong> ${finalTrainerEmail || "neuvedený"}</p>
+    ${trainer.phone ? `<p><strong>Telefón:</strong> ${trainer.phone}</p>` : ""}
+  `;
+
   const clientHtml = getEmailTemplateHtml({
-    title: `Potvrdenie platby - ${serviceLabel}`,
+    title: `✅ Potvrdenie platby – Fitbase`,
     clientName,
     serviceName: serviceLabel,
     trainerName: finalTrainerName,
     price: priceStr,
-    content: `Vaša platba za <strong>${serviceLabel}</strong>${dateInfo} bola úspešne prijatá. Tešíme sa na spoluprácu!`
+    content: `Vaša platba za <strong>${serviceLabel}</strong>${dateInfo} bola úspešne prijatá. Tešíme sa na spoluprácu!`,
+    ctaButtonText: "👉 Zobraziť moje tréningy",
+    ctaButtonUrl: "https://fitbase.sk/ucet?tab=treningy",
+    contactSectionHtml: clientContactHtml
   });
 
   await sendAppEmail({
     to: clientEmail,
-    subject: `Potvrdenie platby – Fitbase`,
+    subject: `✅ Potvrdenie platby – Fitbase`,
     html: clientHtml
   });
 
   // 2. Email trénerovi
   if (finalTrainerEmail) {
+    const trainerContactHtml = `
+      <h3>Klient:</h3>
+      <p><strong>Meno:</strong> ${clientName}</p>
+      <p><strong>Email:</strong> ${clientEmail}</p>
+      ${clientPhone ? `<p><strong>Telefón:</strong> ${clientPhone}</p>` : ""}
+    `;
+
     const trainerHtml = getEmailTemplateHtml({
       title: "💸 NOVÁ PLATBA",
       clientName: "tréner",
       serviceName: serviceLabel,
       trainerName: finalTrainerName,
       price: priceStr,
-      content: `Klient <strong>${clientName}</strong> práve úspešne zaplatil za <strong>${serviceLabel}</strong>${dateInfo}.`
+      content: `Klient <strong>${clientName}</strong> práve úspešne zaplatil za <strong>${serviceLabel}</strong>${dateInfo}.`,
+      ctaButtonText: "👉 Zobraziť rezervácie",
+      ctaButtonUrl: "https://fitbase.sk/ucet-trenera?tab=rezervacie",
+      contactSectionHtml: trainerContactHtml
     });
 
     await sendAppEmail({

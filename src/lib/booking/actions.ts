@@ -235,6 +235,7 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
         trainerId: trainer_id,
         clientName: client_name,
         clientEmail: client_email,
+        clientPhone: client_phone || undefined,
         serviceType: normalizedServiceType,
         startsAt: starts_at,
         priceStr,

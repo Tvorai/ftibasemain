@@ -97,6 +97,7 @@ export async function createMealPlanRequestAction(
         trainerId: trainer_id,
         clientName: form.name,
         clientEmail: form.email,
+        clientPhone: form.phone,
         serviceType: "meal_plan",
         startsAt: new Date().toISOString(), // Meal plan nemá pevný čas, použijeme aktuálny pre template
         priceStr
