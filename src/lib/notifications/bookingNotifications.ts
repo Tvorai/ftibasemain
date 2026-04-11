@@ -214,6 +214,65 @@ export async function notifyPaymentConfirmed(params: {
   }
 }
 
+/**
+ * Notifikácia po dokončení tréningu / konzultácie.
+ */
+export async function notifyBookingCompleted(params: {
+  supabase: SupabaseClient;
+  trainerId: string;
+  bookingId: string;
+  clientName: string;
+  clientEmail: string;
+  serviceType: ServiceType;
+}) {
+  const { supabase, trainerId, bookingId, clientName, clientEmail, serviceType } = params;
+  
+  const trainer = await resolveTrainerContact(supabase, trainerId);
+  const finalTrainerName = trainer.name;
+  
+  const serviceLabel = getServiceLabel(serviceType);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://fitbase.sk";
+
+  // Linky pre CTA
+  const reviewUrl = `${siteUrl}/ucet?tab=sluzby&openReview=${bookingId}`;
+  
+  // Získame slug trénera pre re-booking link
+  const { data: trainerData } = await supabase
+    .from("trainers")
+    .select("slug")
+    .eq("id", trainerId)
+    .maybeSingle();
+  
+  const trainerSlug = trainerData?.slug;
+  const bookingUrl = trainerSlug 
+    ? `${siteUrl}/${trainerSlug}?openBooking=true&serviceType=${serviceType}`
+    : `${siteUrl}/t/${trainerId}?openBooking=true&serviceType=${serviceType}`;
+
+  const ctaText1 = serviceType === "online" ? "Rezervovať ďalšiu konzultáciu" : "Rezervovať ďalší tréning";
+
+  const clientHtml = getEmailTemplateHtml({
+    title: `✅ Tréning bol dokončený – čo ďalej?`,
+    clientName,
+    serviceName: serviceLabel,
+    trainerName: finalTrainerName,
+    price: "", // Cenu tu nepotrebujeme
+    content: `Váš <strong>${serviceLabel}</strong> s trénerom <strong>${finalTrainerName}</strong> bol úspešne dokončený. Ak chcete pokračovať, môžete si rovno rezervovať ďalší termín alebo zanechať recenziu.`,
+    ctaButtonText: ctaText1,
+    ctaButtonUrl: bookingUrl,
+    contactSectionHtml: `
+      <div style="margin-top: 20px; text-align: center;">
+        <a href="${reviewUrl}" style="background-color: #10b981; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">👉 Napísať recenziu</a>
+      </div>
+    `
+  });
+
+  await sendAppEmail({
+    to: clientEmail,
+    subject: `✅ Tréning bol dokončený – čo ďalej?`,
+    html: clientHtml
+  });
+}
+
 // Helpery
 function getServiceLabel(type: ServiceType): string {
   switch (type) {

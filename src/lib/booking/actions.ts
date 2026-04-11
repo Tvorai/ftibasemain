@@ -6,7 +6,7 @@ import {
   sendEmail, 
   getEmailTemplateHtml 
 } from "@/lib/email/emailService";
-import { notifyBookingCreated } from "@/lib/notifications/bookingNotifications";
+import { notifyBookingCreated, notifyBookingCompleted } from "@/lib/notifications/bookingNotifications";
 import { BookingStatus } from "@/lib/types";
 
 // Schema pre validáciu booking formulára
@@ -318,14 +318,33 @@ export async function updateBookingStatusAction(
       .update({ booking_status: booking_status as BookingStatus })
       .eq("id", booking_id)
       .eq("trainer_id", trainerRes.data.id)
-      .select("id")
-      .maybeSingle<{ id: string }>();
+      .select("id, trainer_id, client_name, client_email, service_type")
+      .maybeSingle<{ id: string; trainer_id: string; client_name: string | null; client_email: string | null; service_type: string | null }>();
 
     if (updateRes.error) {
       return { status: "error", message: updateRes.error.message };
     }
     if (!updateRes.data?.id) {
       return { status: "error", message: "Rezerváciu sa nepodarilo aktualizovať." };
+    }
+
+    // ODOVZDANIE EMAILU PO DOKONČENÍ
+    if (booking_status === "completed" && updateRes.data.client_email) {
+      const st = updateRes.data.service_type;
+      if (st === "personal" || st === "online") {
+        try {
+          await notifyBookingCompleted({
+            supabase,
+            trainerId: updateRes.data.trainer_id,
+            bookingId: updateRes.data.id,
+            clientName: updateRes.data.client_name || "Ahoj",
+            clientEmail: updateRes.data.client_email,
+            serviceType: st
+          });
+        } catch (emailErr) {
+          console.error("[NOTIF ERROR] notifyBookingCompleted:", emailErr);
+        }
+      }
     }
 
     return { status: "success", message: "Status bol aktualizovaný." };

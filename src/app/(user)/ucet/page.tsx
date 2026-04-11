@@ -97,6 +97,16 @@ export default function UserAccountPage() {
   }, [loadProfile]);
 
   useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      const tab = url.searchParams.get("tab") as TabId;
+      if (tab && (tab === "profil" || tab === "sluzby" || tab === "support")) {
+        setActiveTab(tab);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
     if (!isMobileNavOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setIsMobileNavOpen(false);

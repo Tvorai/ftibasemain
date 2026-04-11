@@ -204,6 +204,40 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
   const [reviewError, setReviewError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (loading || items.length === 0) return;
+    
+    try {
+      const url = new URL(window.location.href);
+      const openReviewId = url.searchParams.get("openReview");
+      if (openReviewId) {
+        const item = items.find(x => x.id === openReviewId);
+        if (item && item.status === "completed") {
+          setActiveCategory("history");
+          setReviewTarget({
+            kind: "booking",
+            bookingId: item.id,
+            trainerId: item.trainerId,
+            trainerName: item.trainerName
+          });
+          setReviewRating(0);
+          setReviewHover(0);
+          setReviewText("");
+          setReviewPhotoUrl(null);
+          setReviewError(null);
+          setReviewOpen(true);
+          
+          // Vyčistíme URL param aby sa modal neotváral opakovane
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete("openReview");
+          window.history.replaceState({}, "", newUrl.toString());
+        }
+      }
+    } catch (err) {
+      console.error("[ClientBookings] Error auto-opening review:", err);
+    }
+  }, [loading, items]);
+
+  useEffect(() => {
     async function fetchBookings() {
       setLoading(true);
       try {

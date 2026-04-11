@@ -127,7 +127,12 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
       const url = new URL(window.location.href);
       const shouldOpen = url.searchParams.get("openBooking");
       if (shouldOpen) {
-        setIsPersonalTrainingModalOpen(true);
+        const serviceType = url.searchParams.get("serviceType");
+        if (serviceType === "online") {
+          setIsOnlineConsultationModalModalOpen(true);
+        } else {
+          setIsPersonalTrainingModalOpen(true);
+        }
       }
     } catch {}
   }, [trainer]);
