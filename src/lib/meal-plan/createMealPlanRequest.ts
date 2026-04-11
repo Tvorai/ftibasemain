@@ -3,7 +3,7 @@
 import { createClient } from "@supabase/supabase-js";
 import * as z from "zod";
 import { mealPlanRequestFormSchemaRaw } from "@/lib/meal-plan/mealPlanSchema";
-import { sendEmail, getEmailTemplateHtml } from "@/lib/email/emailService";
+import { notifyBookingCreated } from "@/lib/notifications/bookingNotifications";
 
 const createMealPlanRequestSchema = mealPlanRequestFormSchemaRaw.extend({
   trainer_id: z.string().uuid(),
@@ -82,77 +82,27 @@ export async function createMealPlanRequestAction(
 
     // ODOVZDANIE EMAILY PO VYTVORENÍ POŽIADAVKY (Meal Plan Reservation)
     try {
-      // 1. Email klientovi
       const { data: trainerData } = await supabase
         .from("trainers")
-        .select("full_name, email, profile_id, price_meal_plan_cents")
+        .select("price_meal_plan_cents")
         .eq("id", trainer_id)
         .maybeSingle();
       
-      const trainerName = trainerData?.full_name || "Váš tréner";
       const priceStr = trainerData?.price_meal_plan_cents 
         ? `${(trainerData.price_meal_plan_cents / 100).toFixed(2)} €` 
         : "neuvedená";
 
-      const clientHtml = getEmailTemplateHtml({
-        title: "Nová požiadavka - Jedálniček na mieru",
+      await notifyBookingCreated({
+        supabase,
+        trainerId: trainer_id,
         clientName: form.name,
-        serviceName: "Jedálniček na mieru",
-        trainerName: trainerName,
-        price: priceStr,
-        content: `Vaša požiadavka na jedálniček na mieru bola prijatá. Pre začatie prác je potrebné dokončiť platbu v ďalšom kroku.`
+        clientEmail: form.email,
+        serviceType: "meal_plan",
+        startsAt: new Date().toISOString(), // Meal plan nemá pevný čas, použijeme aktuálny pre template
+        priceStr
       });
-
-      await sendEmail({
-        to: form.email,
-        subject: "Nová požiadavka na jedálniček - Fitbase",
-        html: clientHtml
-      });
-
-      // 2. Email trénerovi (Robustné načítanie)
-      console.log("[TRAINER EMAIL] meal plan request created");
-      console.log("[TRAINER EMAIL] trainer_id:", trainer_id);
-
-      const trainerEmailFromTrainer = trainerData?.email;
-      let trainerEmailFromProfile: string | null = null;
-
-      if (!trainerEmailFromTrainer && trainerData?.profile_id) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("email")
-          .eq("id", trainerData.profile_id)
-          .maybeSingle();
-        trainerEmailFromProfile = profileData?.email || null;
-      }
-
-      const finalTrainerEmail = trainerEmailFromTrainer || trainerEmailFromProfile;
-
-      console.log("[TRAINER EMAIL] trainers.email:", trainerEmailFromTrainer);
-      console.log("[TRAINER EMAIL] fallback profiles.email:", trainerEmailFromProfile);
-      console.log("[TRAINER EMAIL] final recipient:", finalTrainerEmail);
-
-      if (finalTrainerEmail) {
-        console.log("[TRAINER EMAIL] about to send");
-        const trainerHtml = getEmailTemplateHtml({
-          title: "NOVÁ POŽIADAVKA - Jedálniček",
-          clientName: "tréner",
-          serviceName: "Jedálniček na mieru",
-          trainerName: trainerName,
-          price: priceStr,
-          content: `Klient <strong>${form.name}</strong> práve vytvoril požiadavku na jedálniček na mieru. Požiadavka čaká na zaplatenie.`
-        });
-
-        const result = await sendEmail({
-          to: finalTrainerEmail,
-          subject: "🔥 NOVÁ REZERVÁCIA – Skontroluj Fitbase",
-          html: trainerHtml
-        });
-        console.log("[TRAINER EMAIL] send success", result);
-      } else {
-        console.warn("[TRAINER EMAIL] missing trainer email, skipping send");
-      }
     } catch (emailErr: unknown) {
-      console.error("[TRAINER EMAIL] send failed", emailErr);
+      console.error("[NOTIF ERROR] createMealPlanRequestAction:", emailErr);
     }
 
     return { status: "success", message: "Požiadavka bola odoslaná." };

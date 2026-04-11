@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { sendEmail, getEmailTemplateHtml } from "@/lib/email/emailService";
+import { notifyPaymentConfirmed } from "@/lib/notifications/bookingNotifications";
 
 export const runtime = "nodejs";
 
@@ -128,92 +129,21 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: insertErr.message }, { status: 500 });
       }
 
-      // ODOVZDANIE EMAILU KLIENTOVI (Meal Plan)
+      // ODOVZDANIE EMAILU (Meal Plan)
       if (clientEmail) {
-        const sender = "Fitbase <noreply@fitbase.sk>";
-        console.log(`[EMAIL FLOW] about to send email`, { 
-          service_type: "meal_plan", 
-          to: clientEmail 
-        });
-        console.log(`[EMAIL FLOW] source=webhook event=checkout.session.completed service_type=meal_plan to=${clientEmail} subject="Potvrdenie platby - Fitbase"`);
         try {
-          // Získať meno a email trénera
-          const { data: trainer, error: trainerErr } = await supabase
-            .from("trainers")
-            .select("full_name, profile_id")
-            .eq("id", trainerId)
-            .maybeSingle();
-          
-          if (trainerErr) {
-            console.error(`[EMAIL FLOW] DB Error fetching trainer: ${trainerErr.message}`);
-          }
-          
-          const trainerName = trainer?.full_name || "Váš tréner";
           const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
-
-          // 1. Email klientovi
-          const html = getEmailTemplateHtml({
-            title: "Potvrdenie platby - Jedálniček",
+          await notifyPaymentConfirmed({
+            supabase,
+            trainerId: trainerId || "",
             clientName: clientName || "zákazník",
-            serviceName: "Jedálniček na mieru",
-            trainerName,
-            price: priceStr,
-            content: "Vaša platba za jedálniček na mieru bola úspešne prijatá. Tréner začne na Vašom jedálničku pracovať."
+            clientEmail: clientEmail,
+            serviceType: "meal_plan",
+            priceStr
           });
-
-          const emailResult = await sendEmail({
-            to: clientEmail,
-            subject: "Potvrdenie platby - Fitbase",
-            html
-          });
-          console.log(`[EMAIL FLOW] client_result=${emailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${clientEmail}`);
-
-          // 2. Email trénerovi
-          const { data: trainerDetails } = await supabase
-            .from("trainers")
-            .select("email, profile_id")
-            .eq("id", trainerId)
-            .maybeSingle();
-
-          const trainerEmailFromTrainer = trainerDetails?.email;
-          let trainerEmailFromProfile: string | null = null;
-
-          if (!trainerEmailFromTrainer && trainerDetails?.profile_id) {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("email")
-              .eq("id", trainerDetails.profile_id)
-              .maybeSingle();
-            trainerEmailFromProfile = profile?.email || null;
-          }
-
-          const trainerEmail = trainerEmailFromTrainer || trainerEmailFromProfile;
-          console.log("[EMAIL FLOW] trainer email found:", trainerEmail);
-
-          if (trainerEmail) {
-            const trainerHtml = getEmailTemplateHtml({
-              title: "NOVÁ PLATBA - Jedálniček",
-              clientName: "tréner",
-              serviceName: "Jedálniček na mieru",
-              trainerName: trainerName,
-              price: priceStr,
-              content: `Klient <strong>${clientName || 'neznámy'}</strong> práve zaplatil za jedálniček na mieru. Môžete začať s prácou.`
-            });
-
-            const trainerEmailRes = await sendEmail({
-              to: trainerEmail,
-              subject: `🔥 NOVÁ PLATBA: Jedálniček - ${clientName || 'Klient'}`,
-              html: trainerHtml
-            });
-            console.log(`[EMAIL FLOW] trainer_result=${trainerEmailRes.success ? 'SUCCESS' : 'FAILED'} recipient=${trainerEmail}`);
-          } else {
-            console.warn("[EMAIL FLOW] trainer email missing");
-          }
         } catch (emailErr: unknown) {
-          console.error("[EMAIL FLOW] Exception during meal plan email:", emailErr instanceof Error ? emailErr.stack : emailErr);
+          console.error("[NOTIF ERROR] meal plan payment confirmed:", emailErr);
         }
-      } else {
-        console.warn("[EMAIL FLOW] Skip email (meal_plan): clientEmail is undefined/null");
       }
 
       // Inkrementovať used_count ak bol použitý kód
@@ -373,91 +303,21 @@ export async function POST(request: Request) {
 
       console.log("[Platform Webhook] Transformation inserted successfully:", inserted?.id);
 
-      // ODOVZDANIE EMAILU KLIENTOVI (Transformation)
+      // ODOVZDANIE EMAILU (Transformation)
       if (clientEmail) {
-        const sender = "Fitbase <noreply@fitbase.sk>";
-        console.log(`[EMAIL FLOW] about to send email`, { 
-          service_type: "transformation", 
-          to: clientEmail 
-        });
-        console.log(`[EMAIL FLOW] source=webhook event=checkout.session.completed service_type=transformation to=${clientEmail} subject="Potvrdenie platby - Fitbase"`);
         try {
-          const { data: trainer, error: trainerErr } = await supabase
-            .from("trainers")
-            .select("full_name, profile_id")
-            .eq("id", trainerId)
-            .maybeSingle();
-          
-          if (trainerErr) {
-            console.error(`[EMAIL FLOW] DB Error fetching trainer: ${trainerErr.message}`);
-          }
-          
-          const trainerName = trainer?.full_name || "Váš tréner";
           const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
-
-          // 1. Email klientovi
-          const html = getEmailTemplateHtml({
-            title: "Potvrdenie platby - Mesačná premena",
+          await notifyPaymentConfirmed({
+            supabase,
+            trainerId: trainerId || "",
             clientName: clientName || "zákazník",
-            serviceName: "Mesačná premena",
-            trainerName,
-            price: priceStr,
-            content: "Vaša platba za program Mesačná premena bola úspešne prijatá. Tréner Vás bude čoskoro kontaktovať."
+            clientEmail: clientEmail,
+            serviceType: "transformation",
+            priceStr
           });
-
-          const emailResult = await sendEmail({
-            to: clientEmail,
-            subject: "Potvrdenie platby - Fitbase",
-            html
-          });
-          console.log(`[EMAIL FLOW] client_result=${emailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${clientEmail}`);
-
-          // 2. Email trénerovi
-          const { data: trainerDetails } = await supabase
-            .from("trainers")
-            .select("email, profile_id")
-            .eq("id", trainerId)
-            .maybeSingle();
-
-          const trainerEmailFromTrainer = trainerDetails?.email;
-          let trainerEmailFromProfile: string | null = null;
-
-          if (!trainerEmailFromTrainer && trainerDetails?.profile_id) {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("email")
-              .eq("id", trainerDetails.profile_id)
-              .maybeSingle();
-            trainerEmailFromProfile = profile?.email || null;
-          }
-
-          const trainerEmail = trainerEmailFromTrainer || trainerEmailFromProfile;
-          console.log("[EMAIL FLOW] trainer email found:", trainerEmail);
-
-          if (trainerEmail) {
-            const trainerHtml = getEmailTemplateHtml({
-              title: "NOVÁ PLATBA - Mesačná premena",
-              clientName: "tréner",
-              serviceName: "Mesačná premena",
-              trainerName: trainerName,
-              price: priceStr,
-              content: `Klient <strong>${clientName || 'neznámy'}</strong> práve zaplatil za program Mesačná premena. Môžete začať s prácou.`
-            });
-
-            const trainerEmailRes = await sendEmail({
-              to: trainerEmail,
-              subject: `🔥 NOVÁ PLATBA: Mesačná premena - ${clientName || 'Klient'}`,
-              html: trainerHtml
-            });
-            console.log(`[EMAIL FLOW] trainer_result=${trainerEmailRes.success ? 'SUCCESS' : 'FAILED'} recipient=${trainerEmail}`);
-          } else {
-            console.warn("[EMAIL FLOW] trainer email missing");
-          }
         } catch (emailErr: unknown) {
-          console.error("[EMAIL FLOW] Exception during transformation email:", emailErr instanceof Error ? emailErr.stack : emailErr);
+          console.error("[NOTIF ERROR] transformation payment confirmed:", emailErr);
         }
-      } else {
-        console.warn("[EMAIL FLOW] Skip email (transformation): clientEmail is undefined/null");
       }
 
       // Inkrementovať used_count ak bol použitý kód
@@ -550,7 +410,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: updateErr.message }, { status: 500 });
       }
 
-      // ODOVZDANIE EMAILU KLIENTOVI (Booking Update)
+      // ODOVZDANIE EMAILU (Booking Update)
       const clientEmail = getStringField(meta, "client_email");
       const clientName = getStringField(meta, "client_name");
       const priceCentsRaw = getStringField(meta, "price_cents");
@@ -559,89 +419,20 @@ export async function POST(request: Request) {
       const trainerIdFromMeta = getStringField(meta, "trainer_id");
       
       if (clientEmail && trainerIdFromMeta) {
-        const sender = "Fitbase <noreply@fitbase.sk>";
-        console.log(`[EMAIL FLOW] about to send email`, { 
-          service_type: type || "booking", 
-          to: clientEmail 
-        });
-        console.log(`[EMAIL FLOW] source=webhook event=checkout.session.completed service_type=booking_update to=${clientEmail} subject="Potvrdenie platby - Fitbase"`);
         try {
-          const { data: trainer, error: trainerErr } = await supabase
-            .from("trainers")
-            .select("full_name, profile_id")
-            .eq("id", trainerIdFromMeta)
-            .maybeSingle();
-          
-          if (trainerErr) {
-            console.error(`[EMAIL FLOW] DB Error fetching trainer: ${trainerErr.message}`);
-          }
-          
-          const trainerName = trainer?.full_name || "Váš tréner";
           const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
-
-          // 1. Email klientovi
-          const html = getEmailTemplateHtml({
-            title: "Potvrdenie platby - Tréning",
+          await notifyPaymentConfirmed({
+            supabase,
+            trainerId: trainerIdFromMeta,
             clientName: clientName || "zákazník",
-            serviceName: "Osobný tréning / Konzultácia",
-            trainerName,
-            price: priceStr,
-            content: "Vaša platba za rezerváciu bola úspešne prijatá. Termín je potvrdený."
+            clientEmail: clientEmail,
+            serviceType: (type as any) || "personal",
+            priceStr,
+            startsAt: getStringField(meta, "starts_at") || undefined
           });
-
-          const emailResult = await sendEmail({
-            to: clientEmail,
-            subject: "Potvrdenie platby - Fitbase",
-            html
-          });
-          console.log(`[EMAIL FLOW] client_result=${emailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${clientEmail}`);
-
-          // 2. Email trénerovi
-          const { data: trainerDetails } = await supabase
-            .from("trainers")
-            .select("email, profile_id")
-            .eq("id", trainerIdFromMeta)
-            .maybeSingle();
-
-          const trainerEmailFromTrainer = trainerDetails?.email;
-          let trainerEmailFromProfile: string | null = null;
-
-          if (!trainerEmailFromTrainer && trainerDetails?.profile_id) {
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("email")
-              .eq("id", trainerDetails.profile_id)
-              .maybeSingle();
-            trainerEmailFromProfile = profile?.email || null;
-          }
-
-          const trainerEmail = trainerEmailFromTrainer || trainerEmailFromProfile;
-          console.log("[EMAIL FLOW] trainer email found:", trainerEmail);
-
-          if (trainerEmail) {
-            const trainerHtml = getEmailTemplateHtml({
-              title: "NOVÁ PLATBA - Rezervácia",
-              clientName: "tréner",
-              serviceName: "Osobný tréning / Konzultácia",
-              trainerName: trainerName,
-              price: priceStr,
-              content: `Klient <strong>${clientName || 'neznámy'}</strong> práve zaplatil za rezerváciu. Termín je v systéme potvrdený.`
-            });
-
-            const trainerEmailRes = await sendEmail({
-              to: trainerEmail,
-              subject: `🔥 NOVÁ PLATBA: Rezervácia - ${clientName || 'Klient'}`,
-              html: trainerHtml
-            });
-            console.log(`[EMAIL FLOW] trainer_result=${trainerEmailRes.success ? 'SUCCESS' : 'FAILED'} recipient=${trainerEmail}`);
-          } else {
-            console.warn("[EMAIL FLOW] trainer email missing");
-          }
         } catch (emailErr: unknown) {
-          console.error("[EMAIL FLOW] Exception during booking update email:", emailErr instanceof Error ? emailErr.stack : emailErr);
+          console.error("[NOTIF ERROR] booking update payment confirmed:", emailErr);
         }
-      } else {
-        console.warn(`[EMAIL FLOW] Skip email (booking_update): clientEmail=${clientEmail}, trainerId=${trainerIdFromMeta}`);
       }
 
       // Inkrementovať used_count ak bol použitý kód pri update existujúceho bookingu
@@ -778,51 +569,19 @@ export async function POST(request: Request) {
 
           // EMAIL PO FALLBACK INSERTE
           if (clientEmail) {
-            const sender = "Fitbase <noreply@fitbase.sk>";
-            console.log(`[EMAIL FLOW] about to send email (fallback insert)`, { service_type: type, to: clientEmail });
             try {
-              const { data: trainer } = await supabase.from("trainers").select("full_name, profile_id").eq("id", trainerId).maybeSingle();
-              const trainerName = trainer?.full_name || "Váš tréner";
               const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
-              
-              // 1. Email klientovi
-              const html = getEmailTemplateHtml({
-                title: "Potvrdenie platby - Rezervácia",
+              await notifyPaymentConfirmed({
+                supabase,
+                trainerId: trainerId,
                 clientName: clientName || "zákazník",
-                serviceName: type === "online" ? "Online konzultácia" : "Osobný tréning",
-                trainerName,
-                price: priceStr,
-                content: "Vaša platba za rezerváciu bola úspešne prijatá. Termín je potvrdený."
+                clientEmail: clientEmail,
+                serviceType: (type as any) || "personal",
+                priceStr,
+                startsAt: startsAt || undefined
               });
-              const emailResult = await sendEmail({ to: clientEmail, subject: "Potvrdenie platby - Fitbase", html });
-              console.log(`[EMAIL FLOW] client_result=${emailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${clientEmail}`);
-
-              // 2. Email trénerovi
-              if (trainer?.profile_id) {
-                const { data: profile } = await supabase.from("profiles").select("email").eq("id", trainer.profile_id).maybeSingle();
-                const trainerEmail = profile?.email;
-                console.log("[EMAIL FLOW] trainer email:", trainerEmail);
-                if (trainerEmail) {
-                  const trainerHtml = getEmailTemplateHtml({
-                    title: "NOVÁ PLATBA - Rezervácia",
-                    clientName: "tréner",
-                    serviceName: type === "online" ? "Online konzultácia" : "Osobný tréning",
-                    trainerName: trainerName,
-                    price: priceStr,
-                    content: `Klient <strong>${clientName || 'neznámy'}</strong> práve zaplatil za rezerváciu. Termín je v systéme potvrdený.`
-                  });
-                  const trainerEmailRes = await sendEmail({
-                    to: trainerEmail,
-                    subject: `🔥 NOVÁ PLATBA: Rezervácia - ${clientName || 'Klient'}`,
-                    html: trainerHtml
-                  });
-                  console.log(`[EMAIL FLOW] trainer_result=${trainerEmailRes.success ? 'SUCCESS' : 'FAILED'} recipient=${trainerEmail}`);
-                } else {
-                  console.warn("[EMAIL FLOW] trainer email missing");
-                }
-              }
             } catch (err) {
-              console.error("[EMAIL FLOW] Exception in fallback email:", err);
+              console.error("[NOTIF ERROR] booking fallback insert email:", err);
             }
           }
 
@@ -833,51 +592,19 @@ export async function POST(request: Request) {
 
       // EMAIL PO NORMALNOM INSERTE
       if (clientEmail) {
-        const sender = "Fitbase <noreply@fitbase.sk>";
-        console.log(`[EMAIL FLOW] about to send email (new insert)`, { service_type: type, to: clientEmail });
         try {
-          const { data: trainer } = await supabase.from("trainers").select("full_name, profile_id").eq("id", trainerId).maybeSingle();
-          const trainerName = trainer?.full_name || "Váš tréner";
           const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
-          
-          // 1. Email klientovi
-          const html = getEmailTemplateHtml({
-            title: "Potvrdenie platby - Rezervácia",
+          await notifyPaymentConfirmed({
+            supabase,
+            trainerId: trainerId,
             clientName: clientName || "zákazník",
-            serviceName: type === "online" ? "Online konzultácia" : "Osobný tréning",
-            trainerName,
-            price: priceStr,
-            content: "Vaša platba za rezerváciu bola úspešne prijatá. Termín je potvrdený."
+            clientEmail: clientEmail,
+            serviceType: (type as any) || "personal",
+            priceStr,
+            startsAt: startsAt || undefined
           });
-          const emailResult = await sendEmail({ to: clientEmail, subject: "Potvrdenie platby - Fitbase", html });
-          console.log(`[EMAIL FLOW] client_result=${emailResult.success ? 'SUCCESS' : 'FAILED'} recipient=${clientEmail}`);
-
-          // 2. Email trénerovi
-          if (trainer?.profile_id) {
-            const { data: profile } = await supabase.from("profiles").select("email").eq("id", trainer.profile_id).maybeSingle();
-            const trainerEmail = profile?.email;
-            console.log("[EMAIL FLOW] trainer email:", trainerEmail);
-            if (trainerEmail) {
-              const trainerHtml = getEmailTemplateHtml({
-                title: "NOVÁ PLATBA - Rezervácia",
-                clientName: "tréner",
-                serviceName: type === "online" ? "Online konzultácia" : "Osobný tréning",
-                trainerName: trainerName,
-                price: priceStr,
-                content: `Klient <strong>${clientName || 'neznámy'}</strong> práve zaplatil za rezerváciu. Termín je v systéme potvrdený.`
-              });
-              const trainerEmailRes = await sendEmail({
-                to: trainerEmail,
-                subject: `🔥 NOVÁ PLATBA: Rezervácia - ${clientName || 'Klient'}`,
-                html: trainerHtml
-              });
-              console.log(`[EMAIL FLOW] trainer_result=${trainerEmailRes.success ? 'SUCCESS' : 'FAILED'} recipient=${trainerEmail}`);
-            } else {
-              console.warn("[EMAIL FLOW] trainer email missing");
-            }
-          }
         } catch (err) {
-          console.error("[EMAIL FLOW] Exception in normal insert email:", err);
+          console.error("[NOTIF ERROR] booking normal insert email:", err);
         }
       }
 
