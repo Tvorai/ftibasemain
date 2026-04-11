@@ -230,6 +230,9 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
   if (error) return <div className="text-red-400">Chyba: {error}</div>;
 
   const filteredBookings = bookings.filter((b) => {
+    // Odfiltrujeme dokončené a zrušené bookingy, tie patria do histórie
+    if (b.status === "completed" || b.status === "cancelled") return false;
+
     if (activeCategory === "personal_training") return b.serviceType === "personal" || b.serviceType === null;
     if (activeCategory === "online_consultation") return b.serviceType === "online";
     if (activeCategory === "transformation") return b.serviceType === "transformation";
