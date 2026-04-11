@@ -208,17 +208,28 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
     
     try {
       const url = new URL(window.location.href);
-      const openReviewId = url.searchParams.get("openReview");
+      const openReviewId = url.searchParams.get("reviewBookingId") || url.searchParams.get("openReview");
       if (openReviewId) {
         const item = items.find(x => x.id === openReviewId);
         if (item && item.status === "completed") {
           setActiveCategory("history");
-          setReviewTarget({
-            kind: "booking",
-            bookingId: item.id,
-            trainerId: item.trainerId,
-            trainerName: item.trainerName
-          });
+          
+          if (item.kind === "meal_plan") {
+            setReviewTarget({
+              kind: "meal_plan",
+              mealPlanRequestId: item.id,
+              trainerId: item.trainerId,
+              trainerName: item.trainerName
+            });
+          } else {
+            setReviewTarget({
+              kind: "booking",
+              bookingId: item.id,
+              trainerId: item.trainerId,
+              trainerName: item.trainerName
+            });
+          }
+          
           setReviewRating(0);
           setReviewHover(0);
           setReviewText("");
@@ -226,8 +237,9 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
           setReviewError(null);
           setReviewOpen(true);
           
-          // Vyčistíme URL param aby sa modal neotváral opakovane
+          // Vyčistíme URL paramy aby sa modal neotváral opakovane
           const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete("reviewBookingId");
           newUrl.searchParams.delete("openReview");
           window.history.replaceState({}, "", newUrl.toString());
         }
