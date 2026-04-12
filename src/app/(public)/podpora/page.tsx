@@ -49,7 +49,7 @@ export default function PodporaPage() {
                 <div className="space-y-4 text-zinc-400">
                   <p className="font-bold text-white uppercase text-xs tracking-widest">Postup:</p>
                   <ol className="list-decimal pl-5 space-y-2">
-                    <li>Prejdite na <Link href="https://fitbase.sk/registracia" className="text-emerald-400 hover:underline">https://fitbase.sk/registracia</Link></li>
+                    <li>Prejdite na <Link href="/registracia" className="text-emerald-400 hover:underline">registráciu</Link></li>
                     <li>Zadajte:
                       <ul className="list-disc pl-5 mt-1">
                         <li>emailovú adresu</li>
@@ -122,7 +122,7 @@ export default function PodporaPage() {
                 <div className="space-y-4 text-zinc-400">
                   <p className="font-bold text-white uppercase text-xs tracking-widest">Postup:</p>
                   <ol className="list-decimal pl-5 space-y-2">
-                    <li>Prihláste sa do účtu ( <Link href="https://fitbase.sk/ucet" className="text-emerald-400 hover:underline">https://fitbase.sk/ucet</Link> )</li>
+                    <li>Prihláste sa do účtu ( <Link href="/ucet" className="text-emerald-400 hover:underline">môj účet</Link> )</li>
                     <li>Prejdite do sekcie Moje tréningy</li>
                     <li>Vyberte podľa sekcie:
                       <ul className="list-disc pl-5 mt-1">
@@ -167,7 +167,7 @@ export default function PodporaPage() {
                 <div className="space-y-4 text-zinc-400">
                   <p className="font-bold text-white uppercase text-xs tracking-widest">Postup:</p>
                   <ol className="list-decimal pl-5 space-y-2">
-                    <li>Vytvorte si účet ( <Link href="https://fitbase.sk/registracia?mode=trainer" className="text-emerald-400 hover:underline">https://fitbase.sk/registracia?mode=trainer</Link> )</li>
+                    <li>Vytvorte si účet ( <Link href="/registracia?mode=trainer" className="text-emerald-400 hover:underline">registrácia trénera</Link> )</li>
                     <li>Vyplňte profil:
                       <ul className="list-disc pl-5 mt-1">
                         <li>meno a priezvisko</li>
@@ -215,7 +215,7 @@ export default function PodporaPage() {
                 <div className="space-y-4 text-zinc-400">
                   <p className="font-bold text-white uppercase text-xs tracking-widest">Postup:</p>
                   <ol className="list-decimal pl-5 space-y-2">
-                    <li>Choďte do svojho účtu ( <Link href="https://fitbase.sk/ucet-trenera" className="text-emerald-400 hover:underline">https://fitbase.sk/ucet-trenera</Link> )</li>
+                    <li>Choďte do svojho účtu ( <Link href="/ucet-trenera" className="text-emerald-400 hover:underline">účet trénera</Link> )</li>
                     <li>Prejdite do záložky „Všetky rezervácie“</li>
                     <li>Otvorte rezerváciu</li>
                     <li>Kliknite na Dokončené</li>
@@ -237,7 +237,7 @@ export default function PodporaPage() {
                 <div className="space-y-4 text-zinc-400">
                   <p className="font-bold text-white uppercase text-xs tracking-widest">Postup:</p>
                   <ol className="list-decimal pl-5 space-y-2">
-                    <li>Choďte do svojho účtu ( <Link href="https://fitbase.sk/ucet-trenera" className="text-emerald-400 hover:underline">https://fitbase.sk/ucet-trenera</Link> )</li>
+                    <li>Choďte do svojho účtu ( <Link href="/ucet-trenera" className="text-emerald-400 hover:underline">účet trénera</Link> )</li>
                     <li>Prejdite do záložky „Všetky rezervácie“</li>
                     <li>Otvorte rezerváciu</li>
                     <li>Kliknite na Zrušiť</li>
