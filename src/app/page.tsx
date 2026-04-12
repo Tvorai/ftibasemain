@@ -26,17 +26,20 @@ export default function HomePage() {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
   const trainerFaqs = [
-    { q: "Ako dlho trvá registrácia?", a: "Registrácia profilu a nastavenie služieb zaberie len pár minút. Následne prepojíte svoj Stripe účet a môžete prijímať platby." },
+    { q: "Ako dlho trvá registrácia?", a: "Registrácia profilu a nastavenie služieb zaberie len pár minút. Následne prepojíte svoj Stripe účet a môžete prijímať platby od klientov." },
+    { q: "Prečo by som mal začať používať Fitbase?", a: "Ak ste fitness tréner a ste unavený z neustáleho odpisovania klientom, z opakovaného posielania výsledkov, recenzií a podobne, platenia zahraničných platforiem alebo používania rezervačných platforiem, ktoré nie sú určené pre fitness. Fitbase je rezervačný systém na princípe Linktree, ktorý je svojimi funkciami navrhnutý pre trénerov." },
     { q: "Musím mať firmu alebo živnosť?", a: "Závisí to od Stripe onboarding procesu v danej krajine. Vo väčšine prípadov môžete začať aj ako fyzická osoba, avšak odporúčame konzultáciu s účtovníkom." },
     { q: "Môžem ponúkať len jednu službu?", a: "Áno, môžete si vybrať, či chcete ponúkať len osobné tréningy, online konzultácie, jedálničky alebo ich kombináciu." },
     { q: "Ako dostanem peniaze?", a: "Peniaze od klientov chodia priamo na váš prepojený Stripe účet, odkiaľ si ich môžete nechať posielať na svoj bankový účet." },
-    { q: "Môžem si nastavovať ceny?", a: "Samozrejme, ceny za všetky svoje služby si určujete vy sami a kedykoľvek ich môžete zmeniť v nastaveniach profilu." }
+    { q: "Môžem si nastavovať ceny?", a: "Samozrejme, ceny za všetky svoje služby si určujete vy sami a kedykoľvek ich môžete zmeniť v nastaveniach profilu." },
+    { q: "Je platforma platená?", a: "Nie, registrácia je úplne zadarmo. Jediný poplatok je 10 % z každej úspešnej transakcie." },
+    { q: "Som na platformu viazaný?", a: "Nie, ak nebudete spokojný, tak ju jednoducho prestanete používať." }
   ];
 
   const clientFaqs = [
     { q: "Ako si zarezervujem tréning?", a: "Jednoducho si vyberiete trénera, konkrétnu službu a voľný termín v jeho kalendári. Po potvrdení a zaplatení je termín váš." },
     { q: "Musím platiť vopred?", a: "Áno, platba vopred cez zabezpečenú bránu garantuje váš termín a šetrí čas vám aj trénerovi." },
-    { q: "Čo ak musím tréning zrušiť?", a: "Podmienky zrušenia si určuje každý tréner individuálne. V prípade zrušenia zo strany trénera vám budú peniaze vrátené." },
+    { q: "Čo ak musím tréning zrušiť?", a: "V prvotnej fáze projektu je zrušenie zo strany klienta nemožné, ale ak budete potrebovať zmeniť termín, tak stačí kontaktovať trénera, ktorý váš termín zmení. Ak by ste chceli zrušiť tréning úplne a vrátiť peniaze, stačí kontaktovať našu podporu na info@fitbase.sk a peniaze vám budú vrátené do 24 hodín." },
     { q: "Sú moje platby bezpečné?", a: "Áno, všetky transakcie prebiehajú cez celosvetovo uznávanú a šifrovanú platobnú bránu Stripe." },
     { q: "Dostanem potvrdenie o platbe?", a: "Áno, po každej úspešnej platbe obdržíte potvrdzujúci email so všetkými detailmi vašej rezervácie." }
   ];
