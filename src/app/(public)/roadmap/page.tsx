@@ -126,8 +126,8 @@ export default function RoadmapPage() {
 
         <section className="pt-40 pb-20 md:pt-48 md:pb-32 px-4 md:px-6">
           <div className="container mx-auto max-w-4xl text-center">
-            <h1 className="font-display text-3xl md:text-5xl uppercase leading-[0.95] tracking-tight mb-8">
-              Roadmap <span className="text-emerald-500">Budúcnosť Fitbase</span>
+            <h1 className="font-display text-4xl md:text-6xl uppercase leading-[0.95] tracking-tight mb-8">
+              Roadmap <br /> <span className="text-emerald-500">Budúcnosť Fitbase</span>
             </h1>
             <p className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-16">
               Ak bude aplikácia úspešná, toto sú najbližšie úpravy a vymoženosti, ktoré pre vás chystáme.
