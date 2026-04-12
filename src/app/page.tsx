@@ -219,9 +219,6 @@ export default function HomePage() {
                 <button onClick={() => scrollToSection("services")} className="hover:text-emerald-400 transition-colors">
                   Funkcie
                 </button>
-                <button onClick={() => scrollToSection("pricing")} className="hover:text-emerald-400 transition-colors">
-                  Cenník
-                </button>
                 <button onClick={() => scrollToSection("faq")} className="hover:text-emerald-400 transition-colors">
                   FAQ
                 </button>
@@ -319,7 +316,6 @@ export default function HomePage() {
                   { label: "Prečo Fitbase", id: "why" },
                   { label: "Ako to funguje", id: "how" },
                   { label: "Funkcie", id: "services" },
-                  { label: "Cenník", id: "pricing" },
                   { label: "FAQ", id: "faq" }
                 ].map((item) => (
                   <button
@@ -709,22 +705,6 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Pricing */}
-        <section id="pricing" className="pt-12 pb-24 md:py-24">
-          <div className="container mx-auto px-4 md:px-6 text-center max-w-3xl">
-            <h2 className="font-display text-4xl md:text-6xl uppercase tracking-tight mb-6">
-              Jednoduchý a férový model
-            </h2>
-            <p className="text-zinc-400 text-lg leading-relaxed mb-12">
-              Registrácia je zdarma. Platforma si berie províziu len z úspešne zaplatených objednávok. Zarábame len vtedy, keď zarábaš aj ty.
-            </p>
-            <div className="p-8 rounded-3xl bg-zinc-900 border border-emerald-500/20 inline-block">
-              <div className="text-5xl font-display text-emerald-500 mb-2">10 %</div>
-              <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Provízia z platby</div>
             </div>
           </div>
         </section>
