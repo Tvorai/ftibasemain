@@ -348,7 +348,7 @@ export async function notifyBookingCancelled(params: {
     <p><strong>Email:</strong> ${trainer.email || "neuvedený"}</p>
     ${trainer.phone ? `<p><strong>Telefón:</strong> ${trainer.phone}</p>` : ""}
     <p style="margin-top: 15px; font-size: 13px; color: #6b7280; font-style: italic;">
-      Pre zmenu termínu kontaktujte trénera, ak by ste sa trénerom nedohodli a chceli by ste vrátiť peniaze kontaktujte našu podprou na: info@fitbase.sk
+      Pre zmenu termínu kontaktujte trénera, ak by ste sa s trénerom nedohodli a chceli by ste vrátiť peniaze kontaktujte našu podporu na: info@fitbase.sk
     </p>
   `;
 
