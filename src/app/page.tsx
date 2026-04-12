@@ -562,10 +562,7 @@ export default function HomePage() {
               {/* Left Content */}
               <div className="space-y-8 order-2 lg:order-1">
                 <div className="space-y-4">
-                  <div className="text-emerald-500 font-bold uppercase tracking-widest text-sm">
-                    Funkcia {activeFeature + 1}
-                  </div>
-                  <h2 className="font-display text-4xl md:text-6xl uppercase tracking-tight text-white transition-all duration-500">
+                  <h2 className="font-display text-4xl md:text-6xl uppercase tracking-tight text-emerald-500 transition-all duration-500">
                     {features[activeFeature].title}
                   </h2>
                   <p className="text-zinc-400 text-lg leading-relaxed max-w-xl transition-all duration-500">
@@ -609,7 +606,7 @@ export default function HomePage() {
 
               {/* Right Image */}
               <div className="order-1 lg:order-2">
-                <div className="relative aspect-[4/3] rounded-[2rem] overflow-hidden border border-white/5 bg-zinc-900 shadow-2xl">
+                <div className="relative aspect-square max-w-[500px] mx-auto rounded-[2rem] overflow-hidden border border-white/5 bg-zinc-900 shadow-2xl">
                   {features.map((feature, idx) => (
                     <div
                       key={idx}
@@ -623,10 +620,10 @@ export default function HomePage() {
                         src={feature.image}
                         alt={feature.title}
                         fill
-                        className="object-cover"
+                        className="object-contain p-4"
                         priority={idx === 0}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
                     </div>
                   ))}
                 </div>
