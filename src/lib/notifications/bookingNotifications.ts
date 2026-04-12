@@ -12,6 +12,47 @@ export type TrainerContact = {
 };
 
 /**
+ * Helper funkcia na získanie dát trénera podľa požiadavky.
+ */
+async function getTrainerData(supabase: SupabaseClient, trainer_id: string) {
+  const { data: trainerData, error: trainerError } = await supabase
+    .from("trainers")
+    .select("email, profile_id")
+    .eq("id", trainer_id)
+    .maybeSingle();
+
+  console.log("🔥 trainer_id input:", trainer_id);
+  console.log("🔥 trainerData:", trainerData);
+  console.log("🔥 profile_id:", trainerData?.profile_id);
+
+  if (!trainerData) return null;
+
+  let full_name = null;
+  let phone = null;
+
+  if (trainerData.profile_id) {
+    const { data: trainerProfile, error: profileError } = await supabase
+      .from("profiles")
+      .select("full_name, phone")
+      .eq("id", trainerData.profile_id)
+      .maybeSingle();
+
+    console.log("🔥 trainerProfile:", trainerProfile);
+    full_name = trainerProfile?.full_name;
+    phone = trainerProfile?.phone;
+  } else {
+    console.log("🔥 trainerProfile: skipped (no profile_id)");
+  }
+
+  return {
+    email: trainerData.email,
+    full_name: full_name || "Váš tréner",
+    phone: phone,
+    profile_id: trainerData.profile_id
+  };
+}
+
+/**
  * Centrálnu helper funkcia na dočítanie kontaktu trénera.
  */
 export async function resolveTrainerContact(
@@ -19,38 +60,18 @@ export async function resolveTrainerContact(
   trainerId: string
 ): Promise<TrainerContact> {
   try {
-    const { data: trainerData, error: trainerError } = await supabase
-      .from("trainers")
-      .select("email, profile_id")
-      .eq("id", trainerId)
-      .maybeSingle();
+    const trainer = await getTrainerData(supabase, trainerId);
 
-    if (trainerError) {
-      console.error(`[NOTIF] Error fetching trainer ${trainerId}:`, trainerError);
-    }
-
-    const trainerEmailFromTrainer = trainerData?.email;
-    let trainerEmailFromProfile: string | null = null;
-    let trainerNameFromProfile: string | null = null;
-    let trainerPhoneFromProfile: string | null = null;
-
-    if (trainerData?.profile_id) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("email, full_name, phone")
-        .eq("id", trainerData.profile_id)
-        .maybeSingle();
-      
-      trainerEmailFromProfile = profile?.email || null;
-      trainerNameFromProfile = profile?.full_name || null;
-      trainerPhoneFromProfile = profile?.phone || null;
+    if (!trainer) {
+      console.warn(`[NOTIF] Trainer not found for ID: ${trainerId}`);
+      return { email: null, name: null, phone: null, profileId: null };
     }
 
     return {
-      email: trainerEmailFromTrainer || trainerEmailFromProfile || null,
-      name: trainerNameFromProfile,
-      phone: trainerPhoneFromProfile,
-      profileId: trainerData?.profile_id || null
+      email: trainer.email,
+      name: trainer.full_name,
+      phone: trainer.phone,
+      profileId: trainer.profile_id
     };
   } catch (err) {
     console.error(`[NOTIF] Exception in resolveTrainerContact:`, err);
