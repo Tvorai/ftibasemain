@@ -977,8 +977,10 @@ export default function HomePage() {
               <Link href="/roadmap" className="hover:text-white transition-colors">Roadmap</Link>
               <Link href="/podpora" className="hover:text-white transition-colors">Podpora</Link>
               <Link href="/o-nas" className="hover:text-white transition-colors">O nás</Link>
-              <span className="hover:text-white cursor-pointer">Podmienky</span>
-              <span className="hover:text-white cursor-pointer">Súkromie</span>
+              <Link href="/podmienky" className="hover:text-white transition-colors">Podmienky</Link>
+              <Link href="/podmienky-treneri" className="hover:text-white transition-colors">Podmienky pre trénerov</Link>
+              <Link href="/sukromie" className="hover:text-white transition-colors">Súkromie</Link>
+              <Link href="/disclaimer" className="hover:text-white transition-colors">Disclaimer</Link>
             </div>
           </div>
         </footer>
