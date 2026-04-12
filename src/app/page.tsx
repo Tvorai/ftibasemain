@@ -446,7 +446,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="order-3 lg:hidden mt-12 mb-4">
-                  <div className="relative w-full max-w-[560px] mx-auto fitbase-bannerFloat">
+                  <div className="relative w-full max-w-[670px] mx-auto fitbase-bannerFloat">
                     <div className="relative aspect-[9/19] overflow-hidden">
                       {heroImages.map((src, idx) => (
                         <Image
@@ -481,7 +481,7 @@ export default function HomePage() {
               </div>
 
               <div className="relative hidden lg:flex justify-center lg:justify-end">
-                <div className="relative w-full max-w-[400px] fitbase-bannerFloat">
+                <div className="relative w-full max-w-[480px] fitbase-bannerFloat">
                   <div className="relative aspect-[9/19] overflow-hidden">
                     {heroImages.map((src, idx) => (
                       <Image
