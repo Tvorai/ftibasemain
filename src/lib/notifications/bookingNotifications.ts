@@ -327,9 +327,10 @@ export async function notifyBookingCancelled(params: {
   clientEmail: string;
   serviceType: ServiceType;
   cancelledReason: string | null;
+  priceCents?: number | null;
   fallbackTrainerName?: string;
 }) {
-  const { supabase, trainerId, clientName, clientEmail, serviceType, cancelledReason, fallbackTrainerName } = params;
+  const { supabase, trainerId, clientName, clientEmail, serviceType, cancelledReason, priceCents, fallbackTrainerName } = params;
   
   const trainer = await resolveTrainerContact(supabase, trainerId);
   const finalTrainerName = trainer.name || fallbackTrainerName || "Váš tréner";
@@ -339,12 +340,16 @@ export async function notifyBookingCancelled(params: {
   const serviceLabel = getServiceLabel(serviceType);
 
   const reasonText = cancelledReason || "Tréner neuviedol dôvod zrušenia.";
+  const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "-";
 
   const clientContactHtml = `
     <h3>Kontakt na trénera:</h3>
     <p><strong>Meno:</strong> ${finalTrainerName}</p>
     <p><strong>Email:</strong> ${trainer.email || "neuvedený"}</p>
     ${trainer.phone ? `<p><strong>Telefón:</strong> ${trainer.phone}</p>` : ""}
+    <p style="margin-top: 15px; font-size: 13px; color: #6b7280; font-style: italic;">
+      Pre zmenu termínu kontaktujte trénera, ak by ste sa trénerom nedohodli a chceli by ste vrátiť peniaze kontaktujte našu podprou na: info@fitbase.sk
+    </p>
   `;
 
   const clientTemplatePayload = {
@@ -352,7 +357,7 @@ export async function notifyBookingCancelled(params: {
     clientName,
     serviceName: serviceLabel,
     trainerName: finalTrainerName,
-    price: "-",
+    price: priceStr,
     content: `Vaša rezervácia na <strong>${serviceLabel}</strong> bola zrušená trénerom <strong>${finalTrainerName}</strong>.<br><br><strong>Dôvod zrušenia:</strong><br>${reasonText}`,
     contactSectionHtml: clientContactHtml
   };

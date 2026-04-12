@@ -393,6 +393,7 @@ export async function updateBookingStatusAction(
             clientEmail: updateRes.data.client_email,
             serviceType: st as ServiceType,
             cancelledReason: updateRes.data.cancelled_reason,
+            priceCents: updateRes.data.price_cents,
             fallbackTrainerName: (updateRes.data.trainers as any)?.full_name || undefined
           });
           console.log(`[CANCEL FLOW] email sent`);
