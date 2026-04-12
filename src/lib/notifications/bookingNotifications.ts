@@ -97,11 +97,16 @@ export async function notifyBookingCreated(params: {
   const { supabase, trainerId, clientName, clientEmail, clientPhone, serviceType, startsAt, priceStr, fallbackTrainerName, fallbackTrainerEmail } = params;
   
   const trainer = await resolveTrainerContact(supabase, trainerId);
+  
+  // Oprava: Priorita mena z getTrainerData, potom fallback z parametrov, potom default
   const finalTrainerName = trainer.name || fallbackTrainerName || "Váš tréner";
   const finalTrainerEmail = trainer.email || fallbackTrainerEmail;
   
-  console.log(`[TRAINER EMAIL] trainer profile_id: ${trainer.profileId}`);
-  console.log(`[TRAINER EMAIL] trainer name resolved: ${finalTrainerName}`);
+  console.log(`[EMAIL DEBUG] notifyBookingCreated:`);
+  console.log(`[EMAIL DEBUG] trainer object from resolveTrainerContact =`, JSON.stringify(trainer, null, 2));
+  console.log(`[EMAIL DEBUG] trainer.name = ${trainer.name}`);
+  console.log(`[EMAIL DEBUG] fallbackTrainerName parameter = ${fallbackTrainerName}`);
+  console.log(`[EMAIL DEBUG] final trainerName passed to template = ${finalTrainerName}`);
 
   const serviceLabel = getServiceLabel(serviceType);
   const dateFormatted = formatDate(startsAt);
@@ -114,7 +119,7 @@ export async function notifyBookingCreated(params: {
     ${trainer.phone ? `<p><strong>Telefón:</strong> ${trainer.phone}</p>` : ""}
   `;
 
-  const clientHtml = getEmailTemplateHtml({
+  const clientTemplatePayload = {
     title: `✅ Potvrdenie rezervácie – Fitbase`,
     clientName,
     serviceName: serviceLabel,
@@ -124,7 +129,10 @@ export async function notifyBookingCreated(params: {
     ctaButtonText: "👉 Zobraziť moje tréningy",
     ctaButtonUrl: "https://fitbase.sk/ucet?tab=treningy",
     contactSectionHtml: clientContactHtml
-  });
+  };
+  console.log(`[EMAIL DEBUG] client template payload =`, JSON.stringify(clientTemplatePayload, null, 2));
+
+  const clientHtml = getEmailTemplateHtml(clientTemplatePayload);
 
   await sendAppEmail({
     to: clientEmail,
@@ -183,8 +191,11 @@ export async function notifyPaymentConfirmed(params: {
   const finalTrainerName = trainer.name || fallbackTrainerName || "Váš tréner";
   const finalTrainerEmail = trainer.email;
   
-  console.log(`[TRAINER EMAIL] trainer profile_id: ${trainer.profileId}`);
-  console.log(`[TRAINER EMAIL] trainer name resolved: ${finalTrainerName}`);
+  console.log(`[EMAIL DEBUG] notifyPaymentConfirmed:`);
+  console.log(`[EMAIL DEBUG] trainer object from resolveTrainerContact =`, JSON.stringify(trainer, null, 2));
+  console.log(`[EMAIL DEBUG] trainer.name = ${trainer.name}`);
+  console.log(`[EMAIL DEBUG] fallbackTrainerName parameter = ${fallbackTrainerName}`);
+  console.log(`[EMAIL DEBUG] final trainerName passed to template = ${finalTrainerName}`);
 
   const serviceLabel = getServiceLabel(serviceType);
   const dateInfo = startsAt ? ` na termín <strong>${formatDate(startsAt)}</strong>` : "";
@@ -197,7 +208,7 @@ export async function notifyPaymentConfirmed(params: {
     ${trainer.phone ? `<p><strong>Telefón:</strong> ${trainer.phone}</p>` : ""}
   `;
 
-  const clientHtml = getEmailTemplateHtml({
+  const clientTemplatePayload = {
     title: `✅ Potvrdenie platby – Fitbase`,
     clientName,
     serviceName: serviceLabel,
@@ -207,7 +218,10 @@ export async function notifyPaymentConfirmed(params: {
     ctaButtonText: "👉 Zobraziť moje tréningy",
     ctaButtonUrl: "https://fitbase.sk/ucet?tab=treningy",
     contactSectionHtml: clientContactHtml
-  });
+  };
+  console.log(`[EMAIL DEBUG] client template payload =`, JSON.stringify(clientTemplatePayload, null, 2));
+
+  const clientHtml = getEmailTemplateHtml(clientTemplatePayload);
 
   await sendAppEmail({
     to: clientEmail,
@@ -263,8 +277,11 @@ export async function notifyBookingCompleted(params: {
   // Priorita mena: profiles.full_name (v trainer.name) -> fallbackTrainerName -> "Váš tréner"
   const finalTrainerName = trainer.name || fallbackTrainerName || "Váš tréner";
   
-  console.log(`[TRAINER EMAIL] trainer profile_id: ${trainer.profileId}`);
-  console.log(`[TRAINER EMAIL] trainer name resolved: ${finalTrainerName}`);
+  console.log(`[EMAIL DEBUG] notifyBookingCompleted:`);
+  console.log(`[EMAIL DEBUG] trainer object from resolveTrainerContact =`, JSON.stringify(trainer, null, 2));
+  console.log(`[EMAIL DEBUG] trainer.name = ${trainer.name}`);
+  console.log(`[EMAIL DEBUG] fallbackTrainerName parameter = ${fallbackTrainerName}`);
+  console.log(`[EMAIL DEBUG] final trainerName passed to template = ${finalTrainerName}`);
 
   const serviceLabel = getServiceLabel(serviceType);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://fitbase.sk";
@@ -289,7 +306,7 @@ export async function notifyBookingCompleted(params: {
 
   const ctaText1 = serviceType === "online" ? "Rezervovať ďalšiu konzultáciu" : "Rezervovať ďalší tréning";
 
-  const clientHtml = getEmailTemplateHtml({
+  const clientTemplatePayload = {
     title: `✅ Tréning bol dokončený – čo ďalej?`,
     clientName,
     serviceName: serviceLabel,
@@ -303,7 +320,10 @@ export async function notifyBookingCompleted(params: {
         <a href="${reviewUrl}" style="background-color: #10b981; color: #ffffff !important; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">👉 Napísať recenziu</a>
       </div>
     `
-  });
+  };
+  console.log(`[EMAIL DEBUG] client template payload =`, JSON.stringify(clientTemplatePayload, null, 2));
+
+  const clientHtml = getEmailTemplateHtml(clientTemplatePayload);
 
   console.log(`[EMAIL FLOW] sending to client: ${clientEmail}`);
   const result = await sendAppEmail({
@@ -331,8 +351,11 @@ export async function notifyBookingCancelled(params: {
   const trainer = await resolveTrainerContact(supabase, trainerId);
   const finalTrainerName = trainer.name || fallbackTrainerName || "Váš tréner";
   
-  console.log(`[TRAINER EMAIL] trainer profile_id: ${trainer.profileId}`);
-  console.log(`[TRAINER EMAIL] trainer name resolved: ${finalTrainerName}`);
+  console.log(`[EMAIL DEBUG] notifyBookingCancelled:`);
+  console.log(`[EMAIL DEBUG] trainer object from resolveTrainerContact =`, JSON.stringify(trainer, null, 2));
+  console.log(`[EMAIL DEBUG] trainer.name = ${trainer.name}`);
+  console.log(`[EMAIL DEBUG] fallbackTrainerName parameter = ${fallbackTrainerName}`);
+  console.log(`[EMAIL DEBUG] final trainerName passed to template = ${finalTrainerName}`);
 
   const serviceLabel = getServiceLabel(serviceType);
 
@@ -345,7 +368,7 @@ export async function notifyBookingCancelled(params: {
     ${trainer.phone ? `<p><strong>Telefón:</strong> ${trainer.phone}</p>` : ""}
   `;
 
-  const clientHtml = getEmailTemplateHtml({
+  const clientTemplatePayload = {
     title: `❌ Rezervácia bola zrušená`,
     clientName,
     serviceName: serviceLabel,
@@ -353,7 +376,10 @@ export async function notifyBookingCancelled(params: {
     price: "-",
     content: `Vaša rezervácia na <strong>${serviceLabel}</strong> bola zrušená trénerom <strong>${finalTrainerName}</strong>.<br><br><strong>Dôvod zrušenia:</strong><br>${reasonText}`,
     contactSectionHtml: clientContactHtml
-  });
+  };
+  console.log(`[EMAIL DEBUG] client template payload =`, JSON.stringify(clientTemplatePayload, null, 2));
+
+  const clientHtml = getEmailTemplateHtml(clientTemplatePayload);
 
   console.log(`[CANCEL FLOW] email sent to: ${clientEmail}`);
   await sendAppEmail({
