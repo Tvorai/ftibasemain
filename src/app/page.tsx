@@ -927,14 +927,6 @@ export default function HomePage() {
             </p>
             <div className="flex flex-col items-center gap-8">
               <a href="mailto:info@fitbase.sk" className="text-emerald-400 text-2xl font-bold hover:text-emerald-300 transition-colors">info@fitbase.sk</a>
-              <div className="flex gap-6">
-                {["Instagram", "Facebook", "LinkedIn"].map((social) => (
-                  <span key={social} className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 cursor-pointer hover:text-white transition-colors">{social}</span>
-                ))}
-              </div>
-              <button className="bg-white text-black px-10 py-4 rounded-full text-sm font-bold uppercase tracking-widest transition-all hover:bg-emerald-500 transition-all duration-500">
-                Kontaktovať ma
-              </button>
             </div>
           </div>
         </section>
