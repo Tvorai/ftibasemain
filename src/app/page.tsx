@@ -980,6 +980,7 @@ export default function HomePage() {
               <Link href="/podmienky" className="hover:text-white transition-colors">Podmienky</Link>
               <Link href="/podmienky-treneri" className="hover:text-white transition-colors">Podmienky pre trénerov</Link>
               <Link href="/sukromie" className="hover:text-white transition-colors">Súkromie</Link>
+              <Link href="/cookies" className="hover:text-white transition-colors">Cookies</Link>
               <Link href="/disclaimer" className="hover:text-white transition-colors">Disclaimer</Link>
             </div>
           </div>

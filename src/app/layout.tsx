@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { I18nProvider } from "@/providers/i18n";
 import { AppShell } from "@/components/AppShell";
 import { siteUrl } from "@/lib/config";
+import CookieBanner from "@/components/cookies/CookieBanner";
 
 export const metadata: Metadata = {
   title: "Fitbase",
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <I18nProvider>
           <AppShell>{children}</AppShell>
+          <CookieBanner />
         </I18nProvider>
       </body>
     </html>
