@@ -9,6 +9,7 @@ import { supabaseAnonKey, supabaseUrl } from "@/lib/config";
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Final trigger for deployment
 export default function HomePage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
