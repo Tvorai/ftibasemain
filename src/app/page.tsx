@@ -21,6 +21,47 @@ export default function HomePage() {
   const [user, setUser] = useState<any>(null);
   const [isTrainer, setIsTrainer] = useState(false);
 
+  // Features Slider State
+  const [activeFeature, setActiveFeature] = useState(0);
+
+  const features = [
+    {
+      title: "Ponúkajte služby",
+      description: "Ponúkajte nasledujúce služby: Osobný tréning, Online konzultácia, Jedálniček na mieru a Mesačná premena.",
+      image: "/Funkcia1.webp"
+    },
+    {
+      title: "Využite silu umelej inteligencie",
+      description: "Používajte zdarma umelú inteligenciu na tvorbu jedálničkov podľa vyplnených údajov klienta. To, čo vám predtým trvalo hodiny, vám teraz bude trvať 30 sekúnd.",
+      image: "/Funkcia2.webp"
+    },
+    {
+      title: "Používajte štatistiky na zlepšenie",
+      description: "V Stripe dashboarde uvidíte detailné štatistiky platieb a budete si môcť zanalizovať svoje zárobky každý deň.",
+      image: "/Funkcia3.webp"
+    },
+    {
+      title: "Opakovaný tréning na jeden klik",
+      description: "Po úspešnom dokončení tréningu sa klientovi ihneď zobrazí tlačidlo „Opakovať tréning“. Po kliknutí sa okamžite zarezervuje ďalší termín.",
+      image: "/Funkcia4.webp"
+    },
+    {
+      title: "Recenzie",
+      description: "Hneď po dokončení tréningu sa klientovi v profile zobrazí tlačidlo na napísanie recenzie. Vaši potenciálni klienti tak uvidia reálne hodnotenia, čo zvyšuje šancu na získanie nových spoluprác.",
+      image: "/Funkcia5.webp"
+    },
+    {
+      title: "Výsledky klientov",
+      description: "Podobne ako pri recenziách, vaši potenciálni klienti uvidia reálne výsledky vašich klientov, ktoré môžete jednoducho pridávať do svojho profilu.",
+      image: "/Funkcia6.webp"
+    },
+    {
+      title: "Budujte dôveryhodnosť",
+      description: "Vďaka kombinácii týchto funkcií budujete u klientov vyššiu dôveryhodnosť a efektívne si rozširujete svoju klientelu.",
+      image: "/Funkcia7.webp"
+    }
+  ];
+
   // FAQ States
   const [faqCategory, setFaqCategory] = useState<"trainer" | "client">("trainer");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
@@ -510,6 +551,86 @@ export default function HomePage() {
               <Link href="/registracia?mode=trainer" className="inline-block bg-emerald-500 hover:bg-emerald-400 text-black px-10 py-4 rounded-full text-sm font-bold uppercase tracking-widest transition-all">
                 Začať teraz
               </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Slider */}
+        <section id="features-slider" className="py-24 bg-zinc-950/30">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 items-center">
+              {/* Left Content */}
+              <div className="space-y-8 order-2 lg:order-1">
+                <div className="space-y-4">
+                  <div className="text-emerald-500 font-bold uppercase tracking-widest text-sm">
+                    Funkcia {activeFeature + 1}
+                  </div>
+                  <h2 className="font-display text-4xl md:text-6xl uppercase tracking-tight text-white transition-all duration-500">
+                    {features[activeFeature].title}
+                  </h2>
+                  <p className="text-zinc-400 text-lg leading-relaxed max-w-xl transition-all duration-500">
+                    {features[activeFeature].description}
+                  </p>
+                </div>
+
+                {/* Slider Controls */}
+                <div className="flex items-center gap-6 pt-4">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setActiveFeature((prev) => (prev - 1 + features.length) % features.length)}
+                      className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 hover:border-emerald-500/30 transition-all text-white group"
+                    >
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:-translate-x-1 transition-transform">
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setActiveFeature((prev) => (prev + 1) % features.length)}
+                      className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 hover:border-emerald-500/30 transition-all text-white group"
+                    >
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1 transition-transform">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    {features.map((_, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setActiveFeature(idx)}
+                        className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                          idx === activeFeature ? "w-8 bg-emerald-500" : "bg-zinc-700"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Image */}
+              <div className="order-1 lg:order-2">
+                <div className="relative aspect-[4/3] rounded-[2rem] overflow-hidden border border-white/5 bg-zinc-900 shadow-2xl">
+                  {features.map((feature, idx) => (
+                    <div
+                      key={idx}
+                      className={`absolute inset-0 transition-all duration-700 ease-in-out transform ${
+                        idx === activeFeature 
+                          ? "opacity-100 scale-100 translate-x-0" 
+                          : "opacity-0 scale-110 translate-x-12"
+                      }`}
+                    >
+                      <Image
+                        src={feature.image}
+                        alt={feature.title}
+                        fill
+                        className="object-cover"
+                        priority={idx === 0}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </section>
