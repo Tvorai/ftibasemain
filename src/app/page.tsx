@@ -66,6 +66,17 @@ export default function HomePage() {
   const [faqCategory, setFaqCategory] = useState<"trainer" | "client">("trainer");
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
+  // Hero Slider State
+  const [heroImageIndex, setHeroImageIndex] = useState(0);
+  const heroImages = ["/uvod 1.webp", "/uvod 2.webp", "/uvod 3.webp"];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeroImageIndex((prev) => (prev + 1) % heroImages.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   const trainerFaqs = [
     { q: "Ako dlho trvá registrácia?", a: "Registrácia profilu a nastavenie služieb zaberie len pár minút. Následne prepojíte svoj Stripe účet a môžete prijímať platby od klientov." },
     { q: "Prečo by som mal začať používať Fitbase?", a: "Ak ste fitness tréner a ste unavený z neustáleho odpisovania klientom, z opakovaného posielania výsledkov, recenzií a podobne, platenia zahraničných platforiem alebo používania rezervačných platforiem, ktoré nie sú určené pre fitness. Fitbase je rezervačný systém na princípe Linktree, ktorý je svojimi funkciami navrhnutý pre trénerov." },
@@ -436,15 +447,19 @@ export default function HomePage() {
 
                 <div className="order-3 lg:hidden mt-12 mb-4">
                   <div className="relative w-full max-w-[560px] mx-auto fitbase-bannerFloat">
-                    <div className="relative rounded-[2.5rem] bg-zinc-900/20 backdrop-blur-sm shadow-2xl overflow-hidden">
-                      <Image
-                        src="/banner.png"
-                        alt="Fitbase banner"
-                        width={1200}
-                        height={900}
-                        priority
-                        className="w-full h-auto object-cover"
-                      />
+                    <div className="relative aspect-[9/19] overflow-hidden">
+                      {heroImages.map((src, idx) => (
+                        <Image
+                          key={src}
+                          src={src}
+                          alt="Fitbase hero"
+                          fill
+                          className={`object-contain transition-opacity duration-1000 ${
+                            idx === heroImageIndex ? "opacity-100" : "opacity-0"
+                          }`}
+                          priority={idx === 0}
+                        />
+                      ))}
                     </div>
                   </div>
                 </div>
@@ -466,16 +481,20 @@ export default function HomePage() {
               </div>
 
               <div className="relative hidden lg:flex justify-center lg:justify-end">
-                <div className="relative w-full max-w-[560px] fitbase-bannerFloat">
-                  <div className="relative rounded-[2.5rem] bg-zinc-900/20 backdrop-blur-sm shadow-2xl overflow-hidden">
-                    <Image
-                      src="/banner.png"
-                      alt="Fitbase banner"
-                      width={1200}
-                      height={900}
-                      priority
-                      className="w-full h-auto object-cover"
-                    />
+                <div className="relative w-full max-w-[400px] fitbase-bannerFloat">
+                  <div className="relative aspect-[9/19] overflow-hidden">
+                    {heroImages.map((src, idx) => (
+                      <Image
+                        key={src}
+                        src={src}
+                        alt="Fitbase hero"
+                        fill
+                        className={`object-contain transition-opacity duration-1000 ${
+                          idx === heroImageIndex ? "opacity-100" : "opacity-0"
+                        }`}
+                        priority={idx === 0}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
