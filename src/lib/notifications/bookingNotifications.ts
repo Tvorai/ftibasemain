@@ -12,42 +12,27 @@ export type TrainerContact = {
 };
 
 /**
- * Helper funkcia na získanie dát trénera podľa požiadavky.
+ * Helper funkcia na získanie dát trénera priamo z tabuľky trainers.
  */
 async function getTrainerData(supabase: SupabaseClient, trainer_id: string) {
-  const { data: trainerData, error: trainerError } = await supabase
+  const { data: trainerData } = await supabase
     .from("trainers")
-    .select("email, profile_id")
+    .select("email, full_name, profile_id")
     .eq("id", trainer_id)
     .maybeSingle();
 
-  console.log("🔥 trainer_id input:", trainer_id);
-  console.log("🔥 trainerData:", trainerData);
-  console.log("🔥 profile_id:", trainerData?.profile_id);
-
-  if (!trainerData) return null;
-
-  let full_name = null;
-  let phone = null;
-
-  if (trainerData.profile_id) {
-    const { data: trainerProfile, error: profileError } = await supabase
-      .from("profiles")
-      .select("full_name, phone")
-      .eq("id", trainerData.profile_id)
-      .maybeSingle();
-
-    console.log("🔥 trainerProfile:", trainerProfile);
-    full_name = trainerProfile?.full_name;
-    phone = trainerProfile?.phone;
-  } else {
-    console.log("🔥 trainerProfile: skipped (no profile_id)");
+  if (!trainerData) {
+    console.warn(`[TRAINER DATA] trainer not found: ${trainer_id}`);
+    return null;
   }
+
+  console.log(`[TRAINER DATA] trainer_id: ${trainer_id}`);
+  console.log(`[TRAINER DATA] resolved trainer email: ${trainerData.email}`);
+  console.log(`[TRAINER DATA] resolved trainer full_name: ${trainerData.full_name}`);
 
   return {
     email: trainerData.email,
-    full_name: full_name || "Váš tréner",
-    phone: phone,
+    full_name: trainerData.full_name || "Váš tréner",
     profile_id: trainerData.profile_id
   };
 }
@@ -63,14 +48,25 @@ export async function resolveTrainerContact(
     const trainer = await getTrainerData(supabase, trainerId);
 
     if (!trainer) {
-      console.warn(`[NOTIF] Trainer not found for ID: ${trainerId}`);
       return { email: null, name: null, phone: null, profileId: null };
+    }
+
+    // Telefón doťahujeme z profilu ak je potrebný (zatiaľ ostáva ako voliteľný lookup ak je v trainerData null)
+    // Ak by bol phone tiež v trainers, môžeme to ešte viac zjednodušiť.
+    let phone = null;
+    if (trainer.profile_id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("phone")
+        .eq("id", trainer.profile_id)
+        .maybeSingle();
+      phone = profile?.phone || null;
     }
 
     return {
       email: trainer.email,
       name: trainer.full_name,
-      phone: trainer.phone,
+      phone: phone,
       profileId: trainer.profile_id
     };
   } catch (err) {
@@ -97,16 +93,11 @@ export async function notifyBookingCreated(params: {
   const { supabase, trainerId, clientName, clientEmail, clientPhone, serviceType, startsAt, priceStr, fallbackTrainerName, fallbackTrainerEmail } = params;
   
   const trainer = await resolveTrainerContact(supabase, trainerId);
-  
-  // Oprava: Priorita mena z getTrainerData, potom fallback z parametrov, potom default
   const finalTrainerName = trainer.name || fallbackTrainerName || "Váš tréner";
   const finalTrainerEmail = trainer.email || fallbackTrainerEmail;
   
-  console.log(`[EMAIL DEBUG] notifyBookingCreated:`);
-  console.log(`[EMAIL DEBUG] trainer object from resolveTrainerContact =`, JSON.stringify(trainer, null, 2));
-  console.log(`[EMAIL DEBUG] trainer.name = ${trainer.name}`);
-  console.log(`[EMAIL DEBUG] fallbackTrainerName parameter = ${fallbackTrainerName}`);
-  console.log(`[EMAIL DEBUG] final trainerName passed to template = ${finalTrainerName}`);
+  console.log(`[TRAINER DATA] resolved trainer email: ${finalTrainerEmail}`);
+  console.log(`[TRAINER DATA] resolved trainer full_name: ${finalTrainerName}`);
 
   const serviceLabel = getServiceLabel(serviceType);
   const dateFormatted = formatDate(startsAt);
@@ -191,11 +182,8 @@ export async function notifyPaymentConfirmed(params: {
   const finalTrainerName = trainer.name || fallbackTrainerName || "Váš tréner";
   const finalTrainerEmail = trainer.email;
   
-  console.log(`[EMAIL DEBUG] notifyPaymentConfirmed:`);
-  console.log(`[EMAIL DEBUG] trainer object from resolveTrainerContact =`, JSON.stringify(trainer, null, 2));
-  console.log(`[EMAIL DEBUG] trainer.name = ${trainer.name}`);
-  console.log(`[EMAIL DEBUG] fallbackTrainerName parameter = ${fallbackTrainerName}`);
-  console.log(`[EMAIL DEBUG] final trainerName passed to template = ${finalTrainerName}`);
+  console.log(`[TRAINER DATA] resolved trainer email: ${finalTrainerEmail}`);
+  console.log(`[TRAINER DATA] resolved trainer full_name: ${finalTrainerName}`);
 
   const serviceLabel = getServiceLabel(serviceType);
   const dateInfo = startsAt ? ` na termín <strong>${formatDate(startsAt)}</strong>` : "";
@@ -274,14 +262,9 @@ export async function notifyBookingCompleted(params: {
   const { supabase, trainerId, bookingId, clientName, clientEmail, serviceType, priceCents, fallbackTrainerName } = params;
   
   const trainer = await resolveTrainerContact(supabase, trainerId);
-  // Priorita mena: profiles.full_name (v trainer.name) -> fallbackTrainerName -> "Váš tréner"
   const finalTrainerName = trainer.name || fallbackTrainerName || "Váš tréner";
   
-  console.log(`[EMAIL DEBUG] notifyBookingCompleted:`);
-  console.log(`[EMAIL DEBUG] trainer object from resolveTrainerContact =`, JSON.stringify(trainer, null, 2));
-  console.log(`[EMAIL DEBUG] trainer.name = ${trainer.name}`);
-  console.log(`[EMAIL DEBUG] fallbackTrainerName parameter = ${fallbackTrainerName}`);
-  console.log(`[EMAIL DEBUG] final trainerName passed to template = ${finalTrainerName}`);
+  console.log(`[TRAINER DATA] resolved trainer full_name: ${finalTrainerName}`);
 
   const serviceLabel = getServiceLabel(serviceType);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://fitbase.sk";
@@ -351,11 +334,7 @@ export async function notifyBookingCancelled(params: {
   const trainer = await resolveTrainerContact(supabase, trainerId);
   const finalTrainerName = trainer.name || fallbackTrainerName || "Váš tréner";
   
-  console.log(`[EMAIL DEBUG] notifyBookingCancelled:`);
-  console.log(`[EMAIL DEBUG] trainer object from resolveTrainerContact =`, JSON.stringify(trainer, null, 2));
-  console.log(`[EMAIL DEBUG] trainer.name = ${trainer.name}`);
-  console.log(`[EMAIL DEBUG] fallbackTrainerName parameter = ${fallbackTrainerName}`);
-  console.log(`[EMAIL DEBUG] final trainerName passed to template = ${finalTrainerName}`);
+  console.log(`[TRAINER DATA] resolved trainer full_name: ${finalTrainerName}`);
 
   const serviceLabel = getServiceLabel(serviceType);
 

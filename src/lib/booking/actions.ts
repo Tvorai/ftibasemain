@@ -78,9 +78,9 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
 
     const trainerPriceRes = await supabase
       .from("trainers")
-      .select("price_personal_cents, price_online_cents")
+      .select("price_personal_cents, price_online_cents, full_name, email")
       .eq("id", trainer_id)
-      .maybeSingle<{ price_personal_cents: number | null; price_online_cents: number | null }>();
+      .maybeSingle<{ price_personal_cents: number | null; price_online_cents: number | null; full_name: string | null; email: string | null }>();
     if (!trainerPriceRes.error && trainerPriceRes.data) {
       const personal = trainerPriceRes.data.price_personal_cents;
       const online = trainerPriceRes.data.price_online_cents;
@@ -239,8 +239,8 @@ export async function createBookingAction(formData: z.infer<typeof bookingSchema
         serviceType: normalizedServiceType,
         startsAt: starts_at,
         priceStr,
-        fallbackTrainerName: trainer_name,
-        fallbackTrainerEmail: trainer_email
+        fallbackTrainerName: trainerPriceRes.data?.full_name || trainer_name,
+        fallbackTrainerEmail: trainerPriceRes.data?.email || trainer_email
       });
     } catch (emailErr: unknown) {
       console.error("[NOTIF ERROR] createBookingAction:", emailErr);
@@ -327,8 +327,29 @@ export async function updateBookingStatusAction(
       .update(updatePayload)
       .eq("id", booking_id)
       .eq("trainer_id", trainerRes.data.id)
-      .select("id, trainer_id, client_name, client_email, service_type, price_cents, cancelled_reason")
-      .maybeSingle<{ id: string; trainer_id: string; client_name: string | null; client_email: string | null; service_type: string | null; price_cents: number | null; cancelled_reason: string | null }>();
+      .select(`
+        id, 
+        trainer_id, 
+        client_name, 
+        client_email, 
+        service_type, 
+        price_cents, 
+        cancelled_reason,
+        trainers (
+          full_name,
+          email
+        )
+      `)
+      .maybeSingle<{ 
+        id: string; 
+        trainer_id: string; 
+        client_name: string | null; 
+        client_email: string | null; 
+        service_type: string | null; 
+        price_cents: number | null; 
+        cancelled_reason: string | null;
+        trainers: { full_name: string | null; email: string | null } | null;
+      }>();
 
     if (updateRes.error) {
       return { status: "error", message: updateRes.error.message };
@@ -351,7 +372,8 @@ export async function updateBookingStatusAction(
             clientName: updateRes.data.client_name || "Ahoj",
             clientEmail: updateRes.data.client_email,
             serviceType: st as ServiceType,
-            priceCents: updateRes.data.price_cents
+            priceCents: updateRes.data.price_cents,
+            fallbackTrainerName: (updateRes.data.trainers as any)?.full_name || undefined
           });
         } catch (emailErr) {
           console.error("[NOTIF ERROR] notifyBookingCompleted:", emailErr);
@@ -370,7 +392,8 @@ export async function updateBookingStatusAction(
             clientName: updateRes.data.client_name || "Ahoj",
             clientEmail: updateRes.data.client_email,
             serviceType: st as ServiceType,
-            cancelledReason: updateRes.data.cancelled_reason
+            cancelledReason: updateRes.data.cancelled_reason,
+            fallbackTrainerName: (updateRes.data.trainers as any)?.full_name || undefined
           });
           console.log(`[CANCEL FLOW] email sent`);
         } catch (emailErr) {

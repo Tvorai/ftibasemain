@@ -133,6 +133,12 @@ export async function POST(request: Request) {
       if (clientEmail) {
         try {
           const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
+          const { data: trainerData } = await supabase
+            .from("trainers")
+            .select("full_name, email")
+            .eq("id", trainerId || "")
+            .maybeSingle();
+
           await notifyPaymentConfirmed({
             supabase,
             trainerId: trainerId || "",
@@ -141,7 +147,7 @@ export async function POST(request: Request) {
             clientPhone: clientPhone || undefined,
             serviceType: "meal_plan",
             priceStr,
-            fallbackTrainerName: getStringField(meta, "trainer_name") || undefined
+            fallbackTrainerName: trainerData?.full_name || getStringField(meta, "trainer_name") || undefined
           });
         } catch (emailErr: unknown) {
           console.error("[NOTIF ERROR] meal plan payment confirmed:", emailErr);
@@ -309,6 +315,12 @@ export async function POST(request: Request) {
       if (clientEmail) {
         try {
           const priceStr = priceCents ? `${(priceCents / 100).toFixed(2)} €` : "neuvedená";
+          const { data: trainerData } = await supabase
+            .from("trainers")
+            .select("full_name, email")
+            .eq("id", trainerId || "")
+            .maybeSingle();
+
           await notifyPaymentConfirmed({
             supabase,
             trainerId: trainerId || "",
@@ -317,7 +329,7 @@ export async function POST(request: Request) {
             clientPhone: clientPhone || undefined,
             serviceType: "transformation",
             priceStr,
-            fallbackTrainerName: getStringField(meta, "trainer_name") || undefined
+            fallbackTrainerName: trainerData?.full_name || getStringField(meta, "trainer_name") || undefined
           });
         } catch (emailErr: unknown) {
           console.error("[NOTIF ERROR] transformation payment confirmed:", emailErr);
@@ -421,6 +433,11 @@ export async function POST(request: Request) {
       const amountTotal = typeof session.amount_total === "number" ? session.amount_total : null;
       const priceCents = amountTotal || (priceCentsRaw ? Number(priceCentsRaw) : null);
       const trainerIdFromMeta = getStringField(meta, "trainer_id");
+      const { data: trainerData } = await supabase
+        .from("trainers")
+        .select("full_name, email")
+        .eq("id", trainerIdFromMeta || "")
+        .maybeSingle();
       
       if (clientEmail && trainerIdFromMeta) {
         try {
@@ -434,7 +451,7 @@ export async function POST(request: Request) {
             serviceType: (type as any) || "personal",
             priceStr,
             startsAt: getStringField(meta, "starts_at") || undefined,
-            fallbackTrainerName: getStringField(meta, "trainer_name") || undefined
+            fallbackTrainerName: trainerData?.full_name || getStringField(meta, "trainer_name") || undefined
           });
         } catch (emailErr: unknown) {
           console.error("[NOTIF ERROR] booking update payment confirmed:", emailErr);
@@ -573,6 +590,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: retryErr.message }, { status: 500 });
           }
 
+          const { data: trainerData } = await supabase
+            .from("trainers")
+            .select("full_name, email")
+            .eq("id", trainerId || "")
+            .maybeSingle();
+
           // EMAIL PO FALLBACK INSERTE
           if (clientEmail) {
             try {
@@ -586,7 +609,7 @@ export async function POST(request: Request) {
                 serviceType: (type as any) || "personal",
                 priceStr,
                 startsAt: startsAt || undefined,
-                fallbackTrainerName: getStringField(meta, "trainer_name") || undefined
+                fallbackTrainerName: trainerData?.full_name || getStringField(meta, "trainer_name") || undefined
               });
             } catch (err) {
               console.error("[NOTIF ERROR] booking fallback insert email:", err);
@@ -597,6 +620,12 @@ export async function POST(request: Request) {
         }
         return NextResponse.json({ message: insertErr.message }, { status: 500 });
       }
+
+      const { data: trainerData } = await supabase
+        .from("trainers")
+        .select("full_name, email")
+        .eq("id", trainerId || "")
+        .maybeSingle();
 
       // EMAIL PO NORMALNOM INSERTE
       if (clientEmail) {
@@ -611,7 +640,7 @@ export async function POST(request: Request) {
             serviceType: (type as any) || "personal",
             priceStr,
             startsAt: startsAt || undefined,
-            fallbackTrainerName: getStringField(meta, "trainer_name") || undefined
+            fallbackTrainerName: trainerData?.full_name || getStringField(meta, "trainer_name") || undefined
           });
         } catch (err) {
           console.error("[NOTIF ERROR] booking normal insert email:", err);
