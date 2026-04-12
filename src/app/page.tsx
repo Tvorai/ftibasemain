@@ -21,6 +21,26 @@ export default function HomePage() {
   const [user, setUser] = useState<any>(null);
   const [isTrainer, setIsTrainer] = useState(false);
 
+  // FAQ States
+  const [faqCategory, setFaqCategory] = useState<"trainer" | "client">("trainer");
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
+  const trainerFaqs = [
+    { q: "Ako dlho trvá registrácia?", a: "Registrácia profilu a nastavenie služieb zaberie len pár minút. Následne prepojíte svoj Stripe účet a môžete prijímať platby." },
+    { q: "Musím mať firmu alebo živnosť?", a: "Závisí to od Stripe onboarding procesu v danej krajine. Vo väčšine prípadov môžete začať aj ako fyzická osoba, avšak odporúčame konzultáciu s účtovníkom." },
+    { q: "Môžem ponúkať len jednu službu?", a: "Áno, môžete si vybrať, či chcete ponúkať len osobné tréningy, online konzultácie, jedálničky alebo ich kombináciu." },
+    { q: "Ako dostanem peniaze?", a: "Peniaze od klientov chodia priamo na váš prepojený Stripe účet, odkiaľ si ich môžete nechať posielať na svoj bankový účet." },
+    { q: "Môžem si nastavovať ceny?", a: "Samozrejme, ceny za všetky svoje služby si určujete vy sami a kedykoľvek ich môžete zmeniť v nastaveniach profilu." }
+  ];
+
+  const clientFaqs = [
+    { q: "Ako si zarezervujem tréning?", a: "Jednoducho si vyberiete trénera, konkrétnu službu a voľný termín v jeho kalendári. Po potvrdení a zaplatení je termín váš." },
+    { q: "Musím platiť vopred?", a: "Áno, platba vopred cez zabezpečenú bránu garantuje váš termín a šetrí čas vám aj trénerovi." },
+    { q: "Čo ak musím tréning zrušiť?", a: "Podmienky zrušenia si určuje každý tréner individuálne. V prípade zrušenia zo strany trénera vám budú peniaze vrátené." },
+    { q: "Sú moje platby bezpečné?", a: "Áno, všetky transakcie prebiehajú cez celosvetovo uznávanú a šifrovanú platobnú bránu Stripe." },
+    { q: "Dostanem potvrdenie o platbe?", a: "Áno, po každej úspešnej platbe obdržíte potvrdzujúci email so všetkými detailmi vašej rezervácie." }
+  ];
+
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -712,32 +732,85 @@ export default function HomePage() {
             <h2 className="font-display text-4xl md:text-6xl uppercase tracking-tight text-center mb-12">
               Časté otázky
             </h2>
-            <div className="grid gap-6">
-              {[
-                { q: "Ako dlho trvá registrácia?", a: "Len pár minút." },
-                { q: "Musím mať firmu alebo živnosť?", a: "Závisí od Stripe onboarding procesu." },
-                { q: "Môžem ponúkať len jednu službu?", a: "Áno, môžeš mať len jednu alebo viac služieb." },
-                { q: "Ako dostanem peniaze?", a: "Cez Stripe priamo na tvoj účet." },
-                { q: "Môžem si nastavovať ceny?", a: "Áno, ceny si určuješ sám." }
-              ].map((faq) => (
-                <div
-                  key={faq.q}
-                  className="group relative overflow-hidden rounded-[2rem] border border-white/5 bg-zinc-900/25 px-8 py-7 text-center backdrop-blur-sm shadow-[0_12px_40px_rgba(0,0,0,0.55)] hover:border-emerald-500/25 transition-colors"
-                >
-                  <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="absolute inset-0 bg-emerald-500/8" />
-                  </div>
-                  <div className="relative space-y-3">
-                    <div className="mx-auto mb-2 h-10 w-10 rounded-2xl border border-emerald-500/20 bg-black/20 flex items-center justify-center">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_14px_rgba(16,185,129,0.8)]" />
+
+            {/* Toggle Buttons */}
+            <div className="flex justify-center gap-4 mb-12 p-1.5 bg-zinc-900/50 backdrop-blur-md rounded-full border border-white/5 w-fit mx-auto">
+              <button
+                onClick={() => {
+                  setFaqCategory("trainer");
+                  setOpenFaqIndex(null);
+                }}
+                className={`px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
+                  faqCategory === "trainer" 
+                    ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20" 
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                Pre trénerov
+              </button>
+              <button
+                onClick={() => {
+                  setFaqCategory("client");
+                  setOpenFaqIndex(null);
+                }}
+                className={`px-6 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
+                  faqCategory === "client" 
+                    ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20" 
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                Pre klientov
+              </button>
+            </div>
+
+            <div className="grid gap-4">
+              {(faqCategory === "trainer" ? trainerFaqs : clientFaqs).map((faq, idx) => {
+                const isOpen = openFaqIndex === idx;
+                return (
+                  <div
+                    key={faq.q}
+                    className={`group relative overflow-hidden rounded-[2rem] border transition-all duration-300 ${
+                      isOpen 
+                        ? "border-emerald-500/40 bg-zinc-900/40" 
+                        : "border-white/5 bg-zinc-900/25 hover:border-emerald-500/20"
+                    }`}
+                  >
+                    <button
+                      onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                      className="w-full px-8 py-7 flex items-center justify-between text-left"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`h-8 w-8 rounded-xl border flex items-center justify-center shrink-0 transition-colors ${
+                          isOpen ? "border-emerald-500/40 bg-emerald-500/10" : "border-white/10 bg-black/20"
+                        }`}>
+                          <span className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${
+                            isOpen ? "bg-emerald-500 shadow-[0_0_12px_#10b981]" : "bg-zinc-600"
+                          }`} />
+                        </div>
+                        <h3 className={`text-sm md:text-base font-bold uppercase tracking-tight transition-colors ${
+                          isOpen ? "text-emerald-400" : "text-zinc-200"
+                        }`}>
+                          {faq.q}
+                        </h3>
+                      </div>
+                      
+                      <div className={`shrink-0 ml-4 transition-transform duration-300 ${isOpen ? "rotate-180 text-emerald-500" : "text-zinc-500"}`}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                      </div>
+                    </button>
+
+                    <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                      isOpen ? "max-h-[200px] opacity-100" : "max-h-0 opacity-0"
+                    }`}>
+                      <div className="px-8 pb-7 pl-[72px] text-zinc-400 text-sm leading-relaxed border-t border-white/5 pt-4">
+                        {faq.a}
+                      </div>
                     </div>
-                    <h3 className="text-white font-bold uppercase tracking-tight">
-                      {faq.q}
-                    </h3>
-                    <p className="text-zinc-500 text-sm leading-relaxed">{faq.a}</p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
