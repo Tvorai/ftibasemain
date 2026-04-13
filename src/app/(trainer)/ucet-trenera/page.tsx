@@ -2061,7 +2061,9 @@ export default function TrainerDashboardPage() {
         </div>
       </aside>
       <main className="flex-1 p-6 md:p-10 flex flex-col">
-        <div className="md:mt-[4px]">{renderTabContent()}</div>
+        <div className="flex-1 border border-emerald-500/10 rounded-[2.5rem] bg-zinc-950/20 p-6 md:p-10 shadow-[0_0_50px_-15px_rgba(16,185,129,0.1)]">
+          <div className="md:mt-[4px]">{renderTabContent()}</div>
+        </div>
       </main>
       <style jsx global>{`@import url('https://fonts.googleapis.com/css2?family=League+Gothic&display=swap');`}</style>
     </div>

@@ -992,7 +992,6 @@ export default function HomePage() {
             <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
               <Link href="/roadmap" className="hover:text-white transition-colors">Roadmap</Link>
               <Link href="/podpora" className="hover:text-white transition-colors">Podpora</Link>
-              <Link href="/o-nas" className="hover:text-white transition-colors">O nás</Link>
               <Link href="/podmienky" className="hover:text-white transition-colors">Podmienky</Link>
               <Link href="/podmienky-treneri" className="hover:text-white transition-colors">Podmienky pre trénerov</Link>
               <Link href="/sukromie" className="hover:text-white transition-colors">Súkromie</Link>

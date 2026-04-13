@@ -211,7 +211,6 @@ export default function RoadmapPage() {
             <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-[10px] font-bold uppercase tracking-widest text-zinc-600">
               <Link href="/" className="hover:text-white transition-colors">Domov</Link>
               <Link href="/podpora" className="hover:text-white transition-colors">Podpora</Link>
-              <Link href="/o-nas" className="hover:text-white transition-colors">O nás</Link>
             </div>
           </div>
         </footer>
