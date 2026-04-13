@@ -1,17 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import Script from "next/script";
 
 export default function PodporaPage() {
   const [category, setCategory] = useState<"klienti" | "treneri">("klienti");
+  const vantaRef = useRef<HTMLDivElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white pb-24">
-      <div className="container mx-auto px-4 pt-32 max-w-4xl">
-        <h1 className="text-4xl md:text-6xl font-display uppercase tracking-tight text-center mb-12">
-          Centrum podpory
-        </h1>
+    <>
+      <div className="fixed inset-0 z-[-20] bg-black" />
+      <div 
+        ref={vantaRef} 
+        className="fixed inset-0 z-[-10] opacity-40 pointer-events-none w-full h-full" 
+        style={{ height: '100dvh' }}
+      />
+
+      <div className="min-h-screen text-white selection:bg-emerald-500/30 relative z-0 pb-24">
+        <Script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js" strategy="beforeInteractive" />
+        <Script 
+          src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.topology.min.js" 
+          strategy="afterInteractive"
+          onLoad={() => {
+            if ((window as any).VANTA?.TOPOLOGY && vantaRef.current) {
+              (window as any).VANTA.TOPOLOGY({
+                el: vantaRef.current,
+                mouseControls: false,
+                touchControls: false,
+                gyroControls: false,
+                minHeight: 200.00,
+                minWidth: 200.00,
+                scale: 1.00,
+                scaleMobile: 1.00,
+                color: 0x56ca56,
+                backgroundColor: 0x0,
+                points: 8,
+                maxDistance: 15,
+                spacing: 20,
+                forceAnimate: true
+              });
+            }
+          }}
+        />
+
+        <nav className="fixed top-0 left-0 right-0 z-50 px-4 md:px-6 pt-4 md:pt-6">
+          <div className={`mx-auto max-w-6xl rounded-full border border-emerald-500/30 backdrop-blur-md shadow-[0_6px_18px_rgba(0,0,0,0.45)] transition-all duration-300 ${isScrolled ? "bg-black/85 py-0.5" : "bg-black/55 py-1"}`}>
+            <div className="flex items-center justify-between px-8 md:px-12">
+              <Link href="/" className="flex items-center gap-2">
+                <Image src="/Fitbase logo.png" alt="Fitbase" width={120} height={28} priority className="h-auto w-[100px] md:w-[120px]" />
+              </Link>
+              <Link href="/" className="text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors">
+                Späť na hlavnú stránku
+              </Link>
+            </div>
+          </div>
+        </nav>
+
+        <div className="container mx-auto px-4 pt-40 md:pt-48 max-w-4xl">
+          <h1 className="text-4xl md:text-6xl font-display uppercase tracking-tight text-center mb-12">
+            Centrum podpory
+          </h1>
 
         {/* Toggle Buttons */}
         <div className="flex justify-center gap-4 mb-16 p-1.5 bg-zinc-900/50 backdrop-blur-md rounded-full border border-white/5 w-fit mx-auto">
@@ -255,13 +312,6 @@ export default function PodporaPage() {
           )}
         </div>
       </div>
-
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=League+Gothic&display=swap');
-        .font-display {
-          font-family: 'League Gothic', sans-serif;
-        }
-      `}</style>
-    </div>
+    </>
   );
 }
