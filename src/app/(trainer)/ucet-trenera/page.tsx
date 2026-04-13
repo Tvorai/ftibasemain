@@ -2027,18 +2027,18 @@ export default function TrainerDashboardPage() {
         </div>
       )}
 
-      <aside className="hidden md:flex w-[320px] p-10 flex-col gap-16 shrink-0 h-screen overflow-y-auto">
+      <aside className="hidden md:flex w-[320px] p-10 flex-col gap-6 shrink-0 h-screen overflow-y-auto">
         <Image src="/Fitbase logo.png" alt="Fitbase" width={150} height={35} priority className="h-auto w-[150px]" />
         <div>
-          <nav className="flex flex-col gap-4">
+          <nav className="flex flex-col gap-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`text-left px-4 py-2 rounded-xl text-2xl font-display tracking-wide transition-all duration-200 group relative ${
+                className={`text-left px-4 py-1.5 rounded-xl text-2xl font-display tracking-wide transition-all duration-200 group relative ${
                   activeTab === tab.id 
-                    ? "text-emerald-400 bg-emerald-500/10 shadow-[0_0_20px_rgba(16,185,129,0.1)] border border-emerald-500/20" 
-                    : "text-white hover:text-emerald-400 hover:bg-white/5"
+                    ? "text-emerald-400" 
+                    : "text-white hover:text-emerald-400"
                 }`}
               >
                 <span className={activeTab === tab.id ? "translate-x-1 inline-block transition-transform" : "group-hover:translate-x-1 transition-transform"}>
@@ -2047,11 +2047,11 @@ export default function TrainerDashboardPage() {
               </button>
             ))}
           </nav>
-          <div className="pt-6 mt-6 border-t border-white/10">
+          <div className="pt-4 mt-4 border-t border-white/10">
             <button
               type="button"
               onClick={handleLogout}
-              className="w-full text-left px-4 py-2 rounded-xl text-2xl font-display tracking-wide transition-all duration-200 text-red-400 hover:text-red-300 hover:bg-red-500/10 group"
+              className="w-full text-left px-4 py-1.5 rounded-xl text-2xl font-display tracking-wide transition-all duration-200 text-red-400 hover:text-red-300 group"
             >
               <span className="group-hover:translate-x-1 transition-transform inline-block">
                 Odhlásiť sa
