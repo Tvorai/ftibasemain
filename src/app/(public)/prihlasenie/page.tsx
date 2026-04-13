@@ -139,11 +139,11 @@ export default function UserLoginPage() {
                 ? messages.pages.userLogin.forgotPasswordTitle.toUpperCase()
                 : (authMode === "trainer" ? "Prihlásenie trénera" : messages.pages.userLogin.title).toUpperCase()}
             </h1>
-            <p className="mt-3 text-sm italic text-white/70 md:text-base">
-              {view === "forgot-password"
-                ? messages.pages.userLogin.forgotPasswordSubtitle
-                : (authMode === "trainer" ? "Posuňte svoju profesiu na nový level" : messages.pages.userLogin.subtitle)}
-            </p>
+            {view === "forgot-password" && (
+              <p className="mt-3 text-sm italic text-white/70 md:text-base">
+                {messages.pages.userLogin.forgotPasswordSubtitle}
+              </p>
+            )}
 
             {view === "login" ? (
               <div className="mt-7 md:mt-8">
