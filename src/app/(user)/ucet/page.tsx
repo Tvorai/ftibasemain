@@ -300,12 +300,8 @@ export default function UserAccountPage() {
                   <div className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Moje kontaktné údaje:</div>
                   <div className="space-y-4">
                     <div className="flex items-center gap-6 text-zinc-200">
-                      <span className="w-24 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Instagram:</span>
-                      <a href="https://instagram.com/_patris.21" target="_blank" rel="noopener noreferrer" className="text-xl font-display hover:text-emerald-400 transition-colors">_patris.21</a>
-                    </div>
-                    <div className="flex items-center gap-6 text-zinc-200">
                       <span className="w-24 text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Mail:</span>
-                      <span className="text-zinc-500 italic">...</span>
+                      <a href="mailto:info@fitbase.sk" className="text-xl font-display hover:text-emerald-400 transition-colors">info@fitbase.sk</a>
                     </div>
                   </div>
                 </div>

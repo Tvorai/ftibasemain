@@ -1900,10 +1900,6 @@ export default function TrainerDashboardPage() {
                         <a href="tel:+421948263939" className="hover:text-emerald-400 transition-colors">+421 948 263 939</a>
                       </div>
                       <div className="flex items-center gap-4 text-zinc-300">
-                        <span className="w-24 text-zinc-500 text-xs font-bold uppercase tracking-widest">Instagram:</span>
-                        <a href="https://instagram.com/_patris.21" target="_blank" rel="noopener noreferrer" className="hover:text-emerald-400 transition-colors">_patris.21</a>
-                      </div>
-                      <div className="flex items-center gap-4 text-zinc-300">
                         <span className="w-24 text-zinc-500 text-xs font-bold uppercase tracking-widest">Mail:</span>
                         <a href="mailto:info@fitbase.sk" className="hover:text-emerald-400 transition-colors">info@fitbase.sk</a>
                       </div>
