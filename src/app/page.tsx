@@ -974,7 +974,7 @@ export default function HomePage() {
               Začni budovať svoj <br /> tréningový biznis online.
             </h2>
             <p className="text-zinc-400 text-xl mb-12 max-w-xl mx-auto">
-              Získaj profil, rezervácie a platby na jednom mieste.
+              Vytvor si profil a získavaj rezervácie a platby na jednom mieste.
             </p>
             <Link href="/registracia?mode=trainer" className="inline-block bg-emerald-500 hover:bg-emerald-400 text-black px-12 py-5 rounded-full text-md font-bold uppercase tracking-widest transition-all shadow-2xl shadow-emerald-500/40 scale-110 hover:scale-125 transition-all duration-500">
               Registrovať sa ako tréner
