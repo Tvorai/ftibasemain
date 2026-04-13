@@ -1528,7 +1528,7 @@ export default function TrainerDashboardPage() {
                        <select
                          value={newDiscount.type}
                          onChange={(e) => setNewDiscount({ ...newDiscount, type: e.target.value as "percent" | "fixed" })}
-                         className="flex-1 p-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white outline-none"
+                         className="flex-[2] min-w-0 p-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white outline-none"
                        >
                          <option value="percent">Percentá (%)</option>
                          <option value="fixed">Fixná suma (EUR)</option>
@@ -1538,7 +1538,7 @@ export default function TrainerDashboardPage() {
                          type="number"
                          value={newDiscount.value}
                          onChange={(e) => setNewDiscount({ ...newDiscount, value: e.target.value })}
-                         className="w-24 p-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white outline-none focus:ring-1 focus:ring-emerald-500"
+                         className="flex-1 min-w-0 p-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white outline-none focus:ring-1 focus:ring-emerald-500"
                        />
                      </div>
                      <input
