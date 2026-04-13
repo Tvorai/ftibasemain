@@ -699,13 +699,13 @@ export default function HomePage() {
 
         {/* Benefits */}
         <section id="benefits" className="pt-12 pb-24 md:py-24">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="max-w-4xl mx-auto bg-emerald-500 rounded-[3rem] p-10 md:p-20 text-black relative overflow-hidden">
-              <div className="relative z-10">
-                <h2 className="font-display text-4xl md:text-6xl uppercase tracking-tight mb-12">
+          <div className="container mx-auto px-4 md:px-6 flex justify-center">
+            <div className="max-w-4xl w-full bg-emerald-500 rounded-[3rem] p-10 md:p-20 text-black relative overflow-hidden">
+              <div className="relative z-10 flex flex-col items-center">
+                <h2 className="font-display text-4xl md:text-6xl uppercase tracking-tight mb-12 text-center">
                   Čo tým získaš
                 </h2>
-                <div className="grid sm:grid-cols-2 gap-y-6 gap-x-12">
+                <div className="grid sm:grid-cols-2 gap-y-6 gap-x-12 w-full max-w-2xl">
                   {[
                     "Viac dôvery u klientov",
                     "Menej storno rezervácií",
@@ -714,13 +714,13 @@ export default function HomePage() {
                     "Lepší prehľad o službách",
                     "Moderný online profil"
                   ].map((benefit) => (
-                    <div key={benefit} className="flex items-center gap-4">
+                    <div key={benefit} className="flex items-center gap-4 justify-center sm:justify-start">
                       <div className="w-6 h-6 rounded-full bg-black flex items-center justify-center shrink-0">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4">
                           <path d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
-                      <span className="text-xl font-bold uppercase tracking-tight">{benefit}</span>
+                      <span className="text-xl font-bold uppercase tracking-tight text-center sm:text-left">{benefit}</span>
                     </div>
                   ))}
                 </div>
