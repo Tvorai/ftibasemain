@@ -67,15 +67,18 @@ export default function UserAccountPage() {
 
   const loadProfile = useCallback(async () => {
     if (!supabase) return;
-    setLoading(true);
+    // Nesmieme tu mať setLoading(true), lebo to odpáli loader a stratíme session
     try {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
-      if (!user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("[UCET] loadProfile session:", session);
+
+      if (!session) {
+        console.log("[UCET] No session in loadProfile, redirecting...");
         router.replace("/prihlasenie");
         return;
       }
 
+      const user = session.user;
       setUserId(user.id);
       setEmail(user.email || "");
 
@@ -87,14 +90,54 @@ export default function UserAccountPage() {
 
       if (!prof.error && prof.data?.full_name) setFullName(prof.data.full_name);
       if (!prof.error && typeof prof.data?.phone_number === "string") setPhoneNumber(prof.data.phone_number);
+    } catch (err) {
+      console.error("[UCET] loadProfile error:", err);
     } finally {
       setLoading(false);
     }
   }, [router]);
 
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+    if (!supabase) return;
+
+    console.log("[UCET] Initializing auth check...");
+    let timeoutId: NodeJS.Timeout | null = null;
+    
+    // 1. Skúsime získať session okamžite
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("[UCET] Initial session check:", session);
+      if (session) {
+        loadProfile();
+      } else {
+        // 2. Ak nie je session, počkáme chvíľu (OAuth spracovanie)
+        console.log("[UCET] No initial session, waiting for auth state change...");
+        timeoutId = setTimeout(() => {
+          supabase.auth.getSession().then(({ data: { session: finalSession } }) => {
+            if (!finalSession) {
+              console.log("[UCET] Still no session after delay, redirecting to login");
+              router.replace("/prihlasenie");
+            } else {
+              loadProfile();
+            }
+          });
+        }, 1500); // 1.5s delay pre istotu
+      }
+    });
+
+    // 3. Počúvame na zmeny (SIGNED_IN)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[UCET] Auth event:", event, !!session);
+      if (event === "SIGNED_IN" && session) {
+        if (timeoutId) clearTimeout(timeoutId);
+        loadProfile();
+      }
+    });
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
+  }, [loadProfile, router]);
 
   useEffect(() => {
     try {
@@ -129,8 +172,8 @@ export default function UserAccountPage() {
     if (saving) return;
     setSaving(true);
     try {
-      const { data } = await supabase.auth.getUser();
-      const user = data.user;
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) {
         router.replace("/prihlasenie");
         return;

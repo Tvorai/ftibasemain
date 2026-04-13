@@ -185,13 +185,17 @@ export default function TrainerDashboardPage() {
   });
 
   const loadProfile = useCallback(async () => {
-    setLoading(true);
+    console.log("[UCET-TRENERA] loadProfile starting...");
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("[UCET-TRENERA] loadProfile session:", session);
+
+      if (!session) {
+        console.log("[UCET-TRENERA] No session in loadProfile, redirecting...");
         router.replace("/prihlasenie");
         return;
       }
+      const user = session.user;
 
       const { data: trainer, error } = await supabase
         .from("trainers")
@@ -378,8 +382,46 @@ export default function TrainerDashboardPage() {
   };
 
   useEffect(() => {
-    loadProfile();
-  }, [loadProfile]);
+    if (!supabase) return;
+
+    console.log("[UCET-TRENERA] Initializing auth check...");
+    let timeoutId: NodeJS.Timeout | null = null;
+    
+    // 1. Skúsime získať session okamžite
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("[UCET-TRENERA] Initial session check:", session);
+      if (session) {
+        loadProfile();
+      } else {
+        // 2. Ak nie je session, počkáme chvíľu (OAuth spracovanie)
+        console.log("[UCET-TRENERA] No initial session, waiting for auth state change...");
+        timeoutId = setTimeout(() => {
+          supabase.auth.getSession().then(({ data: { session: finalSession } }) => {
+            if (!finalSession) {
+              console.log("[UCET-TRENERA] Still no session after delay, redirecting to login");
+              router.replace("/prihlasenie");
+            } else {
+              loadProfile();
+            }
+          });
+        }, 1500); // 1.5s delay pre istotu
+      }
+    });
+
+    // 3. Počúvame na zmeny (SIGNED_IN)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[UCET-TRENERA] Auth event:", event, !!session);
+      if (event === "SIGNED_IN" && session) {
+        if (timeoutId) clearTimeout(timeoutId);
+        loadProfile();
+      }
+    });
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
+  }, [loadProfile, router]);
 
   useEffect(() => {
     if (activeTab !== "nastavenia") return;
@@ -421,7 +463,8 @@ export default function TrainerDashboardPage() {
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return;
 
       const slug = toSlug(username);
@@ -460,7 +503,8 @@ export default function TrainerDashboardPage() {
   const handleSavePricing = async () => {
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return;
       const toCents = (val: string): number | null => {
         const num = Number(val.replace(",", "."));

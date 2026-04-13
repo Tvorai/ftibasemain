@@ -17,7 +17,10 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     
     if (!error) {
-      console.log("[AUTH] final redirect =", next);
+      console.log("[AUTH] exchange successful, redirecting to", next);
+      // Pridáme krátky delay pre istotu, aby Supabase stihol dokončiť interné procesy (ako si prial user)
+      // hoci na server-side to má malý vplyv bez cookies, dodržíme inštrukciu
+      await new Promise(resolve => setTimeout(resolve, 500));
       return NextResponse.redirect(`${origin}${next}`);
     }
     
