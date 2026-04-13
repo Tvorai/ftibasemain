@@ -32,8 +32,9 @@ export default function UserLoginPage() {
     
     setLoading(true);
     try {
-      const redirectTo = `${siteUrl.replace(/\/$/, "")}/auth/callback?next=/ucet`;
-      console.log("[GOOGLE LOGIN] redirect started to:", redirectTo);
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/ucet")}`;
+      console.log("[AUTH] login source = /prihlasenie");
+      console.log("[AUTH] redirectTo =", redirectTo);
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -182,26 +183,8 @@ export default function UserLoginPage() {
                     return;
                   }
 
-                  // Auto-detect user type and redirect
-                  const userRes = await supabase.auth.getUser();
-                  const user = userRes.data.user;
-                  
-                  if (!user) {
-                    router.push("/ucet");
-                    return;
-                  }
-
-                  const trainerRes = await supabase
-                    .from("trainers")
-                    .select("id")
-                    .eq("profile_id", user.id)
-                    .maybeSingle<{ id: string }>();
-
-                  if (trainerRes.data?.id) {
-                    router.push("/ucet-trenera");
-                  } else {
-                    router.push("/ucet");
-                  }
+                  console.log("[AUTH] email login success, redirecting to /ucet");
+                  router.push("/ucet");
                 }}
               >
                 <div>

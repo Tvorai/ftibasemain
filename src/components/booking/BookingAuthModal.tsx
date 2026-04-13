@@ -69,10 +69,16 @@ export default function BookingAuthModal({ isOpen, onClose, onAuthed, initialEma
             if (!supabase) return;
             setError(null);
             setLoading(true);
-            const redirectTo = typeof window !== "undefined" ? `${siteUrl.replace(/\/$/, "")}/auth/callback?next=${encodeURIComponent(window.location.pathname)}` : undefined;
+            
+            const currentPath = window.location.pathname + window.location.search;
+            const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(currentPath)}`;
+            
+            console.log("[AUTH] login source = popup");
+            console.log("[AUTH] redirectTo =", redirectTo);
+
             const result = await supabase.auth.signInWithOAuth({
               provider: "google",
-              options: redirectTo ? { redirectTo } : undefined,
+              options: { redirectTo },
             });
             setLoading(false);
             if (result.error) setError(result.error.message);
