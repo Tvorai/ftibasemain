@@ -25,6 +25,34 @@ export default function UserLoginPage() {
   const [view, setView] = useState<"login" | "forgot-password">("login");
   const [resetStatus, setResetStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  const handleGoogleLogin = async () => {
+    if (!supabase) return;
+    console.log("[GOOGLE LOGIN] button clicked on /prihlasenie");
+    console.log("[GOOGLE LOGIN] using existing oauth flow");
+    
+    setLoading(true);
+    try {
+      const redirectTo = `${siteUrl.replace(/\/$/, "")}/auth/callback?next=/ucet`;
+      console.log("[GOOGLE LOGIN] redirect started to:", redirectTo);
+      
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+        },
+      });
+
+      if (error) {
+        console.error("[GOOGLE LOGIN] error:", error.message);
+        setModeError(error.message);
+      }
+    } catch (err) {
+      console.error("[GOOGLE LOGIN] unexpected error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateUrl = (mode: AuthMode) => {
     const url = new URL(window.location.href);
     if (mode === "trainer") {
@@ -104,9 +132,35 @@ export default function UserLoginPage() {
             </p>
 
             {view === "login" ? (
-              <form
-                className="mt-7 space-y-3 md:mt-8"
-                onSubmit={async (e) => {
+              <div className="mt-7 md:mt-8">
+                {authMode === "user" && (
+                  <>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={handleGoogleLogin}
+                      className="w-full rounded-full border border-zinc-800 bg-zinc-900 px-5 py-3 text-sm font-bold text-white hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17.64 9.20455C17.64 8.56636 17.5827 7.95273 17.4764 7.36364H9V10.845H13.8436C13.635 11.97 13.0009 12.9232 12.0477 13.5614V15.8195H14.9564C16.6582 14.2527 17.64 11.9455 17.64 9.20455Z" fill="#4285F4"/>
+                        <path d="M9 18C11.43 18 13.4673 17.1941 14.9564 15.8195L12.0477 13.5614C11.2418 14.1014 10.2109 14.4205 9 14.4205C6.65591 14.4205 4.67182 12.8373 3.96409 10.71H0.957273V13.0418C2.43818 15.9832 5.48182 18 9 18Z" fill="#34A853"/>
+                        <path d="M3.96409 10.71C3.78409 10.17 3.68182 9.59318 3.68182 9C3.68182 8.40682 3.78409 7.83 3.96409 7.29V4.95818H0.957273C0.347727 6.17318 0 7.54773 0 9C0 10.4523 0.347727 11.8268 0.957273 13.0418L3.96409 10.71Z" fill="#FBBC05"/>
+                        <path d="M9 3.57955C10.3214 3.57955 11.5077 4.03364 12.4405 4.92545L15.0218 2.34409C13.4632 0.891818 11.4259 0 9 0C5.48182 0 2.43818 2.01682 0.957273 4.95818L3.96409 7.29C4.67182 5.16273 6.65591 3.57955 9 3.57955Z" fill="#EA4335"/>
+                      </svg>
+                      Pokračovať cez Google
+                    </button>
+
+                    <div className="my-6 flex items-center gap-3">
+                      <div className="h-px flex-1 bg-zinc-800" />
+                      <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">alebo</span>
+                      <div className="h-px flex-1 bg-zinc-800" />
+                    </div>
+                  </>
+                )}
+
+                <form
+                  className="space-y-3"
+                  onSubmit={async (e) => {
                   e.preventDefault();
                   if (loading) return;
 
@@ -212,15 +266,16 @@ export default function UserLoginPage() {
                 ) : null}
 
                 <div className="mt-3 text-center text-sm text-white/80">
-                  <span>Nemáte účet? </span>
-                  <Link
-                    href={authMode === "trainer" ? "/registracia?mode=trainer" : "/registracia"}
-                    className="font-semibold text-emerald-400 hover:text-emerald-300"
-                  >
-                    Registrovať sa
-                  </Link>
-                </div>
-              </form>
+                    <span>Nemáte účet? </span>
+                    <Link
+                      href={authMode === "trainer" ? "/registracia?mode=trainer" : "/registracia"}
+                      className="font-semibold text-emerald-400 hover:text-emerald-300"
+                    >
+                      Registrovať sa
+                    </Link>
+                  </div>
+                </form>
+              </div>
             ) : (
               <form
                 className="mt-7 space-y-3 md:mt-8"
