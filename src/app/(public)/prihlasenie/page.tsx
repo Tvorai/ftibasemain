@@ -25,6 +25,7 @@ export default function UserLoginPage() {
   const [view, setView] = useState<"login" | "forgot-password">("login");
   const [resetStatus, setResetStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  // [LOG] Google login restriction added
   const handleGoogleLogin = async () => {
     if (!supabase) return;
     console.log("[GOOGLE LOGIN] button clicked on /prihlasenie");
