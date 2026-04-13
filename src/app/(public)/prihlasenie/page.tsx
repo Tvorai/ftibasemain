@@ -28,13 +28,13 @@ export default function UserLoginPage() {
   const handleGoogleLogin = async () => {
     if (!supabase) return;
     console.log("[GOOGLE LOGIN] button clicked on /prihlasenie");
-    console.log("[GOOGLE LOGIN] using existing oauth flow");
+    console.log("[GOOGLE LOGIN] mode param =", authMode);
     
     setLoading(true);
     try {
-      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/ucet")}`;
-      console.log("[AUTH] login source = /prihlasenie");
-      console.log("[AUTH] redirectTo =", redirectTo);
+      const targetPath = authMode === "trainer" ? "/ucet-trenera" : "/ucet";
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(targetPath)}`;
+      console.log("[GOOGLE LOGIN] redirectTo =", redirectTo);
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -74,12 +74,13 @@ export default function UserLoginPage() {
       console.log("[AUTH] detected access_token in hash");
       // Give Supabase a moment to process the hash/session internally
       const timer = setTimeout(() => {
-        console.log("[AUTH] redirecting to /ucet after hash detection");
-        router.push("/ucet");
+        const targetPath = authMode === "trainer" ? "/ucet-trenera" : "/ucet";
+        console.log("[AUTH] redirecting to", targetPath, "after hash detection");
+        router.push(targetPath);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [router]);
+  }, [router, authMode]);
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col md:flex-row">
@@ -194,8 +195,9 @@ export default function UserLoginPage() {
                     return;
                   }
 
-                  console.log("[AUTH] email login success, redirecting to /ucet");
-                  router.push("/ucet");
+                  const targetPath = authMode === "trainer" ? "/ucet-trenera" : "/ucet";
+                  console.log("[LOGIN] email login success, mode =", authMode, "target =", targetPath);
+                  router.push(targetPath);
                 }}
               >
                 <div>
