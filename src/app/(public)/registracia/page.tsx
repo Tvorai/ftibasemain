@@ -12,6 +12,11 @@ const supabase = featureFlags.supabaseEnabled ? createClient(supabaseUrl, supaba
 
 type AuthMode = "user" | "trainer";
 
+type ConsentErrors = {
+  terms?: string;
+  privacy?: string;
+};
+
 export default function UserRegistrationPage() {
   const { locale, messages } = useI18n();
   const router = useRouter();
@@ -24,6 +29,10 @@ export default function UserRegistrationPage() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [authMode, setAuthMode] = useState<AuthMode>("user");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [consentErrors, setConsentErrors] = useState<ConsentErrors>({});
 
   const updateUrl = (mode: AuthMode) => {
     const url = new URL(window.location.href);
@@ -99,6 +108,7 @@ export default function UserRegistrationPage() {
                 e.preventDefault();
                 if (loading) return;
                 setStatus(null);
+                setConsentErrors({});
 
                 const safeFullName = fullName.trim();
                 const safePhoneNumber = phoneNumber.trim();
@@ -114,6 +124,19 @@ export default function UserRegistrationPage() {
                   return;
                 }
 
+                const nextConsentErrors: ConsentErrors = {};
+                if (!termsAccepted) {
+                  nextConsentErrors.terms = "Musíte súhlasiť s obchodnými podmienkami.";
+                }
+                if (!privacyAccepted) {
+                  nextConsentErrors.privacy =
+                    "Musíte potvrdiť oboznámenie sa so zásadami ochrany osobných údajov.";
+                }
+                if (nextConsentErrors.terms || nextConsentErrors.privacy) {
+                  setConsentErrors(nextConsentErrors);
+                  return;
+                }
+
                 setLoading(true);
                 const endpoint = authMode === "trainer" ? "/api/trainer-registration" : "/api/user-registration";
                 const res = await fetch(endpoint, {
@@ -125,7 +148,10 @@ export default function UserRegistrationPage() {
                     email: safeEmail,
                     password,
                     passwordRepeat,
-                    locale
+                    locale,
+                    termsAccepted,
+                    privacyAccepted,
+                    marketingConsent
                   })
                 });
 
@@ -260,6 +286,56 @@ export default function UserRegistrationPage() {
                   value={passwordRepeat}
                   onChange={(e) => setPasswordRepeat(e.target.value)}
                 />
+              </div>
+
+              <div className="mt-4 space-y-3 text-sm text-white/80">
+                <div>
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={termsAccepted}
+                      onChange={(e) => setTermsAccepted(e.target.checked)}
+                      className="mt-1 h-4 w-4 accent-emerald-500"
+                    />
+                    <span>
+                      Súhlasím s{" "}
+                      <Link href="/obchodne-podmienky" className="font-semibold text-emerald-400 hover:text-emerald-300">
+                        obchodnými podmienkami
+                      </Link>
+                    </span>
+                  </label>
+                  {consentErrors.terms ? <div className="pl-7 text-xs text-red-300">{consentErrors.terms}</div> : null}
+                </div>
+
+                <div>
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={privacyAccepted}
+                      onChange={(e) => setPrivacyAccepted(e.target.checked)}
+                      className="mt-1 h-4 w-4 accent-emerald-500"
+                    />
+                    <span>
+                      Beriem na vedomie{" "}
+                      <Link href="/gdpr" className="font-semibold text-emerald-400 hover:text-emerald-300">
+                        zásady ochrany osobných údajov
+                      </Link>
+                    </span>
+                  </label>
+                  {consentErrors.privacy ? (
+                    <div className="pl-7 text-xs text-red-300">{consentErrors.privacy}</div>
+                  ) : null}
+                </div>
+
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={marketingConsent}
+                    onChange={(e) => setMarketingConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 accent-emerald-500"
+                  />
+                  <span>Súhlasím so zasielaním noviniek a marketingových informácií</span>
+                </label>
               </div>
 
               <button

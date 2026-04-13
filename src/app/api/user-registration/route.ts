@@ -7,6 +7,9 @@ type RequestBody = {
   fullName: string;
   phoneNumber?: string;
   locale?: string;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
+  marketingConsent?: boolean;
 };
 
 function json(message: string, status: number, extra?: Record<string, unknown>) {
@@ -47,6 +50,9 @@ export async function POST(req: Request) {
   const password = body.password || "";
   const passwordRepeat = body.passwordRepeat || "";
   const locale = (body.locale || "sk").trim();
+  const termsAccepted = body.termsAccepted === true;
+  const privacyAccepted = body.privacyAccepted === true;
+  const marketingConsent = body.marketingConsent === true;
 
   if (!fullName || !phoneNumber || !email || !password || !passwordRepeat) {
     return json("Vyplňte prosím všetky polia.", 400);
@@ -54,6 +60,13 @@ export async function POST(req: Request) {
 
   if (password !== passwordRepeat) {
     return json("Heslá sa nezhodujú.", 400);
+  }
+
+  if (!termsAccepted) {
+    return json("Musíte súhlasiť s obchodnými podmienkami.", 400);
+  }
+  if (!privacyAccepted) {
+    return json("Musíte potvrdiť oboznámenie sa so zásadami ochrany osobných údajov.", 400);
   }
 
   const { createClient } = await import("@supabase/supabase-js");
@@ -72,13 +85,20 @@ export async function POST(req: Request) {
       data: {
         full_name: fullName,
         phone_number: phoneNumber,
-        locale
+        locale,
+        terms_accepted: true,
+        privacy_accepted: true,
+        marketing_consent: marketingConsent
       }
     }
   });
 
   if (signup.error) {
-    return json(mapSignupErrorToSk(signup.error.message), 400, { code: signup.error.code });
+    console.error("❌ SIGNUP ERROR:", signup.error);
+    return json(mapSignupErrorToSk(signup.error.message), 400, { 
+      code: signup.error.code,
+      details: signup.error.message 
+    });
   }
 
   const userId = signup.data.user?.id;
