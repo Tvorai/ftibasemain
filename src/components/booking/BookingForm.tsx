@@ -429,7 +429,7 @@ export default function BookingForm({
                   <input
                   {...register("client_name")}
                   className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 scroll-sm-120 ${errors.client_name ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
-                  placeholder="Janko Hraško"
+                  placeholder="Ján Novák"
                 />
                   {errors.client_name && <p className="text-red-400 text-[10px] mt-1 font-bold uppercase tracking-tighter">{errors.client_name.message}</p>}
                 </div>
@@ -438,7 +438,7 @@ export default function BookingForm({
                   <input
                   {...register("client_email")}
                   className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 scroll-sm-120 ${errors.client_email ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
-                  placeholder="janko@priklad.sk"
+                  placeholder="jan@novak.sk"
                   type="email"
                 />
                   {errors.client_email && <p className="text-red-400 text-[10px] mt-1 font-bold uppercase tracking-tighter">{errors.client_email.message}</p>}
@@ -473,7 +473,7 @@ export default function BookingForm({
               <input
                 {...register("client_name")}
                 className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 scroll-sm-120 ${errors.client_name ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
-                placeholder="Janko Hraško"
+                placeholder="Ján Novák"
               />
               {errors.client_name && <p className="text-red-400 text-[10px] mt-1 font-bold uppercase tracking-tighter">{errors.client_name.message}</p>}
             </div>
@@ -482,7 +482,7 @@ export default function BookingForm({
               <input
                 {...register("client_email")}
                 className={`w-full p-3 bg-zinc-800 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600 scroll-sm-120 ${errors.client_email ? 'border-red-500 bg-red-500/10' : 'border-zinc-700'}`}
-                placeholder="janko@priklad.sk"
+                placeholder="jan@novak.sk"
                 type="email"
               />
               {errors.client_email && <p className="text-red-400 text-[10px] mt-1 font-bold uppercase tracking-tighter">{errors.client_email.message}</p>}
