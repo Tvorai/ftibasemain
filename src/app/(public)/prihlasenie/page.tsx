@@ -71,8 +71,13 @@ export default function UserLoginPage() {
 
     // Check for access_token in hash (Implicit Flow fallback)
     if (window.location.hash.includes("access_token=")) {
-      console.log("[AUTH] detected access_token in hash, redirecting to /ucet");
-      router.push("/ucet");
+      console.log("[AUTH] detected access_token in hash");
+      // Give Supabase a moment to process the hash/session internally
+      const timer = setTimeout(() => {
+        console.log("[AUTH] redirecting to /ucet after hash detection");
+        router.push("/ucet");
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [router]);
 
