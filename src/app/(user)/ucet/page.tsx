@@ -215,9 +215,18 @@ export default function UserAccountPage() {
 
     if (loading) {
       return (
-        <div className="flex flex-col items-center justify-center h-full gap-4">
-          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          <div className="text-zinc-500 font-display text-xl uppercase tracking-widest">Načítavam profil...</div>
+        <div className="flex flex-col items-center justify-center h-full gap-6 py-20 animate-pulse">
+          <Image 
+            src="/simplelogo.webp" 
+            alt="Fitbase" 
+            width={60} 
+            height={60} 
+            className="w-[60px] h-[60px] opacity-80"
+          />
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+            <div className="text-zinc-500 font-display text-xl uppercase tracking-widest">Načítavam profil...</div>
+          </div>
         </div>
       );
     }
