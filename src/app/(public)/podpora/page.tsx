@@ -12,7 +12,8 @@ export default function PodporaPage() {
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -70,33 +71,33 @@ export default function PodporaPage() {
             Centrum podpory
           </h1>
 
-        {/* Toggle Buttons */}
-        <div className="flex justify-center gap-4 mb-16 p-1.5 bg-zinc-900/50 backdrop-blur-md rounded-full border border-white/5 w-fit mx-auto">
-          <button
-            onClick={() => setCategory("klienti")}
-            className={`px-8 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
-              category === "klienti"
-                ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20"
-                : "text-zinc-400 hover:text-white"
-            }`}
-          >
-            Klienti
-          </button>
-          <button
-            onClick={() => setCategory("treneri")}
-            className={`px-8 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
-              category === "treneri"
-                ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20"
-                : "text-zinc-400 hover:text-white"
-            }`}
-          >
-            Tréneri
-          </button>
-        </div>
+          {/* Toggle Buttons */}
+          <div className="flex justify-center gap-4 mb-16 p-1.5 bg-zinc-900/50 backdrop-blur-md rounded-full border border-white/5 w-fit mx-auto">
+            <button
+              onClick={() => setCategory("klienti")}
+              className={`px-8 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
+                category === "klienti"
+                  ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Klienti
+            </button>
+            <button
+              onClick={() => setCategory("treneri")}
+              className={`px-8 py-3 rounded-full text-xs font-bold uppercase tracking-widest transition-all ${
+                category === "treneri"
+                  ? "bg-emerald-500 text-black shadow-lg shadow-emerald-500/20"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Tréneri
+            </button>
+          </div>
 
-        {/* Content Section */}
-        <div className="space-y-8">
-          {category === "klienti" ? (
+          {/* Content Section */}
+          <div className="space-y-8">
+            {category === "klienti" ? (
             <>
               {/* KLIENTI - AKO SA ZAREGISTROVAŤ */}
               <div className="p-8 rounded-[2.5rem] bg-zinc-900/30 border border-white/5 hover:border-emerald-500/20 transition-all">
@@ -312,6 +313,7 @@ export default function PodporaPage() {
           )}
         </div>
       </div>
+    </div>
     </>
   );
 }
