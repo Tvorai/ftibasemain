@@ -68,7 +68,13 @@ export default function UserLoginPage() {
     const params = new URLSearchParams(window.location.search);
     const mode = params.get("mode");
     if (mode === "trainer" || mode === "trener") setAuthMode("trainer");
-  }, []);
+
+    // Check for access_token in hash (Implicit Flow fallback)
+    if (window.location.hash.includes("access_token=")) {
+      console.log("[AUTH] detected access_token in hash, redirecting to /ucet");
+      router.push("/ucet");
+    }
+  }, [router]);
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col md:flex-row">
