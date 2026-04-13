@@ -112,21 +112,23 @@ export default function UserAccountPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log("[UCET] Initial session check:", !!session);
       if (session) {
+        setAuthChecking(false);
         loadProfile();
       } else {
-        // 2. Ak nie je session, počkáme 2 sekundy (či neprebieha OAuth sync)
-        console.log("[UCET] No initial session, waiting 2s for OAuth sync...");
+        // 2. Ak nie je session, počkáme krátko (či neprebieha OAuth sync)
+        console.log("[UCET] No initial session, waiting 1s for sync...");
         const timer = setTimeout(() => {
           supabase.auth.getSession().then(({ data: { session: finalSession } }) => {
-            console.log("[UCET] Final session check after 2s:", !!finalSession);
+            console.log("[UCET] Final session check after 1s:", !!finalSession);
             if (!finalSession) {
               console.log("[UCET] Definitely no session, redirecting to login");
               router.replace("/prihlasenie");
             } else {
+              setAuthChecking(false);
               loadProfile();
             }
           });
-        }, 2000);
+        }, 1000); // Skrátené na 1s
         return () => clearTimeout(timer);
       }
     });
