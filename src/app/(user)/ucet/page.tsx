@@ -17,7 +17,8 @@ export default function UserAccountPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>("profil");
   const [userId, setUserId] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const vantaElRef = useRef<HTMLDivElement | null>(null);
@@ -67,13 +68,14 @@ export default function UserAccountPage() {
 
   const loadProfile = useCallback(async () => {
     if (!supabase) return;
-    // Nesmieme tu mať setLoading(true), lebo to odpáli loader a stratíme session
+    setLoading(true);
+    console.log("[UCET] loadProfile starting...");
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log("[UCET] loadProfile session:", session);
+      console.log("[UCET] loadProfile session:", !!session);
 
       if (!session) {
-        console.log("[UCET] No session in loadProfile, redirecting...");
+        console.log("[UCET] No session in loadProfile, redirecting to /prihlasenie");
         router.replace("/prihlasenie");
         return;
       }
@@ -94,49 +96,50 @@ export default function UserAccountPage() {
       console.error("[UCET] loadProfile error:", err);
     } finally {
       setLoading(false);
+      setAuthChecking(false);
     }
   }, [router]);
 
   useEffect(() => {
-    if (!supabase) return;
+    if (!supabase) {
+      setAuthChecking(false);
+      return;
+    }
 
     console.log("[UCET] Initializing auth check...");
-    let timeoutId: NodeJS.Timeout | null = null;
     
-    // 1. Skúsime získať session okamžite
+    // 1. Okamžitá kontrola session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("[UCET] Initial session check:", session);
+      console.log("[UCET] Initial session check:", !!session);
       if (session) {
         loadProfile();
       } else {
-        // 2. Ak nie je session, počkáme chvíľu (OAuth spracovanie)
-        console.log("[UCET] No initial session, waiting for auth state change...");
-        timeoutId = setTimeout(() => {
+        // 2. Ak nie je session, počkáme 2 sekundy (či neprebieha OAuth sync)
+        console.log("[UCET] No initial session, waiting 2s for OAuth sync...");
+        const timer = setTimeout(() => {
           supabase.auth.getSession().then(({ data: { session: finalSession } }) => {
+            console.log("[UCET] Final session check after 2s:", !!finalSession);
             if (!finalSession) {
-              console.log("[UCET] Still no session after delay, redirecting to login");
+              console.log("[UCET] Definitely no session, redirecting to login");
               router.replace("/prihlasenie");
             } else {
               loadProfile();
             }
           });
-        }, 1500); // 1.5s delay pre istotu
+        }, 2000);
+        return () => clearTimeout(timer);
       }
     });
 
-    // 3. Počúvame na zmeny (SIGNED_IN)
+    // 3. Počúvame na SIGNED_IN (ak by prišlo neskôr)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("[UCET] Auth event:", event, !!session);
       if (event === "SIGNED_IN" && session) {
-        if (timeoutId) clearTimeout(timeoutId);
         loadProfile();
       }
     });
 
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [loadProfile, router]);
 
   useEffect(() => {
@@ -199,7 +202,23 @@ export default function UserAccountPage() {
       return <div className="flex items-center justify-center h-full text-zinc-500 italic">Supabase nie je nakonfigurovaný.</div>;
     }
 
-    if (loading) return <div className="flex items-center justify-center h-full text-zinc-500">Načítavam...</div>;
+    if (authChecking) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-4">
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <div className="text-zinc-500 font-display text-xl uppercase tracking-widest">Overujem prihlásenie...</div>
+        </div>
+      );
+    }
+
+    if (loading) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-4">
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <div className="text-zinc-500 font-display text-xl uppercase tracking-widest">Načítavam profil...</div>
+        </div>
+      );
+    }
 
     switch (activeTab) {
       case "profil":
