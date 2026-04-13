@@ -31,7 +31,7 @@ const sk: Messages = {
     },
     userRegistration: {
       title: "Registrácia",
-      subtitle: "Vytvorte si účet a začnite trénovať",
+      subtitle: "Vytvorte si účet a začnite si rezervovať služby",
       fields: {
         fullName: "Meno a priezvisko",
         email: "Email",

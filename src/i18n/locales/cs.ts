@@ -31,7 +31,7 @@ const cs: Messages = {
     },
     userRegistration: {
       title: "Registrace",
-      subtitle: "Vytvořte si účet a začněte trénovat",
+      subtitle: "Vytvořte si účet a začněte si rezervovat služby",
       fields: {
         fullName: "Jméno a příjmení",
         email: "Email",
