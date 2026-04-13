@@ -2027,27 +2027,49 @@ export default function TrainerDashboardPage() {
         </div>
       )}
 
-      <aside className="hidden md:flex w-[280px] p-10 flex-col gap-16 shrink-0 h-screen overflow-y-auto">
-        <Image src="/Fitbase logo.png" alt="Fitbase" width={150} height={35} priority className="h-auto w-[150px]" />
-        <div>
-          <nav className="flex flex-col gap-4">
+      <aside className="hidden md:flex w-[320px] p-6 shrink-0 h-screen sticky top-0">
+        <div className="w-full h-full bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-[2.5rem] flex flex-col p-8 shadow-[0_0_50px_-12px_rgba(16,185,129,0.15)] hover:shadow-[0_0_60px_-12px_rgba(16,185,129,0.2)] transition-all duration-500 overflow-y-auto custom-scrollbar">
+          <div className="mb-12 pt-2">
+            <Image 
+              src="/Fitbase logo.png" 
+              alt="Fitbase" 
+              width={160} 
+              height={38} 
+              priority 
+              className="h-auto w-[140px] drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]" 
+            />
+          </div>
+          
+          <nav className="flex flex-col gap-2 flex-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`text-left text-2xl font-display tracking-wide transition-colors ${activeTab === tab.id ? "text-emerald-500" : "text-white hover:text-emerald-500/70"}`}
+                className={`text-left px-4 py-3 rounded-2xl font-display text-2xl tracking-wide transition-all duration-200 group relative ${
+                  activeTab === tab.id 
+                    ? "text-emerald-400 bg-emerald-500/10 shadow-[inset_0_0_20px_rgba(16,185,129,0.05)]" 
+                    : "text-zinc-400 hover:text-white hover:bg-white/5"
+                }`}
               >
-                {tab.label}
+                {activeTab === tab.id && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-emerald-500 rounded-r-full shadow-[0_0_15px_rgba(16,185,129,0.6)]" />
+                )}
+                <span className={activeTab === tab.id ? "translate-x-2 inline-block transition-transform" : "group-hover:translate-x-1 transition-transform"}>
+                  {tab.label}
+                </span>
               </button>
             ))}
           </nav>
-          <div className="pt-6 mt-6 border-t border-white/10">
+
+          <div className="mt-8 pt-6 border-t border-white/5">
             <button
               type="button"
               onClick={handleLogout}
-              className="text-left text-2xl font-display tracking-wide transition-colors text-red-400 hover:text-red-300"
+              className="w-full text-left px-4 py-3 rounded-2xl font-display text-2xl tracking-wide transition-all duration-200 text-red-400/80 hover:text-red-400 hover:bg-red-500/10 group"
             >
-              Odhlásiť sa
+              <span className="group-hover:translate-x-1 transition-transform inline-block">
+                Odhlásiť sa
+              </span>
             </button>
           </div>
         </div>
