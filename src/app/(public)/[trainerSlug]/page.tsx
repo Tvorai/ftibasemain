@@ -66,6 +66,17 @@ type ClientResult = {
   created_at: string;
 };
 
+function formatName(fullName: string): string {
+  if (!fullName) return "";
+  const parts = fullName.trim().split(" ");
+  if (parts.length === 1) {
+    return parts[0];
+  }
+  const firstName = parts[0];
+  const lastNameInitial = parts[1]?.charAt(0).toUpperCase();
+  return `${firstName} ${lastNameInitial}.`;
+}
+
 export default function TrainerProfilePage({ params }: { params: { trainerSlug: string } }) {
   const [trainer, setTrainer] = useState<TrainerProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -637,7 +648,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
             <div className="relative group">
               <div className="border border-emerald-500/50 rounded-[25px] p-6 bg-zinc-900/30 backdrop-blur-sm">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="font-bold text-lg">{reviews[0]?.client_name || "Klient"}</span>
+                  <span className="font-bold text-lg">{formatName(reviews[0]?.client_name || "Klient")}</span>
                   <div className="flex text-yellow-400">
                     {[...Array(5)].map((_, i) => (
                       <svg
@@ -695,7 +706,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
                   </div>
                   {(result.client_name || result.note) && (
                     <div className="px-2">
-                      {result.client_name && <div className="text-white font-bold">{result.client_name}</div>}
+                      {result.client_name && <div className="text-white font-bold">{formatName(result.client_name)}</div>}
                       {result.note && <div className="text-zinc-400 text-sm italic mt-1 leading-relaxed">&quot;{result.note}&quot;</div>}
                     </div>
                   )}
@@ -941,7 +952,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
             <div key={r.id} className="bg-zinc-900/40 border border-emerald-500/20 rounded-[25px] p-5">
               <div className="flex items-start justify-between gap-4 mb-3">
                 <div>
-                  <div className="text-white font-bold">{r.client_name}</div>
+                  <div className="text-white font-bold">{formatName(r.client_name)}</div>
                   <div className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold mt-1">
                     {new Date(r.created_at).toLocaleDateString("sk-SK")}
                   </div>
@@ -994,7 +1005,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
                   <Image src={result.after_image_url} alt="Po" fill className="object-cover" />
                 </div>
               </div>
-              {result.client_name && <div className="text-white font-bold text-sm">{result.client_name}</div>}
+              {result.client_name && <div className="text-white font-bold text-sm">{formatName(result.client_name)}</div>}
               {result.note && <div className="text-zinc-400 text-xs italic mt-1 line-clamp-2">{result.note}</div>}
             </div>
           ))}

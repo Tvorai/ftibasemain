@@ -104,6 +104,17 @@ function getStringField(payload: unknown, key: string): string | null {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
+function formatName(fullName: string): string {
+  if (!fullName) return "";
+  const parts = fullName.trim().split(" ");
+  if (parts.length === 1) {
+    return parts[0];
+  }
+  const firstName = parts[0];
+  const lastNameInitial = parts[1]?.charAt(0).toUpperCase();
+  return `${firstName} ${lastNameInitial}.`;
+}
+
 type Discount = {
   id: string;
   code: string;
@@ -898,7 +909,7 @@ export default function TrainerDashboardPage() {
           <div key={r.id} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-white font-bold">{r.client_name}</div>
+                <div className="text-white font-bold">{formatName(r.client_name)}</div>
                 <div className="text-zinc-500 text-xs">
                   {new Date(r.created_at).toLocaleDateString("sk-SK")}
                 </div>
