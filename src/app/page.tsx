@@ -275,6 +275,14 @@ export default function HomePage() {
                 <button onClick={() => scrollToSection("faq")} className="hover:text-emerald-400 transition-colors">
                   FAQ
                 </button>
+                <a 
+                  href="https://fitbase.sk/ukazka" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-emerald-400 transition-colors"
+                >
+                  Demo ukážka
+                </a>
               </div>
 
               <div className="flex items-center gap-4">
@@ -382,6 +390,14 @@ export default function HomePage() {
                     {item.label}
                   </button>
                 ))}
+                <a 
+                  href="https://fitbase.sk/ukazka" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-left text-zinc-400 hover:text-emerald-400 transition-colors py-2"
+                >
+                  Demo ukážka
+                </a>
               </nav>
 
               <div className="pt-8 border-t border-white/5 flex flex-col gap-4">
