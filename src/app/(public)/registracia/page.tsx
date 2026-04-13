@@ -52,8 +52,8 @@ export default function UserRegistrationPage() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col md:flex-row">
-      <div className="flex-1 flex flex-col px-4 py-6 md:px-12 md:py-10 lg:px-20 overflow-y-auto">
-        <div className="mb-6 md:mb-10">
+      <div className="flex-1 flex flex-col px-4 py-6 md:px-12 md:py-6 lg:px-20 overflow-y-auto">
+        <div className="mb-6">
           <Image
             src="/Fitbase logo.png"
             alt="Fitbase"
@@ -64,7 +64,7 @@ export default function UserRegistrationPage() {
           />
         </div>
 
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-start justify-center">
           <div className="w-full max-w-xl">
             <div className="inline-flex rounded-full bg-zinc-950/60 border border-zinc-800 p-1 mb-6">
               <button
