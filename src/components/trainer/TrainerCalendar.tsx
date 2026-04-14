@@ -36,12 +36,14 @@ export default function TrainerCalendar({
   // Výpočet rolling 7-dňového okna zosúladeného s rezervačným formulárom
   const weekDates = React.useMemo(() => {
     const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    // Vytvoriť čistý dátum (dnes o polnoci) v lokálnom čase
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    console.log("[ADMIN CALENDAR] today =", today.toLocaleDateString('sk-SK'));
     
     // Vytvoriť pole 7 po sebe nasledujúcich dní od dnes
     const windowDays = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(now);
-      d.setDate(now.getDate() + i);
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
       return d;
     });
 
@@ -56,7 +58,7 @@ export default function TrainerCalendar({
       daysByWeekday.set(getWeekdayNumber(d), d);
     });
 
-    return DAYS.map((day) => {
+    const result = DAYS.map((day) => {
       const date = daysByWeekday.get(day.id);
       return {
         day: date?.getDate() || 0,
@@ -64,6 +66,9 @@ export default function TrainerCalendar({
         fullDate: date || new Date()
       };
     });
+
+    console.log("[ADMIN CALENDAR] computed dates =", result.map(d => `${d.day}.${d.month}.`).join(', '));
+    return result;
   }, []);
 
   useEffect(() => {
@@ -89,17 +94,24 @@ export default function TrainerCalendar({
     loadBookings();
   }, [trainerId, serviceType]);
 
-  const getBookingForSlot = (dayId: number, hour: number, minute: number = 0) => {
+  const getBookingForSlot = (dayIdx: number, hour: number, minute: number = 0) => {
+    const targetDate = weekDates[dayIdx].fullDate;
+    if (!targetDate) return null;
+
     return bookings.find(b => {
       const date = new Date(b.starts_at);
-      let jsDay = date.getDay(); // 0-6 (Sun-Sat)
       
-      // Mapovanie JS dňa na ID (1-7)
-      const currentDayId = jsDay === 0 ? 7 : jsDay;
+      // Porovnanie konkrétneho dátumu (rok, mesiac, deň)
+      const sameDate = 
+        date.getFullYear() === targetDate.getFullYear() &&
+        date.getMonth() === targetDate.getMonth() &&
+        date.getDate() === targetDate.getDate();
+
+      if (!sameDate) return false;
       
       const startH = date.getHours();
       const startM = date.getMinutes();
-      return currentDayId === dayId && startH === hour && startM === minute;
+      return startH === hour && startM === minute;
     });
   };
 
@@ -133,8 +145,8 @@ export default function TrainerCalendar({
                   <div className="flex items-center justify-center text-xs text-zinc-500 font-mono py-1">
                     {hour.toString().padStart(2, '0')}:{minute.toString().padStart(2, '0')}
                   </div>
-                  {DAYS.map(day => {
-                    const booking = getBookingForSlot(day.id, hour, minute);
+                  {DAYS.map((day, dayIdx) => {
+                    const booking = getBookingForSlot(dayIdx, hour, minute);
                     
                     return (
                       <div

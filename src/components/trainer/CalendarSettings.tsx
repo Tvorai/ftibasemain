@@ -184,11 +184,13 @@ export default function CalendarSettings({
   // Výpočet rolling 7-dňového okna zosúladeného s rezervačným formulárom
   const weekDates = useMemo(() => {
     const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    // Vytvoriť čistý dátum (dnes o polnoci) v lokálnom čase
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    console.log("[CALENDAR SETTINGS] today =", today.toLocaleDateString('sk-SK'));
     
     const windowDays = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(now);
-      d.setDate(now.getDate() + i);
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
       return d;
     });
 
@@ -202,13 +204,16 @@ export default function CalendarSettings({
       daysByWeekday.set(getWeekdayNumber(d), d);
     });
 
-    return DAYS.map((day) => {
+    const result = DAYS.map((day) => {
       const date = daysByWeekday.get(day.id);
       return {
         day: date?.getDate() || 0,
         month: (date?.getMonth() || 0) + 1
       };
     });
+
+    console.log("[CALENDAR SETTINGS] computed dates =", result.map(d => `${d.day}.${d.month}.`).join(', '));
+    return result;
   }, []);
 
   const loadAvailability = useCallback(
