@@ -33,6 +33,24 @@ export default function TrainerCalendar({
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Výpočet aktuálneho týždňa (pondelok - nedeľa)
+  const weekDates = React.useMemo(() => {
+    const now = new Date();
+    const day = now.getDay(); // 0-6 (Ne-So)
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Upraviť na pondelok
+    const monday = new Date(now.setDate(diff));
+    
+    return DAYS.map((_, index) => {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + index);
+      return {
+        day: date.getDate(),
+        month: date.getMonth() + 1,
+        fullDate: date
+      };
+    });
+  }, []);
+
   useEffect(() => {
     async function loadBookings() {
       if (!trainerId) return;
@@ -78,10 +96,15 @@ export default function TrainerCalendar({
     <div className="overflow-x-auto pb-4">
       <div className="min-w-[600px] grid grid-cols-[80px_repeat(7,1fr)] gap-2">
         {/* Header */}
-        <div className="flex items-center justify-center font-bold text-[10px] text-zinc-500 uppercase tracking-widest">Čas</div>
-        {DAYS.map(day => (
-          <div key={day.id} className="flex flex-col items-center py-2">
-            <span className="font-bold text-zinc-200">{day.label}</span>
+        <div className="flex flex-col items-center justify-center font-bold text-[10px] text-zinc-600 uppercase tracking-widest border-b border-white/5 pb-2">
+          <span>ČAS</span>
+        </div>
+        {DAYS.map((day, idx) => (
+          <div key={day.id} className="flex flex-col items-center border-b border-white/5 pb-2">
+            <span className="text-[10px] text-zinc-500 font-mono mb-0.5">
+              {weekDates[idx].day}. {weekDates[idx].month}.
+            </span>
+            <span className="font-bold text-zinc-200 text-sm tracking-wider">{day.label}</span>
           </div>
         ))}
 
