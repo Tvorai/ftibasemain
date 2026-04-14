@@ -1004,10 +1004,7 @@ export default function TrainerDashboardPage() {
       case "profil":
         return (
           <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
-            <h2 className="text-4xl font-display uppercase tracking-wider mb-2 text-emerald-400 flex items-center gap-2">
-              Môj profil
-              <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-500 font-mono">v1.1</span>
-            </h2>
+            <h2 className="text-4xl font-display uppercase tracking-wider mb-2 text-emerald-400">Môj profil</h2>
 
             <div className="flex items-center justify-between gap-3 border border-emerald-500/30 rounded-2xl bg-zinc-900/30 backdrop-blur-sm px-4 py-3">
               <div className="min-w-0">
