@@ -11,8 +11,16 @@ import TrainerBookings from "@/components/booking/TrainerBookings";
 import TrainerClientResults from "@/components/trainer/TrainerClientResults";
 import TrainerMealPlanAI from "@/components/trainer/TrainerMealPlanAI";
 import { listTrainerReviewsForDashboardAction } from "@/lib/booking/actions";
+import Cropper from 'react-easy-crop';
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+type ImageWithCrop = {
+  url: string;
+  crop?: { x: number; y: number };
+  zoom?: number;
+  croppedArea?: { x: number; y: number; width: number; height: number };
+};
 
 type TabId = "profil" | "rezervacie" | "sluzby" | "kalendar" | "online-konzultacie" | "recenzie" | "vysledky" | "znacky" | "ai-jedalnicek" | "nastavenia" | "transformation";
 type CalendarTabId = "moj_kalendar" | "nastavenia_kalendara";
@@ -145,8 +153,15 @@ export default function TrainerDashboardPage() {
   const [city, setCity] = useState("");
   const [gymName, setGymName] = useState("");
   const [bio, setBio] = useState("");
-  const [images, setImages] = useState<(string | null)[]>([null, null, null, null]);
+  const [images, setImages] = useState<(string | ImageWithCrop | null)[]>([null, null, null, null]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // State pre crop modal
+  const [cropModalIndex, setCropModalIndex] = useState<number | null>(null);
+  const [tempCrop, setTempCrop] = useState({ x: 0, y: 0 });
+  const [tempZoom, setTempZoom] = useState(1);
+  const [tempCroppedArea, setTempCroppedArea] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [isCropping, setIsCropping] = useState(false);
 
   // State pre "Moje značky"
   const [activeBrandSubTab, setActiveBrandSubTab] = useState<BrandSubTabId>("pridat");
@@ -195,6 +210,23 @@ export default function TrainerDashboardPage() {
     service_type: "personal" as "personal" | "online" | "meal_plan" | "transformation",
     max_uses: ""
   });
+
+  const handleSaveCrop = () => {
+    if (cropModalIndex === null) return;
+    const currentImg = images[cropModalIndex];
+    if (!currentImg) return;
+
+    const url = typeof currentImg === "string" ? currentImg : currentImg.url;
+    const newImages = [...images];
+    newImages[cropModalIndex] = {
+      url,
+      crop: tempCrop,
+      zoom: tempZoom,
+      croppedArea: tempCroppedArea || undefined
+    };
+    setImages(newImages);
+    setCropModalIndex(null);
+  };
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -809,9 +841,9 @@ export default function TrainerDashboardPage() {
 
       setNewDiscount({ code: "", type: "percent", value: "", service_type: "personal", max_uses: "" });
       loadProfile();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      alert(err.message || "Chyba pri pridávaní zľavy.");
+      alert(err instanceof Error ? err.message : "Chyba pri pridávaní zľavy.");
     } finally {
       setSaving(false);
     }
@@ -826,7 +858,7 @@ export default function TrainerDashboardPage() {
         .eq("id", id);
       if (error) throw error;
       loadProfile();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
     } finally {
       setSaving(false);
@@ -843,7 +875,7 @@ export default function TrainerDashboardPage() {
         .eq("id", id);
       if (error) throw error;
       loadProfile();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
     } finally {
       setSaving(false);
@@ -1076,18 +1108,43 @@ export default function TrainerDashboardPage() {
                     <div key={idx} className="relative w-16 h-16 md:w-20 md:h-20 rounded-2xl border border-emerald-500/30 overflow-hidden shrink-0 bg-zinc-950/40">
                       {img ? (
                         <>
-                          <Image src={img} alt={`Profile ${idx}`} fill className="object-cover" />
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeImage(idx);
-                            }}
-                            className="absolute top-2 right-2 bg-black/70 text-white rounded-full w-6 h-6 flex items-center justify-center text-[10px] hover:bg-black transition-colors z-20"
-                            aria-label="Odstrániť fotku"
-                          >
-                            ✕
-                          </button>
+                          <Image src={typeof img === "string" ? img : img.url} alt={`Profile ${idx}`} fill className="object-cover" />
+                          <div className="absolute inset-0 bg-black/20" />
+                          <div className="absolute top-1 right-1 flex flex-col gap-1 z-20">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeImage(idx);
+                              }}
+                              className="bg-black/70 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-black transition-colors"
+                              aria-label="Odstrániť fotku"
+                            >
+                              ✕
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const current = images[idx];
+                                if (!current) return;
+                                setCropModalIndex(idx);
+                                if (typeof current !== "string" && current.crop) {
+                                  setTempCrop(current.crop);
+                                  setTempZoom(current.zoom || 1);
+                                } else {
+                                  setTempCrop({ x: 0, y: 0 });
+                                  setTempZoom(1);
+                                }
+                              }}
+                              className="bg-emerald-500 text-black rounded-full w-5 h-5 flex items-center justify-center hover:bg-emerald-400 transition-colors"
+                              aria-label="Upraviť orez"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                              </svg>
+                            </button>
+                          </div>
                         </>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-zinc-700 text-xs font-bold">—</div>
@@ -1095,6 +1152,66 @@ export default function TrainerDashboardPage() {
                     </div>
                   ))}
                 </div>
+
+                {cropModalIndex !== null && (
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4">
+                    <div className="bg-zinc-900 border border-emerald-500/30 rounded-[30px] w-full max-w-lg overflow-hidden flex flex-col">
+                      <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                        <h3 className="text-white font-bold uppercase tracking-widest text-sm">Upraviť pozíciu fotky</h3>
+                        <button onClick={() => setCropModalIndex(null)} className="text-zinc-500 hover:text-white transition-colors">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 6L6 18M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      
+                      <div className="relative aspect-[4/3] bg-black">
+                        <Cropper
+                           image={typeof images[cropModalIndex] === "string" ? (images[cropModalIndex] as string) : (images[cropModalIndex] as ImageWithCrop).url}
+                           crop={tempCrop}
+                           zoom={tempZoom}
+                           aspect={4 / 3}
+                           onCropChange={setTempCrop}
+                           onZoomChange={setTempZoom}
+                           onCropComplete={(croppedArea) => setTempCroppedArea(croppedArea)}
+                         />
+                      </div>
+
+                      <div className="p-6 space-y-6">
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
+                            <span>Zoom</span>
+                            <span>{Math.round(tempZoom * 100)}%</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={1}
+                            max={3}
+                            step={0.1}
+                            value={tempZoom}
+                            onChange={(e) => setTempZoom(parseFloat(e.target.value))}
+                            className="w-full accent-emerald-500"
+                          />
+                        </div>
+
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => setCropModalIndex(null)}
+                            className="flex-1 px-6 py-3 rounded-full border border-zinc-700 text-zinc-400 font-bold uppercase tracking-widest text-[10px] hover:bg-white/5 transition-colors"
+                          >
+                            Zrušiť
+                          </button>
+                          <button
+                            onClick={handleSaveCrop}
+                            className="flex-1 px-6 py-3 rounded-full bg-emerald-500 text-black font-bold uppercase tracking-widest text-[10px] hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20"
+                          >
+                            Uložiť výrez
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="mt-10 flex justify-end">

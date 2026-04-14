@@ -24,13 +24,20 @@ type TrainerTransformation = {
   regular_price_cents: number;
 };
 
+type ImageWithCrop = {
+  url: string;
+  crop?: { x: number; y: number };
+  zoom?: number;
+  croppedArea?: { x: number; y: number; width: number; height: number };
+};
+
 type TrainerProfile = {
   id: string;
   slug: string;
   bio: string | null;
   headline: string | null;
   city: string | null;
-  images: string[] | null;
+  images: (string | ImageWithCrop)[] | null;
   brands: {
     name?: string;
     logo?: string;
@@ -220,8 +227,8 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
     setIsMealPlanModalOpen(true);
   }, [trainer]);
 
-  const images: string[] = trainer?.images && Array.isArray(trainer.images)
-    ? trainer.images.filter((img): img is string => img !== null)
+  const images = trainer?.images && Array.isArray(trainer.images)
+    ? trainer.images.filter((img): img is string | ImageWithCrop => img !== null)
     : [];
   const reviews: TrainerReview[] = Array.isArray(trainer?.reviews)
     ? (trainer?.reviews as unknown[]).flatMap((item): TrainerReview[] => {
@@ -521,20 +528,42 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
           >
             <Image src="/share%20icon.png" alt="" width={18} height={18} />
           </button>
-          {images.map((img, idx) => (
-            <div 
-              key={idx}
-              className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${activeImageIndex === idx ? "opacity-100 z-10" : "opacity-0 z-0"}`}
-            >
-              <Image 
-                src={img} 
-                alt={`Trainer banner ${idx + 1}`} 
-                fill 
-                className="object-cover"
-                priority={idx === 0}
-              />
-            </div>
-          ))}
+          {images.map((img, idx) => {
+            const isObject = typeof img !== "string";
+            const url = isObject ? img.url : img;
+            const croppedArea = isObject ? img.croppedArea : null;
+
+            return (
+              <div 
+                key={idx}
+                className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${activeImageIndex === idx ? "opacity-100 z-10" : "opacity-0 z-0"}`}
+              >
+                {croppedArea ? (
+                  <div className="relative w-full h-full overflow-hidden">
+                    <img 
+                      src={url} 
+                      alt={`Trainer banner ${idx + 1}`}
+                      className="absolute max-w-none"
+                      style={{
+                        width: `${100 / (croppedArea.width / 100)}%`,
+                        height: `${100 / (croppedArea.height / 100)}%`,
+                        left: `${-croppedArea.x * (100 / croppedArea.width)}%`,
+                        top: `${-croppedArea.y * (100 / croppedArea.height)}%`,
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <Image 
+                    src={url} 
+                    alt={`Trainer banner ${idx + 1}`} 
+                    fill 
+                    className="object-cover"
+                    priority={idx === 0}
+                  />
+                )}
+              </div>
+            );
+          })}
           
           {images.length > 1 && (
             <>
@@ -822,7 +851,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
           <div className="flex flex-col items-center text-center">
             <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-emerald-500/30 mb-6">
               {images[0] ? (
-                <Image src={images[0]} alt={trainer.profiles?.full_name || ""} fill className="object-cover" />
+                <Image src={typeof images[0] === "string" ? images[0] : images[0].url} alt={trainer.profiles?.full_name || ""} fill className="object-cover" />
               ) : (
                 <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-zinc-500">
                   {trainer.profiles?.full_name?.charAt(0) || "T"}
@@ -920,7 +949,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
       >
         {trainer.brands && trainer.brands.length > 0 ? (
           <div className="space-y-4">
-            {trainer.brands.map((brand: any, index: number) => (
+            {trainer.brands.map((brand, index: number) => (
               <div key={index} className="flex items-center gap-4 p-3 border border-zinc-700 rounded-lg bg-zinc-800/50">
                 {brand.logo && (
                   <Image src={brand.logo} alt={brand.name || "Brand logo"} width={64} height={64} className="rounded-md object-contain" />
