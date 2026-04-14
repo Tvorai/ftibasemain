@@ -33,20 +33,35 @@ export default function TrainerCalendar({
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Výpočet aktuálneho týždňa (pondelok - nedeľa)
+  // Výpočet rolling 7-dňového okna zosúladeného s rezervačným formulárom
   const weekDates = React.useMemo(() => {
     const now = new Date();
-    const day = now.getDay(); // 0-6 (Ne-So)
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Upraviť na pondelok
-    const monday = new Date(now.setDate(diff));
+    now.setHours(0, 0, 0, 0);
     
-    return DAYS.map((_, index) => {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + index);
+    // Vytvoriť pole 7 po sebe nasledujúcich dní od dnes
+    const windowDays = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(now);
+      d.setDate(now.getDate() + i);
+      return d;
+    });
+
+    const getWeekdayNumber = (date: Date): number => {
+      const js = date.getDay(); // 0=Sun..6=Sat
+      return js === 0 ? 7 : js; // 1=Mon..7=Sun
+    };
+
+    // Namapovať dni na ich weekday ID (1-7)
+    const daysByWeekday = new Map<number, Date>();
+    windowDays.forEach(d => {
+      daysByWeekday.set(getWeekdayNumber(d), d);
+    });
+
+    return DAYS.map((day) => {
+      const date = daysByWeekday.get(day.id);
       return {
-        day: date.getDate(),
-        month: date.getMonth() + 1,
-        fullDate: date
+        day: date?.getDate() || 0,
+        month: (date?.getMonth() || 0) + 1,
+        fullDate: date || new Date()
       };
     });
   }, []);

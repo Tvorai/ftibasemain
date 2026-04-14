@@ -181,6 +181,36 @@ export default function CalendarSettings({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Výpočet rolling 7-dňového okna zosúladeného s rezervačným formulárom
+  const weekDates = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    const windowDays = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(now);
+      d.setDate(now.getDate() + i);
+      return d;
+    });
+
+    const getWeekdayNumber = (date: Date): number => {
+      const js = date.getDay();
+      return js === 0 ? 7 : js;
+    };
+
+    const daysByWeekday = new Map<number, Date>();
+    windowDays.forEach(d => {
+      daysByWeekday.set(getWeekdayNumber(d), d);
+    });
+
+    return DAYS.map((day) => {
+      const date = daysByWeekday.get(day.id);
+      return {
+        day: date?.getDate() || 0,
+        month: (date?.getMonth() || 0) + 1
+      };
+    });
+  }, []);
+
   const loadAvailability = useCallback(
     async (source: "effect" | "afterSave") => {
       if (!trainerId) return { rowCount: 0 };
@@ -312,9 +342,12 @@ export default function CalendarSettings({
       <div className="overflow-x-auto pb-4">
         <div className="min-w-[600px] grid grid-cols-[80px_repeat(7,1fr)] gap-2">
           {/* Header (Dni + Toggles) */}
-          <div className="flex items-center justify-center font-bold text-[10px] text-zinc-500 uppercase tracking-widest">Čas</div>
-          {DAYS.map(day => (
-            <div key={day.id} className="flex flex-col items-center gap-2">
+          <div className="flex items-center justify-center font-bold text-[10px] text-zinc-600 uppercase tracking-widest border-b border-white/5 pb-2">ČAS</div>
+          {DAYS.map((day, idx) => (
+            <div key={day.id} className="flex flex-col items-center gap-2 border-b border-white/5 pb-2">
+              <span className="text-[10px] text-zinc-500 font-mono">
+                {weekDates[idx].day}. {weekDates[idx].month}.
+              </span>
               <span className="font-bold text-zinc-200">{day.label}</span>
               <button
                 onClick={() => toggleDay(day.id)}
