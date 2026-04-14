@@ -1132,9 +1132,11 @@ export default function TrainerDashboardPage() {
                                 if (typeof current !== "string" && current.crop) {
                                   setTempCrop(current.crop);
                                   setTempZoom(current.zoom || 1);
+                                  setTempCroppedArea(current.croppedArea || null);
                                 } else {
                                   setTempCrop({ x: 0, y: 0 });
                                   setTempZoom(1);
+                                  setTempCroppedArea(null);
                                 }
                               }}
                               className="bg-emerald-500 text-black rounded-full w-6 h-6 flex items-center justify-center hover:bg-emerald-400 transition-colors shadow-md"
