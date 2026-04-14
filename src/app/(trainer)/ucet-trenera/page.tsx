@@ -1004,7 +1004,10 @@ export default function TrainerDashboardPage() {
       case "profil":
         return (
           <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
-            <h2 className="text-4xl font-display uppercase tracking-wider mb-2 text-emerald-400">Môj profil</h2>
+            <h2 className="text-4xl font-display uppercase tracking-wider mb-2 text-emerald-400 flex items-center gap-2">
+              Môj profil
+              <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded text-emerald-500 font-mono">v1.1</span>
+            </h2>
 
             <div className="flex items-center justify-between gap-3 border border-emerald-500/30 rounded-2xl bg-zinc-900/30 backdrop-blur-sm px-4 py-3">
               <div className="min-w-0">
@@ -1110,18 +1113,20 @@ export default function TrainerDashboardPage() {
                         <>
                           <Image src={typeof img === "string" ? img : img.url} alt={`Profile ${idx}`} fill className="object-cover" />
                           <div className="absolute inset-0 bg-black/20" />
-                          <div className="absolute top-1 right-1 flex flex-col gap-1 z-[100]">
+                          <div className="absolute top-1 right-1 z-[100]">
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 removeImage(idx);
                               }}
-                              className="bg-black/80 text-white rounded-full w-6 h-6 flex items-center justify-center text-[10px] hover:bg-black transition-colors shadow-md"
+                              className="bg-black/80 text-white rounded-full w-7 h-7 flex items-center justify-center text-xs hover:bg-black transition-colors shadow-lg border border-white/20"
                               aria-label="Odstrániť fotku"
                             >
                               ✕
                             </button>
+                          </div>
+                          <div className="absolute bottom-1 right-1 z-[100]">
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1139,10 +1144,10 @@ export default function TrainerDashboardPage() {
                                   setTempCroppedArea(null);
                                 }
                               }}
-                              className="bg-emerald-500 text-black rounded-full w-6 h-6 flex items-center justify-center hover:bg-emerald-400 transition-colors shadow-md"
+                              className="bg-emerald-500 text-black rounded-full w-7 h-7 flex items-center justify-center hover:bg-emerald-400 transition-colors shadow-lg border border-black/20"
                               aria-label="Upraviť orez"
                             >
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
                               </svg>
                             </button>
