@@ -1095,20 +1095,20 @@ export default function TrainerDashboardPage() {
                 </div>
               </div>
 
-              <div className="mt-8 space-y-3">
+              <div className="mt-8 space-y-4">
                 <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold ml-2">Profilové fotky</span>
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full aspect-[16/9] border border-emerald-500/50 border-dashed rounded-[30px] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-500/5 transition-colors overflow-hidden relative"
+                  className="w-full aspect-[21/9] border border-emerald-500/50 border-dashed rounded-[30px] flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-500/5 transition-colors overflow-hidden relative"
                 >
-                  <div className="text-emerald-500 text-5xl font-light mb-2">+</div>
+                  <div className="text-emerald-500 text-5xl font-light mb-1">+</div>
                   <div className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold">Nahrať profilové fotky</div>
                 </div>
                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
 
-                <div className="flex flex-wrap justify-center gap-3 pt-2">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
                   {images.map((img, idx) => (
-                    <div key={idx} className="relative w-16 h-16 md:w-20 md:h-20 rounded-2xl border border-emerald-500/30 overflow-hidden shrink-0 bg-zinc-950/40">
+                    <div key={idx} className="relative aspect-square rounded-2xl border border-emerald-500/30 overflow-hidden bg-zinc-950/40">
                       {img ? (
                         <>
                           <Image src={typeof img === "string" ? img : img.url} alt={`Profile ${idx}`} fill className="object-cover" />
