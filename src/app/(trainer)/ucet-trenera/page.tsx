@@ -626,8 +626,8 @@ export default function TrainerDashboardPage() {
      const newImages = [...images];
      newImages[index] = null;
      // Posunúť ostatné fotky dopredu, aby nezostali diery
-     const filtered = newImages.filter((img): img is string => img !== null);
-     const result: (string | null)[] = [...filtered];
+     const filtered = newImages.filter((img): img is string | ImageWithCrop => img !== null);
+     const result: (string | ImageWithCrop | null)[] = [...filtered];
      while (result.length < 4) result.push(null);
      setImages(result);
    };
@@ -1110,14 +1110,14 @@ export default function TrainerDashboardPage() {
                         <>
                           <Image src={typeof img === "string" ? img : img.url} alt={`Profile ${idx}`} fill className="object-cover" />
                           <div className="absolute inset-0 bg-black/20" />
-                          <div className="absolute top-1 right-1 flex flex-col gap-1 z-20">
+                          <div className="absolute top-1 right-1 flex flex-col gap-1 z-[100]">
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 removeImage(idx);
                               }}
-                              className="bg-black/70 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] hover:bg-black transition-colors"
+                              className="bg-black/80 text-white rounded-full w-6 h-6 flex items-center justify-center text-[10px] hover:bg-black transition-colors shadow-md"
                               aria-label="Odstrániť fotku"
                             >
                               ✕
@@ -1137,10 +1137,10 @@ export default function TrainerDashboardPage() {
                                   setTempZoom(1);
                                 }
                               }}
-                              className="bg-emerald-500 text-black rounded-full w-5 h-5 flex items-center justify-center hover:bg-emerald-400 transition-colors"
+                              className="bg-emerald-500 text-black rounded-full w-6 h-6 flex items-center justify-center hover:bg-emerald-400 transition-colors shadow-md"
                               aria-label="Upraviť orez"
                             >
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
                               </svg>
                             </button>
