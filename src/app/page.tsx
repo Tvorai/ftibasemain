@@ -960,7 +960,7 @@ export default function HomePage() {
               Máš otázky?
             </h2>
             <p className="text-zinc-400 text-lg mb-12 max-w-2xl mx-auto">
-              Za Fitbase stojí reálny človek. Ak chceš, pokojne ma kontaktuj a rád ti ukážem, ako to funguje.
+              Ak máš akékoľvek otázky alebo potrebuješ pomôcť, pokojne nás kontaktuj.
             </p>
             <div className="flex flex-col items-center gap-8">
               <a href="mailto:info@fitbase.sk" className="text-emerald-400 text-2xl font-bold hover:text-emerald-300 transition-colors">info@fitbase.sk</a>
