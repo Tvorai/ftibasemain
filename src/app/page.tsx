@@ -86,7 +86,8 @@ export default function HomePage() {
     { q: "Ako dostanem peniaze?", a: "Peniaze od klientov chodia priamo na váš prepojený Stripe účet, odkiaľ si ich môžete nechať posielať na svoj bankový účet." },
     { q: "Môžem si nastavovať ceny?", a: "Samozrejme, ceny za všetky svoje služby si určujete vy sami a kedykoľvek ich môžete zmeniť v nastaveniach profilu." },
     { q: "Je platforma platená?", a: "Nie, registrácia je úplne zadarmo. Jediný poplatok je 10 % z každej úspešnej transakcie." },
-    { q: "Som na platformu viazaný?", a: "Nie, ak nebudete spokojný, tak ju jednoducho prestanete používať." }
+    { q: "Som na platformu viazaný?", a: "Nie, ak nebudete spokojný, tak ju jednoducho prestanete používať." },
+    { q: "Akú mám istotu, že mi budú peniaze vyplatené?", a: "Všetky platby prebiehajú cez celosvetovo známu a dôveryhodnú platformu Stripe. Po platbe od klienta Stripe automaticky rozdelí peniaze medzi účet platformy a účet trénera. Platforma nemá prístup k vášmu Stripe účtu." }
   ];
 
   const clientFaqs = [
