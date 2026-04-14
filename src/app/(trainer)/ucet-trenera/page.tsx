@@ -1,17 +1,30 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseUrl, supabaseAnonKey, siteUrl } from "@/lib/config";
-import TrainerCalendar from "@/components/trainer/TrainerCalendar";
-import CalendarSettings from "@/components/trainer/CalendarSettings";
-import TrainerBookings from "@/components/booking/TrainerBookings";
-import TrainerClientResults from "@/components/trainer/TrainerClientResults";
-import TrainerMealPlanAI from "@/components/trainer/TrainerMealPlanAI";
 import { listTrainerReviewsForDashboardAction } from "@/lib/booking/actions";
 import Cropper from 'react-easy-crop';
+
+// Lazy loaded komponenty pre zrýchlenie úvodného načítania
+const TrainerCalendar = dynamic(() => import("@/components/trainer/TrainerCalendar"), {
+  loading: () => <div className="animate-pulse bg-zinc-900/20 h-96 rounded-3xl" />
+});
+const CalendarSettings = dynamic(() => import("@/components/trainer/CalendarSettings"), {
+  loading: () => <div className="animate-pulse bg-zinc-900/20 h-96 rounded-3xl" />
+});
+const TrainerBookings = dynamic(() => import("@/components/booking/TrainerBookings"), {
+  loading: () => <div className="animate-pulse bg-zinc-900/20 h-96 rounded-3xl" />
+});
+const TrainerClientResults = dynamic(() => import("@/components/trainer/TrainerClientResults"), {
+  loading: () => <div className="animate-pulse bg-zinc-900/20 h-96 rounded-3xl" />
+});
+const TrainerMealPlanAI = dynamic(() => import("@/components/trainer/TrainerMealPlanAI"), {
+  loading: () => <div className="animate-pulse bg-zinc-900/20 h-96 rounded-3xl" />
+});
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -140,6 +153,8 @@ export default function TrainerDashboardPage() {
   const [activeCalendarTab, setActiveCalendarTab] = useState<CalendarTabId>("moj_kalendar");
   const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTabId>("payment_account");
   const [loading, setLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [deferredLoading, setDeferredLoading] = useState(false);
   const [authChecking, setAuthChecking] = useState(true);
   const [saving, setSaving] = useState(false);
   const servicesPersistLockRef = useRef(false);
@@ -228,15 +243,62 @@ export default function TrainerDashboardPage() {
     setCropModalIndex(null);
   };
 
+  const loadDeferredData = useCallback(async (trainer: TrainerRow) => {
+    if (!trainer) return;
+    setDeferredLoading(true);
+    console.log("[TRAINER DASHBOARD] deferred section fetch started");
+    try {
+      const { data: dscRes } = await supabase
+        .from("trainer_discounts")
+        .select("*")
+        .eq("trainer_id", trainer.id)
+        .order("created_at", { ascending: false });
+      if (dscRes) setDiscounts(dscRes as Discount[]);
+
+      // Načítanie "Mesačná premena"
+      const { data: transRes, error: transErr } = await supabase
+        .from("trainer_transformations")
+        .select("*")
+        .eq("trainer_id", trainer.id)
+        .maybeSingle();
+
+      if (transRes) {
+        setTransformation(transRes as TrainerTransformation);
+      } else if (!transErr) {
+        // Vytvoriť default row
+        const defaultTrans = {
+          trainer_id: trainer.id,
+          is_enabled: false,
+          headline: "",
+          subheadline: "",
+          personal_sessions_count: 0,
+          online_calls_count: 0,
+          includes_meal_plan: false,
+          price_month_cents: 0,
+          regular_price_cents: 0
+        };
+        const { data: newTrans } = await supabase
+          .from("trainer_transformations")
+          .insert(defaultTrans)
+          .select()
+          .maybeSingle();
+        if (newTrans) setTransformation(newTrans as TrainerTransformation);
+      }
+      console.log("[TRAINER DASHBOARD] deferred section fetch finished");
+    } catch (err) {
+      console.error("[TRAINER DASHBOARD] error loading deferred data:", err);
+    } finally {
+      setDeferredLoading(false);
+    }
+  }, []);
+
   const loadProfile = useCallback(async () => {
-    setLoading(true);
-    console.log("[UCET-TRENERA] loadProfile starting...");
+    setProfileLoading(true);
+    console.log("[TRAINER DASHBOARD] initial section = moj-profil");
+    console.log("[TRAINER DASHBOARD] profile fetch started");
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log("[UCET-TRENERA] loadProfile session:", !!session);
-
       if (!session) {
-        console.log("[UCET-TRENERA] No session in loadProfile, redirecting to /prihlasenie");
         router.replace("/prihlasenie");
         return;
       }
@@ -285,50 +347,17 @@ export default function TrainerDashboardPage() {
         setPriceMealPlanEuro(typeof pMealPlan === "number" && pMealPlan > 0 ? (pMealPlan / 100).toFixed(2) : "");
         setPlatformFeePercent(String((trainer as TrainerRow).platform_fee_percent ?? 10));
 
-        const { data: dscRes } = await supabase
-          .from("trainer_discounts")
-          .select("*")
-          .eq("trainer_id", trainer.id)
-          .order("created_at", { ascending: false });
-        if (dscRes) setDiscounts(dscRes as Discount[]);
-
-        // Načítanie "Mesačná premena"
-        const { data: transRes, error: transErr } = await supabase
-          .from("trainer_transformations")
-          .select("*")
-          .eq("trainer_id", trainer.id)
-          .maybeSingle();
-
-        if (transRes) {
-          setTransformation(transRes as TrainerTransformation);
-        } else if (!transErr) {
-          // Vytvoriť default row
-          const defaultTrans = {
-            trainer_id: trainer.id,
-            is_enabled: false,
-            headline: "",
-            subheadline: "",
-            personal_sessions_count: 0,
-            online_calls_count: 0,
-            includes_meal_plan: false,
-            price_month_cents: 0,
-            regular_price_cents: 0
-          };
-          const { data: newTrans } = await supabase
-            .from("trainer_transformations")
-            .insert(defaultTrans)
-            .select()
-            .maybeSingle();
-          if (newTrans) setTransformation(newTrans as TrainerTransformation);
-        }
+        console.log("[TRAINER DASHBOARD] profile fetch finished");
+        // Spustiť načítanie ostatných dát na pozadí
+        loadDeferredData(trainer);
       }
     } catch (err) {
-      console.error("Error loading profile:", err);
+      console.error("[TRAINER DASHBOARD] error loading profile:", err);
     } finally {
-      setLoading(false);
+      setProfileLoading(false);
       setAuthChecking(false);
     }
-  }, [router]);
+  }, [router, loadDeferredData]);
 
   const getAuthHeaders = useCallback(async (): Promise<Record<string, string>> => {
     const sessionRes = await supabase.auth.getSession();
@@ -973,28 +1002,18 @@ export default function TrainerDashboardPage() {
   }
 
   const renderTabContent = () => {
-    if (authChecking) {
+    if (profileLoading && activeTab === "profil") {
       return (
-        <div className="flex flex-col items-center justify-center h-full gap-4 py-20">
-          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          <div className="text-zinc-500 font-display text-xl uppercase tracking-widest">Overujem prihlásenie...</div>
-        </div>
-      );
-    }
-
-    if (loading) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full gap-6 py-20 animate-pulse">
-          <Image 
-            src="/simplelogo.webp" 
-            alt="Fitbase" 
-            width={60} 
-            height={60} 
-            className="w-[60px] h-[60px] opacity-80"
-          />
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-            <div className="text-zinc-500 font-display text-xl uppercase tracking-widest">Načítavam profil...</div>
+        <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto animate-pulse">
+          <div className="h-12 w-48 bg-emerald-500/20 rounded-xl mb-2" />
+          <div className="h-16 w-full bg-zinc-900/30 rounded-2xl mb-3" />
+          <div className="bg-zinc-900/30 border border-emerald-500/30 rounded-[30px] p-6 md:p-8 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="space-y-2 h-20 bg-zinc-950/50 rounded-xl" />
+              ))}
+            </div>
+            <div className="mt-8 h-40 bg-zinc-950/50 rounded-[30px]" />
           </div>
         </div>
       );
@@ -1108,7 +1127,14 @@ export default function TrainerDashboardPage() {
                     <div key={idx} className="relative aspect-square rounded-2xl border border-emerald-500/30 overflow-hidden bg-zinc-950/40">
                       {img ? (
                         <>
-                          <Image src={typeof img === "string" ? img : img.url} alt={`Profile ${idx}`} fill className="object-cover" />
+                          <Image 
+                            src={typeof img === "string" ? img : img.url} 
+                            alt={`Profile ${idx}`} 
+                            fill 
+                            className="object-cover"
+                            priority={idx === 0}
+                            sizes="(max-width: 768px) 50vw, 25vw"
+                          />
                           <div className="absolute inset-0 bg-black/20" />
                           <div className="absolute top-1 right-1 z-[100]">
                             <button
@@ -2069,6 +2095,25 @@ export default function TrainerDashboardPage() {
     { id: "ai-jedalnicek", label: "AI jedálniček" },
     { id: "nastavenia", label: "Nadstavenia" },
   ];
+
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6 animate-pulse">
+        <Image 
+          src="/simplelogo.webp" 
+          alt="Fitbase" 
+          width={80} 
+          height={80} 
+          className="w-[80px] h-[80px] opacity-80"
+          priority
+        />
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <div className="text-zinc-500 font-display text-xl uppercase tracking-widest">Pripravujem dashboard...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col md:flex-row">
