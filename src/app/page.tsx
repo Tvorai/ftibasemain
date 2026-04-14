@@ -223,7 +223,7 @@ export default function HomePage() {
 
       {/* Global Black Overlay (Light overlay to improve readability) */}
       <div 
-        className="fixed inset-0 w-full h-full pointer-events-none bg-black/20" 
+        className="fixed inset-0 w-full h-full pointer-events-none bg-black/45" 
         style={{ zIndex: 1 }}
       />
 
