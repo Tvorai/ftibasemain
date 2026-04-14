@@ -29,6 +29,32 @@ const AvailableSlots: React.FC<AvailableSlotsProps> = ({
 
   const selectedSlot = externalSelectedSlot !== undefined ? externalSelectedSlot : internalSelectedSlot;
 
+  // Debug logy pre zosúladenie s adminom
+  useEffect(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const windowDays = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(now);
+      d.setHours(0, 0, 0, 0);
+      d.setDate(now.getDate() + i);
+      return d;
+    });
+    const getWeekdayNumber = (date: Date): number => {
+      const js = date.getDay(); // 0=Sun..6=Sat
+      return js === 0 ? 7 : js; // 1=Mon..7=Sun
+    };
+    const daysByWeekday = windowDays.reduce((acc, d) => {
+      acc.set(getWeekdayNumber(d), d);
+      return acc;
+    }, new Map<number, Date>());
+    const daysArr = Array.from({ length: 7 }, (_, i) => daysByWeekday.get(i + 1)).filter(
+      (d): d is Date => Boolean(d)
+    );
+
+    console.log("[BOOKING FORM] today =", today.toLocaleDateString('sk-SK'));
+    console.log("[BOOKING FORM] computed dates =", daysArr.map(d => `${d.getDate()}.${d.getMonth() + 1}.`).join(', '));
+  }, []);
+
   const formatDayKey = (date: Date): string => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
