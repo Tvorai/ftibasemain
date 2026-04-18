@@ -57,10 +57,10 @@ export async function resolveTrainerContact(
     if (trainer.profile_id) {
       const { data: profile } = await supabase
         .from("profiles")
-        .select("phone")
+        .select("phone_number")
         .eq("id", trainer.profile_id)
         .maybeSingle();
-      phone = profile?.phone || null;
+      phone = profile?.phone_number || null;
     }
 
     return {
