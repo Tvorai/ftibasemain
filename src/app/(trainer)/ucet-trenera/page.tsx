@@ -357,16 +357,17 @@ export default function TrainerDashboardPage() {
         fetchLockRef.current['deferred'] = trainer.id; 
       } else {
         console.log("[DISCOUNTS FETCH] query success", dscRes?.length || 0, "codes");
-        if (dscRes) {
-          setDiscounts((dscRes as any[]).map(d => {
-            console.log("[DISCOUNT USAGE] code =", d.code, "used =", d.used_count, "max =", d.max_uses);
-            return {
-              ...d,
-              used_count: d.used_count || 0,
-              is_active: d.is_active ?? true
-            };
-          }));
-        }
+      if (dscRes) {
+        console.log("[DISCOUNTS UI] list refreshed", dscRes.length, "codes");
+        setDiscounts((dscRes as any[]).map(d => {
+          console.log("[DISCOUNT USAGE] code =", d.code, "used =", d.used_count, "max =", d.max_uses);
+          return {
+            ...d,
+            used_count: d.used_count || 0,
+            is_active: d.is_active ?? true
+          };
+        }));
+      }
       }
 
       console.log("[FETCH ONCE] trainer_transformations");
@@ -969,7 +970,10 @@ export default function TrainerDashboardPage() {
 
       if (error) throw error;
 
+      console.log("[DISCOUNTS UI] create success, refreshing list");
       setNewDiscount({ code: "", type: "percent", value: "", service_type: "personal", max_uses: "" });
+      fetchLockRef.current['deferred'] = false; // Umožniť refetch po pridaní
+      fetchLockRef.current['profile'] = false; // Umožniť refetch profilu
       loadProfile();
     } catch (err: unknown) {
       console.error(err);
@@ -987,6 +991,9 @@ export default function TrainerDashboardPage() {
         .update({ is_active: !current })
         .eq("id", id);
       if (error) throw error;
+      console.log("[DISCOUNTS UI] update success, refreshing list");
+      fetchLockRef.current['deferred'] = false;
+      fetchLockRef.current['profile'] = false;
       loadProfile();
     } catch (err: unknown) {
       console.error(err);
@@ -1004,6 +1011,9 @@ export default function TrainerDashboardPage() {
         .delete()
         .eq("id", id);
       if (error) throw error;
+      console.log("[DISCOUNTS UI] delete success, refreshing list");
+      fetchLockRef.current['deferred'] = false;
+      fetchLockRef.current['profile'] = false;
       loadProfile();
     } catch (err: unknown) {
       console.error(err);
