@@ -354,6 +354,12 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
           const slugsByTrainerId = new Map<string, string>();
           if (trainerIds.length > 0) {
             const trainerRes = await supabase.from("trainers").select("id, slug").in("id", trainerIds);
+          
+          console.log("[FETCH AUDIT] ClientBookings = fetchBookings (slugs lookup)");
+          console.log("[FETCH AUDIT] table = trainers");
+          console.log("[FETCH AUDIT] old select = id, slug");
+          console.log("[FETCH AUDIT] new select = id, slug");
+          console.log("[FETCH AUDIT] limit added = false");
             const trainerPayload: unknown = trainerRes.data;
             if (!trainerRes.error && Array.isArray(trainerPayload)) {
               for (const item of trainerPayload as unknown[]) {
@@ -402,6 +408,12 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
             .from("trainers")
             .select("id, slug, profiles(full_name,email,phone_number)")
             .in("id", trainerIds);
+
+          console.log("[FETCH AUDIT] ClientBookings = fetchBookings (contacts lookup)");
+          console.log("[FETCH AUDIT] table = trainers");
+          console.log("[FETCH AUDIT] old select = id, slug, profiles(full_name,email,phone_number)");
+          console.log("[FETCH AUDIT] new select = id, slug, profiles(full_name,email,phone_number)");
+          console.log("[FETCH AUDIT] limit added = false");
 
           const trainerPayload: unknown = trainerRes.data;
           if (!trainerRes.error && Array.isArray(trainerPayload)) {

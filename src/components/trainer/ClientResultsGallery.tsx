@@ -33,9 +33,14 @@ export default function ClientResultsGallery({ trainerId }: ClientResultsGallery
     try {
       const { data, error } = await supabase
         .from("client_results")
-        .select("*")
+        .select("id, before_image_url, after_image_url, client_name, note, created_at")
         .eq("trainer_id", trainerId)
         .order("created_at", { ascending: false });
+
+      console.log("[FETCH AUDIT] ClientResultsGallery = fetchResults");
+      console.log("[FETCH AUDIT] table = client_results");
+      console.log("[FETCH AUDIT] old select = *");
+      console.log("[FETCH AUDIT] new select = id, before_image_url, after_image_url, client_name, note, created_at");
 
       if (error) throw error;
       console.log("[ClientResultsGallery] fetched data:", data);

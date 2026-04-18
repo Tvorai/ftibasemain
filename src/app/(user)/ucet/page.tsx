@@ -90,6 +90,12 @@ export default function UserAccountPage() {
         .eq("id", user.id)
         .maybeSingle<{ full_name: string | null; phone_number: string | null }>();
 
+      console.log("[FETCH AUDIT] /ucet = loadProfile");
+      console.log("[FETCH AUDIT] table = profiles");
+      console.log("[FETCH AUDIT] old select = full_name, phone_number");
+      console.log("[FETCH AUDIT] new select = full_name, phone_number");
+      console.log("[FETCH AUDIT] limit added = maybeSingle");
+
       if (!prof.error && prof.data?.full_name) setFullName(prof.data.full_name);
       if (!prof.error && typeof prof.data?.phone_number === "string") setPhoneNumber(prof.data.phone_number);
     } catch (err) {

@@ -76,13 +76,18 @@ export default function TrainerMealPlanAI({ trainerId }: TrainerMealPlanAIProps)
     try {
       const { data, error } = await supabase
         .from("meal_plan_requests")
-        .select("*")
+        .select("id, name, goal, created_at, status, ai_generation_status, ai_generated_plan, trainer_edited_plan, ai_last_error, ai_generated_at")
         .eq("trainer_id", trainerId)
         .in("status", ["confirmed", "in_progress", "completed"])
         .order("created_at", { ascending: false });
 
+      console.log("[FETCH AUDIT] TrainerMealPlanAI = fetchRequests");
+      console.log("[FETCH AUDIT] table = meal_plan_requests");
+      console.log("[FETCH AUDIT] old select = *");
+      console.log("[FETCH AUDIT] new select = id, name, goal, created_at, status, ai_generation_status, ai_generated_plan, trainer_edited_plan, ai_last_error, ai_generated_at");
+
       if (error) throw error;
-      setRequests(data || []);
+      setRequests((data as any) || []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Nepodarilo sa načítať požiadavky na jedálniček.");
     } finally {

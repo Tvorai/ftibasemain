@@ -78,13 +78,18 @@ export default function TrainerCalendar({
       try {
         const { data, error } = await supabase
           .from("bookings")
-          .select("*")
+          .select("id, starts_at, client_name, booking_status")
           .eq("trainer_id", trainerId)
           .eq("service_type", serviceType)
           .in("booking_status", ["confirmed", "pending_payment"]);
 
+        console.log("[FETCH AUDIT] TrainerCalendar = loadBookings");
+        console.log("[FETCH AUDIT] table = bookings");
+        console.log("[FETCH AUDIT] old select = *");
+        console.log("[FETCH AUDIT] new select = id, starts_at, client_name, booking_status");
+
         if (error) throw error;
-        setBookings(data || []);
+        setBookings((data as any) || []);
       } catch (err) {
         console.error("Chyba pri načítaní bookingov:", err);
       } finally {

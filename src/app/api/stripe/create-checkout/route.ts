@@ -125,19 +125,25 @@ export async function POST(request: Request) {
   if (input.discount_code) {
     const { data: discount, error: discountErr } = await supabase
       .from("trainer_discounts")
-      .select("*")
+      .select("id, code, type, value, max_uses, current_uses, is_active")
       .eq("trainer_id", input.trainer_id)
       .eq("code", input.discount_code.trim().toUpperCase())
       .eq("service_type", input.service_type)
       .eq("is_active", true)
       .maybeSingle();
 
+    console.log("[FETCH AUDIT] api/stripe/create-checkout = POST");
+    console.log("[FETCH AUDIT] table = trainer_discounts");
+    console.log("[FETCH AUDIT] old select = *");
+    console.log("[FETCH AUDIT] new select = id, code, type, value, max_uses, current_uses, is_active");
+
     if (discountErr) {
       console.error("Discount lookup error:", discountErr);
     }
 
     if (discount) {
-      const isUsageValid = !discount.max_uses || discount.used_count < discount.max_uses;
+      const currentUses = (discount as any).current_uses || 0;
+      const isUsageValid = !discount.max_uses || currentUses < discount.max_uses;
       if (isUsageValid) {
         const dType = discount.type;
         const dValue = discount.value;
@@ -255,9 +261,14 @@ export async function POST(request: Request) {
   if (input.service_type === "transformation") {
     const { data: trans } = await supabase
       .from("trainer_transformations")
-      .select("*")
+      .select("id, trainer_id, personal_sessions_count, online_calls_count, includes_meal_plan")
       .eq("trainer_id", input.trainer_id)
       .maybeSingle();
+
+    console.log("[FETCH AUDIT] api/stripe/create-checkout = POST (transformation metadata)");
+    console.log("[FETCH AUDIT] table = trainer_transformations");
+    console.log("[FETCH AUDIT] old select = *");
+    console.log("[FETCH AUDIT] new select = id, trainer_id, personal_sessions_count, online_calls_count, includes_meal_plan");
     
     if (trans) {
       metadata.duration_days = "30";

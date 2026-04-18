@@ -250,17 +250,33 @@ export default function TrainerDashboardPage() {
     try {
       const { data: dscRes } = await supabase
         .from("trainer_discounts")
-        .select("*")
+        .select("id, code, type, value, service_type, max_uses, current_uses, is_active")
         .eq("trainer_id", trainer.id)
         .order("created_at", { ascending: false });
-      if (dscRes) setDiscounts(dscRes as Discount[]);
+
+      console.log("[FETCH AUDIT] /ucet-trenera = loadDeferredData");
+      console.log("[FETCH AUDIT] table = trainer_discounts");
+      console.log("[FETCH AUDIT] old select = *");
+      console.log("[FETCH AUDIT] new select = id, code, type, value, service_type, max_uses, current_uses, is_active");
+
+      if (dscRes) {
+        const mappedDiscounts: Discount[] = (dscRes as any[]).map(d => ({
+          ...d,
+          used_count: d.current_uses || 0
+        }));
+        setDiscounts(mappedDiscounts);
+      }
 
       // Načítanie "Mesačná premena"
       const { data: transRes, error: transErr } = await supabase
         .from("trainer_transformations")
-        .select("*")
+        .select("id, trainer_id, is_enabled, headline, subheadline, personal_sessions_count, online_calls_count, includes_meal_plan, price_month_cents, regular_price_cents")
         .eq("trainer_id", trainer.id)
         .maybeSingle();
+
+      console.log("[FETCH AUDIT] table = trainer_transformations");
+      console.log("[FETCH AUDIT] old select = *");
+      console.log("[FETCH AUDIT] new select = id, trainer_id, is_enabled, headline, subheadline, personal_sessions_count, online_calls_count, includes_meal_plan, price_month_cents, regular_price_cents");
 
       if (transRes) {
         setTransformation(transRes as TrainerTransformation);
@@ -306,9 +322,14 @@ export default function TrainerDashboardPage() {
 
       const { data: trainer, error } = await supabase
         .from("trainers")
-        .select("*, profiles(full_name, phone_number)")
+        .select("id, slug, bio, city, images, brands, services, stripe_account_id, stripe_onboarding_completed, stripe_charges_enabled, stripe_payouts_enabled, price_personal_cents, price_online_cents, price_meal_plan_cents, platform_fee_percent, profiles(full_name, phone_number)")
         .eq("profile_id", user.id)
         .maybeSingle<TrainerRow>();
+
+      console.log("[FETCH AUDIT] /ucet-trenera = loadProfile");
+      console.log("[FETCH AUDIT] table = trainers");
+      console.log("[FETCH AUDIT] old select = *, profiles(full_name, phone_number)");
+      console.log("[FETCH AUDIT] new select = id, slug, bio, city, images, brands, services, stripe_account_id, stripe_onboarding_completed, stripe_charges_enabled, stripe_payouts_enabled, price_personal_cents, price_online_cents, price_meal_plan_cents, platform_fee_percent, profiles(full_name, phone_number)");
 
       if (error) throw error;
 

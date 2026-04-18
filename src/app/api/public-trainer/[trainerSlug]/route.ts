@@ -146,9 +146,14 @@ export async function GET(
 
   const transformationRes = await supabase
     .from("trainer_transformations")
-    .select("*")
+    .select("id, trainer_id, is_enabled, headline, subheadline, personal_sessions_count, online_calls_count, includes_meal_plan, price_month_cents, regular_price_cents")
     .eq("trainer_id", (data as { id: string }).id)
     .maybeSingle();
+
+  console.log("[FETCH AUDIT] api/public-trainer/[trainerSlug] = GET");
+  console.log("[FETCH AUDIT] table = trainer_transformations");
+  console.log("[FETCH AUDIT] old select = *");
+  console.log("[FETCH AUDIT] new select = id, trainer_id, is_enabled, headline, subheadline, personal_sessions_count, online_calls_count, includes_meal_plan, price_month_cents, regular_price_cents");
 
   const transformation = transformationRes.data || null;
 

@@ -59,10 +59,15 @@ export async function POST(request: Request) {
   // Fetch meal plan request
   const { data: mealPlanRequest, error: fetchError } = await supabase
     .from("meal_plan_requests")
-    .select("*")
+    .select("id, trainer_id, name, goal, height_cm, age, gender, allergens, favorite_foods")
     .eq("id", mealPlanRequestId)
     .eq("trainer_id", trainer.id)
     .maybeSingle();
+
+  console.log("[FETCH AUDIT] api/ai/meal-plan/generate = POST");
+  console.log("[FETCH AUDIT] table = meal_plan_requests");
+  console.log("[FETCH AUDIT] old select = *");
+  console.log("[FETCH AUDIT] new select = id, trainer_id, name, goal, height_cm, age, gender, allergens, favorite_foods");
 
   if (fetchError || !mealPlanRequest) {
     return NextResponse.json({ message: "Meal plan request not found or access denied." }, { status: 404 });

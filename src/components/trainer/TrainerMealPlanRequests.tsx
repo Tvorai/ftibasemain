@@ -42,13 +42,18 @@ export default function TrainerMealPlanRequests({ trainerId }: TrainerMealPlanRe
     try {
       const { data, error } = await supabase
         .from("meal_plan_requests")
-        .select("*")
+        .select("id, name, email, phone, goal, height_cm, age, gender, allergens, favorite_foods, status, payment_status, price_cents, created_at")
         .eq("trainer_id", trainerId)
         .in("status", ["confirmed", "in_progress"])
         .order("created_at", { ascending: false });
 
+      console.log("[FETCH AUDIT] TrainerMealPlanRequests = fetchRequests");
+      console.log("[FETCH AUDIT] table = meal_plan_requests");
+      console.log("[FETCH AUDIT] old select = *");
+      console.log("[FETCH AUDIT] new select = id, name, email, phone, goal, height_cm, age, gender, allergens, favorite_foods, status, payment_status, price_cents, created_at");
+
       if (error) throw error;
-      setRequests(data || []);
+      setRequests((data as any) || []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Nepodarilo sa načítať požiadavky na jedálniček.");
     } finally {

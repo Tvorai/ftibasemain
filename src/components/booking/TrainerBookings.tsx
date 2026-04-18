@@ -132,9 +132,14 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
     try {
       const { data, error } = await supabase
         .from("bookings")
-        .select("*") // Načítame všetky stĺpce pre istotu
+        .select("id, starts_at, ends_at, booking_status, payment_status, service_id, service_type, client_name, client_email, client_phone, client_note")
         .eq("trainer_id", trainerId)
         .order("starts_at", { ascending: true });
+
+      console.log("[FETCH AUDIT] TrainerBookings = fetchBookings");
+      console.log("[FETCH AUDIT] table = bookings");
+      console.log("[FETCH AUDIT] old select = *");
+      console.log("[FETCH AUDIT] new select = id, starts_at, ends_at, booking_status, payment_status, service_id, service_type, client_name, client_email, client_phone, client_note");
 
       if (error) throw error;
       const payload: unknown = data;

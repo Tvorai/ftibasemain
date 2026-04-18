@@ -140,11 +140,20 @@ export async function GET(request: Request) {
     .eq("client_profile_id", user.id)
     .order("starts_at", { ascending: false });
 
+  console.log("[FETCH AUDIT] api/user/bookings = GET");
+  console.log("[FETCH AUDIT] table = bookings");
+  console.log("[FETCH AUDIT] old select = id, trainer_id, starts_at, ends_at, booking_status, service_type");
+  console.log("[FETCH AUDIT] new select = id, trainer_id, starts_at, ends_at, booking_status, service_type");
+
   const mealPlansPromise = supabase
     .from("meal_plan_requests")
     .select("id, trainer_id, created_at, status")
     .eq("client_profile_id", user.id)
     .order("created_at", { ascending: false });
+
+  console.log("[FETCH AUDIT] table = meal_plan_requests");
+  console.log("[FETCH AUDIT] old select = id, trainer_id, created_at, status");
+  console.log("[FETCH AUDIT] new select = id, trainer_id, created_at, status");
 
   const [bookingsRes, mealPlansRes] = await Promise.all([bookingsPromise, mealPlansPromise]);
 
@@ -177,6 +186,10 @@ export async function GET(request: Request) {
       .from("trainers")
       .select("id, profiles(full_name,email,phone_number)")
       .in("id", trainerIds);
+
+    console.log("[FETCH AUDIT] table = trainers (contacts lookup)");
+    console.log("[FETCH AUDIT] old select = id, profiles(full_name,email,phone_number)");
+    console.log("[FETCH AUDIT] new select = id, profiles(full_name,email,phone_number)");
     if (trainerRes.error) {
       console.error("[api/user/bookings] trainers query error:", trainerRes.error);
     } else {
