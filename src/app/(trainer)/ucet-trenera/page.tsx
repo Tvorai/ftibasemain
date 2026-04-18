@@ -344,23 +344,29 @@ export default function TrainerDashboardPage() {
     if (!trainer || fetchLockRef.current['deferred'] === trainer.id) return;
     fetchLockRef.current['deferred'] = trainer.id;
 
-    console.log("[FETCH ONCE] trainer_discounts");
+    console.log("[DISCOUNTS FETCH] query started");
     try {
       const { data: dscRes, error: dscErr } = await supabase
         .from("trainer_discounts")
-        .select("id, code, type, value")
+        .select("id, code, type, value, service_type, max_uses, used_count, is_active")
         .eq("trainer_id", trainer.id);
 
       if (dscErr) {
-        console.error("[FETCH ERROR] trainer_discounts", dscErr);
-      } else if (dscRes) {
-        setDiscounts((dscRes as any[]).map(d => ({
-          ...d,
-          service_type: "personal",
-          max_uses: null,
-          used_count: 0,
-          is_active: true
-        })));
+        console.error("[DISCOUNTS FETCH] query error", dscErr);
+        // Ochrana proti loopu pri chybe
+        fetchLockRef.current['deferred'] = trainer.id; 
+      } else {
+        console.log("[DISCOUNTS FETCH] query success", dscRes?.length || 0, "codes");
+        if (dscRes) {
+          setDiscounts((dscRes as any[]).map(d => {
+            console.log("[DISCOUNT USAGE] code =", d.code, "used =", d.used_count, "max =", d.max_uses);
+            return {
+              ...d,
+              used_count: d.used_count || 0,
+              is_active: d.is_active ?? true
+            };
+          }));
+        }
       }
 
       console.log("[FETCH ONCE] trainer_transformations");
@@ -1013,6 +1019,33 @@ export default function TrainerDashboardPage() {
     comment: string;
     photo_url: string | null;
     created_at: string;
+  };
+
+  // Pomocná funkcia pre mapovanie service_type na label
+  const getServiceLabel = (type: string) => {
+    console.log("[DISCOUNT SERVICE TYPE] raw value =", type);
+    let label = "";
+    switch (type) {
+      case "personal":
+      case "personal_training":
+        label = "Osobný tréning";
+        break;
+      case "online":
+      case "online_consultation":
+        label = "Online konzultácia";
+        break;
+      case "meal_plan":
+        label = "AI jedálniček";
+        break;
+      case "transformation":
+        label = "Mesačná premena";
+        break;
+      default:
+        console.warn("[DISCOUNT SERVICE TYPE] unknown value =", type);
+        label = type; // Fallback na surovú hodnotu namiesto "Osobný"
+    }
+    console.log("[DISCOUNT SERVICE TYPE] mapped label =", label);
+    return label;
   };
 
   const renderTabContent = () => {
@@ -2014,11 +2047,11 @@ export default function TrainerDashboardPage() {
                               <div className="flex items-center gap-2">
                                 <span className="font-bold text-emerald-400">{d.code}</span>
                                 <span className="text-[10px] bg-zinc-700 px-2 py-0.5 rounded uppercase text-zinc-300">
-                                  {d.service_type === "personal" ? "Osobný" : d.service_type === "online" ? "Online" : "Jedálniček"}
+                                  {getServiceLabel(d.service_type)}
                                 </span>
                               </div>
                               <div className="text-xs text-zinc-400 mt-1">
-                                {d.value}{d.type === "percent" ? "%" : " EUR"} • Použité: {d.used_count}/{d.max_uses || "∞"}
+                                {d.value}{d.type === "percent" ? "%" : " EUR"} • Použité: {d.used_count || 0}/{d.max_uses || "∞"}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">

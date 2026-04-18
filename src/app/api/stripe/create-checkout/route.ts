@@ -122,29 +122,41 @@ export async function POST(request: Request) {
   let isValid = false;
   let discountMessage = "";
 
+  const getServiceLabel = (type: string) => {
+    switch (type) {
+      case "personal":
+      case "personal_training": return "Osobný tréning";
+      case "online":
+      case "online_consultation": return "Online konzultácia";
+      case "meal_plan": return "AI jedálniček";
+      case "transformation": return "Mesačná premena";
+      default: return type;
+    }
+  };
+
   if (input.discount_code) {
+    console.log("[DISCOUNT APPLY] code =", input.discount_code, "service_type =", input.service_type);
+
     const { data: discount, error: discountErr } = await supabase
       .from("trainer_discounts")
-      .select("id, code, type, value, max_uses, current_uses, is_active")
+      .select("id, code, type, value, max_uses, used_count, is_active, service_type")
       .eq("trainer_id", input.trainer_id)
       .eq("code", input.discount_code.trim().toUpperCase())
-      .eq("service_type", input.service_type)
       .eq("is_active", true)
       .maybeSingle();
 
-    console.log("[FETCH AUDIT] api/stripe/create-checkout = POST");
-    console.log("[FETCH AUDIT] table = trainer_discounts");
-    console.log("[FETCH AUDIT] old select = *");
-    console.log("[FETCH AUDIT] new select = id, code, type, value, max_uses, current_uses, is_active");
-
     if (discountErr) {
-      console.error("Discount lookup error:", discountErr);
+      console.error("[DISCOUNT APPLY] query error", discountErr);
     }
 
     if (discount) {
-      const currentUses = (discount as any).current_uses || 0;
+      const isCorrectService = discount.service_type === input.service_type;
+      const currentUses = (discount as any).used_count || 0;
       const isUsageValid = !discount.max_uses || currentUses < discount.max_uses;
-      if (isUsageValid) {
+      
+      console.log("[DISCOUNT APPLY] matched =", true, "isCorrectService =", isCorrectService, "isUsageValid =", isUsageValid);
+
+      if (isCorrectService && isUsageValid) {
         const dType = discount.type;
         const dValue = discount.value;
 
@@ -157,11 +169,15 @@ export async function POST(request: Request) {
         finalPriceCents = Math.max(0, priceCents - discountAmountCents);
         validatedDiscountCode = discount.code;
         isValid = true;
+        console.log("[DISCOUNT APPLY] calculated discount =", discountAmountCents, "final price =", finalPriceCents);
+      } else if (!isCorrectService) {
+        discountMessage = `Tento kód platí len pre iný typ služby (${getServiceLabel(discount.service_type)}).`;
       } else {
         discountMessage = "Kód už dosiahol maximálny počet použití.";
       }
     } else {
-      discountMessage = "Neplatný alebo neaktívny zľavový kód pre túto službu.";
+      console.log("[DISCOUNT APPLY] matched = false");
+      discountMessage = "Neplatný alebo neaktívny zľavový kód.";
     }
   }
 

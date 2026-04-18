@@ -706,6 +706,7 @@ export async function listPublicTrainerReviewsAction(
   });
 
   const fetchReviews = (select: string) => {
+    console.log("[REVIEWS FETCH] started", { trainer_id, select });
     return supabase
       .from("reviews")
       .select(select)
@@ -715,18 +716,14 @@ export async function listPublicTrainerReviewsAction(
       .limit(limit ?? 20);
   };
 
-  let res = await fetchReviews("id, client_profile_id, rating, title, body, is_public, created_at, photo_url");
+  let res = await fetchReviews("id, client_profile_id, rating, body, is_public, created_at");
 
   if (res.error) {
-    const msg = res.error.message || "";
-    if (res.error.code === "42703" || msg.toLowerCase().includes("photo_url") || msg.toLowerCase().includes("column")) {
-      res = await fetchReviews("id, client_profile_id, rating, title, body, is_public, created_at");
-    }
-  }
-
-  if (res.error) {
+    console.error("[REVIEWS FETCH] error", res.error);
     return { status: "error", message: res.error.message };
   }
+  
+  console.log("[REVIEWS FETCH] success", res.data?.length || 0, "reviews");
 
   const payload: unknown = res.data;
   const rows = Array.isArray(payload) ? (payload as unknown[]) : [];
@@ -761,26 +758,21 @@ export async function listPublicTrainerReviewsAction(
     if (!item || typeof item !== "object") continue;
     const anyItem = item as Record<string, unknown>;
     const id = anyItem.id;
-    const clientId = anyItem.client_profile_id;
-    const ratingValue = anyItem.rating;
-    const bodyValue = anyItem.body;
-    const photoUrl = anyItem.photo_url;
+    const rating = anyItem.rating;
+    const comment = anyItem.body; // Mapujeme DB 'body' na UI 'comment'
     const createdAt = anyItem.created_at;
-    if (typeof id !== "string") continue;
-    if (typeof clientId !== "string") continue;
-    if (typeof ratingValue !== "number") continue;
-    if (typeof bodyValue !== "string") continue;
-    if (!(typeof photoUrl === "string" || photoUrl === null || typeof photoUrl === "undefined")) continue;
-    if (typeof createdAt !== "string") continue;
 
-    const name = nameByClientId.get(clientId) || "Klient";
+    if (typeof id !== "string") continue;
+    const clientId = anyItem.client_profile_id;
+    const clientName = typeof clientId === "string" ? (nameByClientId.get(clientId) || "Klient") : "Klient";
+
     reviews.push({
       id,
-      client_name: name,
-      rating: ratingValue,
-      comment: bodyValue,
-      photo_url: typeof photoUrl === "string" ? photoUrl : null,
-      created_at: createdAt,
+      client_name: clientName,
+      rating: typeof rating === "number" ? rating : 5,
+      comment: typeof comment === "string" ? comment : "",
+      photo_url: null, // V DB momentálne photo_url stĺpec nie je (body obsahuje text)
+      created_at: typeof createdAt === "string" ? createdAt : new Date().toISOString(),
     });
   }
 
