@@ -74,6 +74,7 @@ export async function POST(request: Request) {
       const gender = getStringField(meta, "gender");
       const allergens = getStringField(meta, "allergens");
       const favoriteFoods = getStringField(meta, "favorite_foods");
+      const durationDays = getStringField(meta, "duration_days");
       const priceCentsRaw = getStringField(meta, "price_cents");
       const amountTotal = typeof session.amount_total === "number" ? session.amount_total : null;
       const priceCents = amountTotal || (priceCentsRaw ? Number(priceCentsRaw) : null);
@@ -108,6 +109,7 @@ export async function POST(request: Request) {
         gender: gender,
         allergens: allergens,
         favorite_foods: favoriteFoods,
+        duration_days: durationDays ? Number(durationDays) : 7,
         status: "confirmed",
         payment_status: "paid",
         price_cents: priceCents,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "@supabase/supabase-js";
@@ -63,6 +63,25 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
   const [accountPhone, setAccountPhone] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
 
+  const form = useForm<MealPlanRequestFormValues>({
+    resolver: zodResolver<MealPlanRequestFormValues, unknown, MealPlanRequestFormValues>(mealPlanRequestFormSchemaRaw),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      goal: "",
+      height_cm: undefined,
+      age: undefined,
+      gender: "male",
+      duration_days: 7,
+      allergens: "",
+      favorite_foods: "",
+    },
+    mode: "onSubmit",
+  });
+
+  const selectedDuration = form.watch("duration_days");
+
   // State pre zľavový kód
   const [discountCode, setDiscountCode] = useState("");
   const [discountInfo, setDiscountInfo] = useState<{
@@ -74,39 +93,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
   } | null>(null);
   const [isValidatingDiscount, setIsValidatingDiscount] = useState(false);
 
-  // Načítanie pôvodnej ceny pri mounte
-  useEffect(() => {
-    const fetchOriginalPrice = async () => {
-      if (!supabase) return;
-      try {
-        const session = (await supabase.auth.getSession()).data.session;
-        const res = await fetch("/api/stripe/create-checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            trainer_id: trainerId,
-            service_type: "meal_plan",
-            validate_only: true,
-            access_token: session?.access_token
-          }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setDiscountInfo({
-            isValid: false,
-            discountAmountCents: 0,
-            finalPriceCents: data.original_price_cents,
-            originalPriceCents: data.original_price_cents,
-          });
-        }
-      } catch (err) {
-        console.error("Error fetching original price:", err);
-      }
-    };
-    fetchOriginalPrice();
-  }, [trainerId, supabase]);
-
-  const validateDiscount = async () => {
+  const validateDiscount = useCallback(async () => {
     if (!discountCode.trim() || !supabase) return;
     setIsValidatingDiscount(true);
     setDiscountInfo(null);
@@ -120,6 +107,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
           service_type: "meal_plan",
           discount_code: discountCode.trim(),
           validate_only: true,
+          duration_days: selectedDuration,
           access_token: session?.access_token
         }),
       });
@@ -152,23 +140,44 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
     } finally {
       setIsValidatingDiscount(false);
     }
-  };
+  }, [discountCode, supabase, trainerId, selectedDuration]);
 
-  const form = useForm<MealPlanRequestFormValues>({
-    resolver: zodResolver<MealPlanRequestFormValues, unknown, MealPlanRequestFormValues>(mealPlanRequestFormSchemaRaw),
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      goal: "",
-      height_cm: undefined,
-      age: undefined,
-      gender: "male",
-      allergens: "",
-      favorite_foods: "",
-    },
-    mode: "onSubmit",
-  });
+  // Načítanie pôvodnej ceny pri mounte alebo zmene dĺžky
+  useEffect(() => {
+    const fetchOriginalPrice = async () => {
+      if (!supabase) return;
+      try {
+        const session = (await supabase.auth.getSession()).data.session;
+        const res = await fetch("/api/stripe/create-checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            trainer_id: trainerId,
+            service_type: "meal_plan",
+            validate_only: true,
+            duration_days: selectedDuration,
+            access_token: session?.access_token
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setDiscountInfo({
+            isValid: false,
+            discountAmountCents: 0,
+            finalPriceCents: data.original_price_cents,
+            originalPriceCents: data.original_price_cents,
+          });
+          // Ak máme zadaný kód, znovu ho overíme pre novú dĺžku/cenu
+          if (discountCode.trim()) {
+            validateDiscount();
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching original price:", err);
+      }
+    };
+    fetchOriginalPrice();
+  }, [trainerId, supabase, selectedDuration, discountCode, validateDiscount]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -216,6 +225,7 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
           height_cm: pending.form.height_cm,
           age: pending.form.age,
           gender: pending.form.gender,
+          duration_days: pending.form.duration_days,
           allergens: pending.form.allergens || "",
           favorite_foods: pending.form.favorite_foods || "",
           discount_code: pending.discount_code
@@ -423,6 +433,29 @@ export default function MealPlanRequestForm({ trainerId }: Props) {
                 {form.formState.errors.phone?.message && <div className="text-xs text-red-300">{form.formState.errors.phone.message}</div>}
               </>
             )}
+
+            <div className="space-y-2">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-500 ml-1">
+                Dĺžka jedálnička
+              </label>
+              <div className="flex gap-2">
+                {[7, 30].map((days) => (
+                  <button
+                    key={days}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => form.setValue("duration_days", days)}
+                    className={`flex-1 py-3 rounded-xl border text-sm font-bold transition-all ${
+                      selectedDuration === days
+                        ? "bg-emerald-500 border-emerald-500 text-black shadow-lg shadow-emerald-500/20"
+                        : "bg-zinc-950 border-zinc-800 text-zinc-400 hover:border-zinc-700"
+                    }`}
+                  >
+                    {days} dní
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <select
               disabled={disabled}

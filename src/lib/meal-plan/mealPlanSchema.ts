@@ -8,6 +8,7 @@ export type MealPlanRequestFormValues = {
   height_cm: number;
   age: number;
   gender: "male" | "female" | "other";
+  duration_days: number;
   allergens?: string;
   favorite_foods?: string;
 };
@@ -28,6 +29,11 @@ export const mealPlanRequestFormSchemaRaw = z.object({
     .min(1, "Vek musí byť aspoň 1 rok.")
     .max(120, "Vek je príliš veľký."),
   gender: z.enum(["male", "female", "other"]),
+  duration_days: z
+    .number({ message: "Dĺžka jedálnička je povinná." })
+    .int()
+    .refine((v) => [7, 30].includes(v), "Povolené je len 7 alebo 30 dní.")
+    .catch(7),
   allergens: z.string().trim().optional().or(z.literal("")),
   favorite_foods: z.string().trim().optional().or(z.literal("")),
 });

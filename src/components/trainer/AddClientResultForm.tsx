@@ -25,8 +25,8 @@ export default function AddClientResultForm({ trainerId, onSuccess }: AddClientR
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "before" | "after") => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Fotka je príliš veľká. Prosím nahrajte obrázok do 2MB.");
+      if (file.size > 4 * 1024 * 1024) {
+        alert("Fotka je príliš veľká. Prosím nahrajte obrázok do 4MB.");
         return;
       }
 

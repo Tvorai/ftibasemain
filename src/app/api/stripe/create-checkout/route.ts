@@ -21,6 +21,7 @@ const bodySchema = z.object({
   height_cm: z.number().optional(),
   age: z.number().optional(),
   gender: z.string().optional(),
+  duration_days: z.number().optional(),
   allergens: z.string().optional(),
   favorite_foods: z.string().optional(),
   discount_code: z.string().optional(),
@@ -33,6 +34,7 @@ type TrainerRow = {
   price_personal_cents: number | null;
   price_online_cents: number | null;
   price_meal_plan_cents: number | null;
+  price_meal_plan_30_days_cents: number | null;
   platform_fee_percent: number | null;
 };
 
@@ -81,7 +83,7 @@ export async function POST(request: Request) {
 
   const trainerRes = await supabase
     .from("trainers")
-    .select("id, stripe_account_id, price_personal_cents, price_online_cents, price_meal_plan_cents, platform_fee_percent")
+    .select("id, stripe_account_id, price_personal_cents, price_online_cents, price_meal_plan_cents, price_meal_plan_30_days_cents, platform_fee_percent")
     .eq("id", input.trainer_id)
     .maybeSingle<TrainerRow>();
 
@@ -96,7 +98,12 @@ export async function POST(request: Request) {
   if (input.service_type === "online") {
     priceCents = trainerRes.data.price_online_cents || 0;
   } else if (input.service_type === "meal_plan") {
-    priceCents = trainerRes.data.price_meal_plan_cents || 0;
+    const duration = input.duration_days === 30 ? 30 : 7;
+    if (duration === 30) {
+      priceCents = trainerRes.data.price_meal_plan_30_days_cents || trainerRes.data.price_meal_plan_cents || 0;
+    } else {
+      priceCents = trainerRes.data.price_meal_plan_cents || 0;
+    }
   } else if (input.service_type === "transformation") {
     const { data: trans } = await supabase
       .from("trainer_transformations")
@@ -239,6 +246,7 @@ export async function POST(request: Request) {
     if (input.height_cm) metadata.height_cm = String(input.height_cm);
     if (input.age) metadata.age = String(input.age);
     if (input.gender) metadata.gender = input.gender;
+    if (input.duration_days) metadata.duration_days = String(input.duration_days);
     if (input.allergens) metadata.allergens = input.allergens;
     if (input.favorite_foods) metadata.favorite_foods = input.favorite_foods;
   }

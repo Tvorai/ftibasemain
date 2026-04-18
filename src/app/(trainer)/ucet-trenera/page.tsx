@@ -614,8 +614,8 @@ export default function TrainerDashboardPage() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) {
-        alert("Fotka je príliš veľká. Prosím nahrajte obrázok do 1MB.");
+      if (file.size > 4 * 1024 * 1024) {
+        alert("Fotka je príliš veľká. Prosím nahrajte obrázok do 4MB.");
         return;
       }
 
@@ -738,9 +738,9 @@ export default function TrainerDashboardPage() {
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Základná kontrola veľkosti (max 1MB pre base64 v JSON)
-      if (file.size > 1024 * 1024) {
-        alert("Logo je príliš veľké. Prosím nahrajte obrázok do 1MB.");
+      // Základná kontrola veľkosti (max 4MB pre base64 v JSON)
+      if (file.size > 4 * 1024 * 1024) {
+        alert("Logo je príliš veľké. Prosím nahrajte obrázok do 4MB.");
         return;
       }
 
