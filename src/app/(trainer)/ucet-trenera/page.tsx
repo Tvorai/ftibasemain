@@ -147,6 +147,101 @@ type Discount = {
   is_active: boolean;
 };
 
+type TrainerReviewItem = {
+  id: string;
+  client_name: string;
+  rating: number;
+  comment: string;
+  photo_url: string | null;
+  created_at: string;
+};
+
+// Komponent pre recenzie (memoizovaný, aby sa neprefetčoval pri každom renderi rodiča)
+const TrainerReviewsTab = React.memo(function TrainerReviewsTab() {
+  const [reviews, setReviews] = useState<TrainerReviewItem[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    console.log("[FETCH ONCE]", "trainer_reviews");
+
+    async function load() {
+      setLoadingReviews(true);
+      setReviewsError(null);
+      try {
+        const sessionRes = await supabase.auth.getSession();
+        const accessToken = sessionRes.data.session?.access_token;
+        if (!accessToken) {
+          throw new Error("Pre zobrazenie recenzií sa musíte prihlásiť.");
+        }
+
+        const res = await listTrainerReviewsForDashboardAction({ access_token: accessToken });
+        if (res.status !== "success") {
+          throw new Error(res.message);
+        }
+
+        if (!cancelled) setReviews(res.reviews as TrainerReviewItem[]);
+      } catch (err: unknown) {
+        if (!cancelled) {
+          console.error("[FETCH ERROR] trainer_reviews:", err);
+          setReviewsError(err instanceof Error ? err.message : "Nepodarilo sa načítať recenzie.");
+        }
+      } finally {
+        if (!cancelled) setLoadingReviews(false);
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (loadingReviews) return <div className="text-zinc-500 animate-pulse">Načítavam recenzie...</div>;
+  if (reviewsError) return <div className="text-red-400">Chyba: {reviewsError}</div>;
+
+  if (reviews.length === 0) {
+    return <div className="text-zinc-500 italic">Zatiaľ nemáte žiadne recenzie.</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {reviews.map((r) => (
+        <div key={r.id} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-white font-bold">{formatName(r.client_name)}</div>
+              <div className="text-zinc-500 text-xs">
+                {new Date(r.created_at).toLocaleDateString("sk-SK")}
+              </div>
+            </div>
+            <div className="flex text-yellow-400">
+              {[...Array(5)].map((_, i) => (
+                <svg
+                  key={i}
+                  viewBox="0 0 20 20"
+                  className={`w-4 h-4 ${r.rating > i ? "fill-current" : "fill-transparent"} stroke-current`}
+                >
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-3 text-zinc-200 text-sm whitespace-pre-wrap">{r.comment}</div>
+
+          {r.photo_url && (
+            <div className="mt-4">
+              <img src={r.photo_url} alt="" className="w-full rounded-2xl border border-white/10" />
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+});
+
 export default function TrainerDashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>("profil");
@@ -243,75 +338,54 @@ export default function TrainerDashboardPage() {
     setCropModalIndex(null);
   };
 
+  const fetchLockRef = useRef<{ [key: string]: string | boolean }>({});
+
   const loadDeferredData = useCallback(async (trainer: TrainerRow) => {
-    if (!trainer) return;
-    setDeferredLoading(true);
-    console.log("[TRAINER DASHBOARD] deferred section fetch started");
+    if (!trainer || fetchLockRef.current['deferred'] === trainer.id) return;
+    fetchLockRef.current['deferred'] = trainer.id;
+
+    console.log("[FETCH ONCE]", "trainer_discounts");
     try {
-      const { data: dscRes } = await supabase
+      const { data: dscRes, error: dscErr } = await supabase
         .from("trainer_discounts")
-        .select("id, code, type, value, service_type, max_uses, current_uses, is_active")
-        .eq("trainer_id", trainer.id)
-        .order("created_at", { ascending: false });
+        .select("id, code, type, value")
+        .eq("trainer_id", trainer.id);
 
-      console.log("[FETCH AUDIT] /ucet-trenera = loadDeferredData");
-      console.log("[FETCH AUDIT] table = trainer_discounts");
-      console.log("[FETCH AUDIT] old select = *");
-      console.log("[FETCH AUDIT] new select = id, code, type, value, service_type, max_uses, current_uses, is_active");
-
-      if (dscRes) {
-        const mappedDiscounts: Discount[] = (dscRes as any[]).map(d => ({
+      if (dscErr) {
+        console.error("[FETCH ERROR] trainer_discounts:", dscErr);
+      } else if (dscRes) {
+        setDiscounts((dscRes as any[]).map(d => ({
           ...d,
-          used_count: d.current_uses || 0
-        }));
-        setDiscounts(mappedDiscounts);
+          service_type: "personal",
+          max_uses: null,
+          used_count: 0,
+          is_active: true
+        })));
       }
 
-      // Načítanie "Mesačná premena"
+      console.log("[FETCH ONCE]", "trainer_transformations");
       const { data: transRes, error: transErr } = await supabase
         .from("trainer_transformations")
         .select("id, trainer_id, is_enabled, headline, subheadline, personal_sessions_count, online_calls_count, includes_meal_plan, price_month_cents, regular_price_cents")
         .eq("trainer_id", trainer.id)
         .maybeSingle();
 
-      console.log("[FETCH AUDIT] table = trainer_transformations");
-      console.log("[FETCH AUDIT] old select = *");
-      console.log("[FETCH AUDIT] new select = id, trainer_id, is_enabled, headline, subheadline, personal_sessions_count, online_calls_count, includes_meal_plan, price_month_cents, regular_price_cents");
-
-      if (transRes) {
+      if (transErr) {
+        console.error("[FETCH ERROR] trainer_transformations:", transErr);
+      } else if (transRes) {
         setTransformation(transRes as TrainerTransformation);
-      } else if (!transErr) {
-        // Vytvoriť default row
-        const defaultTrans = {
-          trainer_id: trainer.id,
-          is_enabled: false,
-          headline: "",
-          subheadline: "",
-          personal_sessions_count: 0,
-          online_calls_count: 0,
-          includes_meal_plan: false,
-          price_month_cents: 0,
-          regular_price_cents: 0
-        };
-        const { data: newTrans } = await supabase
-          .from("trainer_transformations")
-          .insert(defaultTrans)
-          .select()
-          .maybeSingle();
-        if (newTrans) setTransformation(newTrans as TrainerTransformation);
       }
-      console.log("[TRAINER DASHBOARD] deferred section fetch finished");
     } catch (err) {
-      console.error("[TRAINER DASHBOARD] error loading deferred data:", err);
-    } finally {
-      setDeferredLoading(false);
+      console.error("[FETCH ERROR] critical error in loadDeferredData:", err);
     }
   }, []);
 
   const loadProfile = useCallback(async () => {
+    if (fetchLockRef.current['profile']) return;
+    fetchLockRef.current['profile'] = true;
+
     setProfileLoading(true);
-    console.log("[TRAINER DASHBOARD] initial section = moj-profil");
-    console.log("[TRAINER DASHBOARD] profile fetch started");
+    console.log("[FETCH ONCE]", "trainers");
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -326,12 +400,11 @@ export default function TrainerDashboardPage() {
         .eq("profile_id", user.id)
         .maybeSingle<TrainerRow>();
 
-      console.log("[FETCH AUDIT] /ucet-trenera = loadProfile");
-      console.log("[FETCH AUDIT] table = trainers");
-      console.log("[FETCH AUDIT] old select = *, profiles(full_name, phone_number)");
-      console.log("[FETCH AUDIT] new select = id, slug, bio, city, images, brands, services, stripe_account_id, stripe_onboarding_completed, stripe_charges_enabled, stripe_payouts_enabled, price_personal_cents, price_online_cents, price_meal_plan_cents, platform_fee_percent, profiles(full_name, phone_number)");
-
-      if (error) throw error;
+      if (error) {
+        console.error("[FETCH ERROR] trainers:", error);
+        fetchLockRef.current['profile'] = false; // Povoliť retry pri errore
+        return;
+      }
 
       if (trainer) {
         setTrainerId(trainer.id);
@@ -368,12 +441,12 @@ export default function TrainerDashboardPage() {
         setPriceMealPlanEuro(typeof pMealPlan === "number" && pMealPlan > 0 ? (pMealPlan / 100).toFixed(2) : "");
         setPlatformFeePercent(String((trainer as TrainerRow).platform_fee_percent ?? 10));
 
-        console.log("[TRAINER DASHBOARD] profile fetch finished");
         // Spustiť načítanie ostatných dát na pozadí
         loadDeferredData(trainer);
       }
     } catch (err) {
       console.error("[TRAINER DASHBOARD] error loading profile:", err);
+      fetchLockRef.current['profile'] = false;
     } finally {
       setProfileLoading(false);
       setAuthChecking(false);
@@ -941,88 +1014,6 @@ export default function TrainerDashboardPage() {
     photo_url: string | null;
     created_at: string;
   };
-
-  function TrainerReviewsTab() {
-    const [reviews, setReviews] = useState<TrainerReviewItem[]>([]);
-    const [loadingReviews, setLoadingReviews] = useState(true);
-    const [reviewsError, setReviewsError] = useState<string | null>(null);
-
-    useEffect(() => {
-      let cancelled = false;
-      console.log("[FETCH LOOP CHECK] TrainerReviewsTab useEffect []");
-
-      async function load() {
-        setLoadingReviews(true);
-        setReviewsError(null);
-        try {
-          const sessionRes = await supabase.auth.getSession();
-          const accessToken = sessionRes.data.session?.access_token;
-          if (!accessToken) {
-            throw new Error("Pre zobrazenie recenzií sa musíte prihlásiť.");
-          }
-
-          const res = await listTrainerReviewsForDashboardAction({ access_token: accessToken });
-          if (res.status !== "success") {
-            throw new Error(res.message);
-          }
-
-          if (!cancelled) setReviews(res.reviews as TrainerReviewItem[]);
-        } catch (err: unknown) {
-          if (!cancelled) setReviewsError(err instanceof Error ? err.message : "Nepodarilo sa načítať recenzie.");
-        } finally {
-          if (!cancelled) setLoadingReviews(false);
-        }
-      }
-
-      void load();
-      return () => {
-        cancelled = true;
-      };
-    }, []);
-
-    if (loadingReviews) return <div className="text-zinc-500 animate-pulse">Načítavam recenzie...</div>;
-    if (reviewsError) return <div className="text-red-400">Chyba: {reviewsError}</div>;
-
-    if (reviews.length === 0) {
-      return <div className="text-zinc-500 italic">Zatiaľ nemáte žiadne recenzie.</div>;
-    }
-
-    return (
-      <div className="space-y-4">
-        {reviews.map((r) => (
-          <div key={r.id} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="text-white font-bold">{formatName(r.client_name)}</div>
-                <div className="text-zinc-500 text-xs">
-                  {new Date(r.created_at).toLocaleDateString("sk-SK")}
-                </div>
-              </div>
-              <div className="flex text-yellow-400">
-                {[...Array(5)].map((_, i) => (
-                  <svg
-                    key={i}
-                    viewBox="0 0 20 20"
-                    className={`w-4 h-4 ${r.rating > i ? "fill-current" : "fill-transparent"} stroke-current`}
-                  >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-              </div>
-            </div>
-
-            <div className="mt-3 text-zinc-200 text-sm whitespace-pre-wrap">{r.comment}</div>
-
-            {r.photo_url && (
-              <div className="mt-4">
-                <img src={r.photo_url} alt="" className="w-full rounded-2xl border border-white/10" />
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  }
 
   const renderTabContent = () => {
     if (profileLoading && activeTab === "profil") {
