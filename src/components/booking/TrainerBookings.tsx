@@ -194,6 +194,7 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
   }, [trainerId]);
 
   useEffect(() => {
+    console.log("[FETCH LOOP CHECK] TrainerBookings useEffect [fetchBookings]");
     void fetchBookings();
   }, [fetchBookings]);
 

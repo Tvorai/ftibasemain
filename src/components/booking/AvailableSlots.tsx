@@ -84,6 +84,7 @@ const AvailableSlots: React.FC<AvailableSlotsProps> = ({
 
   useEffect(() => {
     const fetchSlots = async () => {
+      console.log("[FETCH LOOP CHECK] AvailableSlots useEffect [trainerId, serviceType, slotDuration]");
       setLoading(true);
       try {
         const res = await fetch(

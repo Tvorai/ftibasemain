@@ -255,6 +255,7 @@ export default function ClientBookings({ userId, userEmail, kind }: ClientBookin
 
   useEffect(() => {
     async function fetchBookings() {
+      console.log("[FETCH LOOP CHECK] ClientBookings useEffect [userId, userEmail]");
       setLoading(true);
       try {
         console.log("[ClientBookings] userId:", userId, "userEmail:", userEmail);

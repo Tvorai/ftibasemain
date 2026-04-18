@@ -74,6 +74,7 @@ export default function TrainerCalendar({
   useEffect(() => {
     async function loadBookings() {
       if (!trainerId) return;
+      console.log("[FETCH LOOP CHECK] TrainerCalendar useEffect [trainerId, serviceType]");
       setLoading(true);
       try {
         const { data, error } = await supabase

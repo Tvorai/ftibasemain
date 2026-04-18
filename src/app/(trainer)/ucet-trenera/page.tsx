@@ -483,6 +483,7 @@ export default function TrainerDashboardPage() {
       return;
     }
 
+    console.log("[FETCH LOOP CHECK] /ucet-trenera useEffect [loadProfile, router]");
     console.log("[UCET-TRENERA] Initializing auth check...");
     
     // 1. Okamžitá kontrola session
@@ -948,6 +949,7 @@ export default function TrainerDashboardPage() {
 
     useEffect(() => {
       let cancelled = false;
+      console.log("[FETCH LOOP CHECK] TrainerReviewsTab useEffect []");
 
       async function load() {
         setLoadingReviews(true);

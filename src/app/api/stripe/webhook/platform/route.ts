@@ -49,14 +49,14 @@ export async function POST(request: Request) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  console.log("[EMAIL FLOW] webhook entered");
-  console.log("[EMAIL FLOW] event type:", event.type);
+  console.log(`[STRIPE EVENT ID] ${event.id}`);
+  console.log(`[WEBHOOK RETRY CHECK] event type: ${event.type}`);
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const meta: Record<string, unknown> = isRecord(session.metadata) ? session.metadata : {};
     
-    console.log("[EMAIL FLOW] processing checkout.session.completed", { sessionId: session.id });
+    console.log(`[WEBHOOK RETRY CHECK] processing checkout.session.completed for session: ${session.id}`);
     
     const type = getStringField(meta, "type") || getStringField(meta, "service_type");
     const stripePaymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : null;
@@ -94,6 +94,7 @@ export async function POST(request: Request) {
         .maybeSingle();
 
       if (existingMealPlan) {
+        console.log(`[WEBHOOK PROCESSED ONCE] Meal plan for session ${session.id} already exists (id: ${existingMealPlan.id}). Skipping.`);
         return NextResponse.json({ received: true, action: "none", message: "Meal plan already exists" });
       }
 
@@ -243,7 +244,7 @@ export async function POST(request: Request) {
         .maybeSingle();
 
       if (existingBooking) {
-        console.log("[Platform Webhook] Transformation already exists:", existingBooking.id);
+        console.log(`[WEBHOOK PROCESSED ONCE] Transformation booking for session ${session.id} already exists (id: ${existingBooking.id}). Skipping.`);
         return NextResponse.json({ received: true, action: "none", message: "Transformation booking already exists" });
       }
 
@@ -412,7 +413,7 @@ export async function POST(request: Request) {
 
     if (existingBookingId) {
       // Update existujúceho bookingu
-      console.log("[EMAIL FLOW] updating existing booking", { existingBookingId });
+      console.log(`[WEBHOOK PROCESSED ONCE] Updating existing booking for session ${session.id} (id: ${existingBookingId}).`);
       const { error: updateErr } = await supabase
         .from("bookings")
         .update({

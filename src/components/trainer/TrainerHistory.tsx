@@ -149,6 +149,7 @@ export default function TrainerHistory({ trainerId }: TrainerHistoryProps) {
   }, [trainerId]);
 
   useEffect(() => {
+    console.log("[FETCH LOOP CHECK] TrainerHistory useEffect [fetchHistory]");
     void fetchHistory();
   }, [fetchHistory]);
 

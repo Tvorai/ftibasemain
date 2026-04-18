@@ -41,6 +41,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ message }, { status: 400 });
   }
 
+  console.log(`[STRIPE EVENT ID] ${event.id}`);
+  console.log(`[WEBHOOK RETRY CHECK] event type: ${event.type}`);
+
   if (event.type === "account.updated") {
     const account = event.data.object as Stripe.Account;
     const stripeAccountId = account.id;
