@@ -2150,7 +2150,7 @@ export default function TrainerDashboardPage() {
     { id: "znacky", label: "Moje značky" },
     ...(servicesVisibility.transformation ? [{ id: "transformation" as TabId, label: "Mesačná premena" }] : []),
     { id: "ai-jedalnicek", label: "AI jedálniček" },
-    { id: "nastavenia", label: "Nadstavenia" },
+    { id: "nastavenia", label: "Nastavenia" },
   ];
 
   if (authChecking) {
