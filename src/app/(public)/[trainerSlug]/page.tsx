@@ -986,7 +986,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
         onClose={() => setIsReviewsModalOpen(false)}
         title="Všetky recenzie"
       >
-        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="space-y-4 pr-1">
           {reviews.map((r) => (
             <div key={r.id} className="bg-zinc-900/40 border border-emerald-500/20 rounded-[25px] p-5">
               <div className="flex items-start justify-between gap-4 mb-3">
@@ -1027,7 +1027,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
         onClose={() => setIsAllResultsModalOpen(false)}
         title="Všetky výsledky"
       >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {clientResults.map((result) => (
             <div key={result.id} className="bg-zinc-900/50 border border-emerald-500/20 rounded-2xl p-3">
               <div className="flex gap-2 aspect-[4/3] mb-3">
@@ -1053,25 +1053,27 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
 
       {lightboxImage && (
         <div 
-          className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out"
+          className="fixed inset-0 z-[999] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
           onClick={() => setLightboxImage(null)}
         >
           <button 
-            className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors"
+            type="button"
+            className="absolute top-6 right-6 z-[1000] w-12 h-12 flex items-center justify-center rounded-full bg-zinc-900/80 border border-white/10 text-white shadow-2xl transition-all hover:bg-zinc-800 active:scale-95"
             onClick={(e) => {
               e.stopPropagation();
               setLightboxImage(null);
             }}
+            aria-label="Zatvoriť"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <div className="relative w-full max-w-4xl max-h-[85vh] aspect-auto flex items-center justify-center">
+          <div className="relative w-full h-full flex items-center justify-center pointer-events-none">
             <img 
               src={lightboxImage} 
               alt="Zväčšený náhľad" 
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] pointer-events-auto"
               onClick={(e) => e.stopPropagation()}
             />
           </div>

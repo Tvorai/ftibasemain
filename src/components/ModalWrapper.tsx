@@ -50,12 +50,12 @@ export function ModalWrapper({
           </h2>
           <button
             onClick={onClose}
-            className="shrink-0 h-10 w-10 flex items-center justify-center rounded-full border border-white/10 bg-zinc-900/50 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all"
+            className="shrink-0 h-10 w-10 flex items-center justify-center rounded-full border border-white/20 bg-zinc-800 text-white hover:bg-zinc-700 transition-all active:scale-90"
             aria-label="Zatvoriť"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
+              className="h-6 w-6"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
