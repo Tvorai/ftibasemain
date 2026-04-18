@@ -344,7 +344,7 @@ export default function TrainerDashboardPage() {
     if (!trainer || fetchLockRef.current['deferred'] === trainer.id) return;
     fetchLockRef.current['deferred'] = trainer.id;
 
-    console.log("[FETCH ONCE]", "trainer_discounts");
+    console.log("[FETCH ONCE] trainer_discounts");
     try {
       const { data: dscRes, error: dscErr } = await supabase
         .from("trainer_discounts")
@@ -352,7 +352,7 @@ export default function TrainerDashboardPage() {
         .eq("trainer_id", trainer.id);
 
       if (dscErr) {
-        console.error("[FETCH ERROR] trainer_discounts:", dscErr);
+        console.error("[FETCH ERROR] trainer_discounts", dscErr);
       } else if (dscRes) {
         setDiscounts((dscRes as any[]).map(d => ({
           ...d,
@@ -363,7 +363,7 @@ export default function TrainerDashboardPage() {
         })));
       }
 
-      console.log("[FETCH ONCE]", "trainer_transformations");
+      console.log("[FETCH ONCE] trainer_transformations");
       const { data: transRes, error: transErr } = await supabase
         .from("trainer_transformations")
         .select("id, trainer_id, is_enabled, headline, subheadline, personal_sessions_count, online_calls_count, includes_meal_plan, price_month_cents, regular_price_cents")
@@ -371,7 +371,7 @@ export default function TrainerDashboardPage() {
         .maybeSingle();
 
       if (transErr) {
-        console.error("[FETCH ERROR] trainer_transformations:", transErr);
+        console.error("[FETCH ERROR] trainer_transformations", transErr);
       } else if (transRes) {
         setTransformation(transRes as TrainerTransformation);
       }
