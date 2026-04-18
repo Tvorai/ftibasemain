@@ -161,45 +161,32 @@ export async function POST(request: Request) {
       if (discountCode && trainerId) {
         console.log(`[Platform Webhook] Attempting discount increment for code: ${discountCode}, trainer: ${trainerId}`);
         
-        // 1. Skúsime RPC (atomické a bezpečné)
-        const { error: rpcErr } = await supabase.rpc("increment_discount_usage", { 
-          t_id: trainerId, 
-          d_code: discountCode 
-        });
+        // Priamy update (RPC increment_discount_usage je 404)
+        const { data: discount } = await supabase
+          .from("trainer_discounts")
+          .select("id, used_count, max_uses")
+          .eq("trainer_id", trainerId)
+          .eq("code", discountCode)
+          .maybeSingle();
 
-        if (rpcErr) {
-          console.warn("[Platform Webhook] RPC increment failed, trying direct update:", rpcErr.message);
-          
-          // 2. Fallback: Priamy update ak RPC neexistuje alebo zlyhá
-          // Najprv zistíme aktuálny stav
-          const { data: discount } = await supabase
-            .from("trainer_discounts")
-            .select("id, used_count, max_uses")
-            .eq("trainer_id", trainerId)
-            .eq("code", discountCode)
-            .maybeSingle();
-
-          if (discount) {
-            const canIncrement = !discount.max_uses || discount.used_count < discount.max_uses;
-            if (canIncrement) {
-              const { error: updateErr } = await supabase
-                .from("trainer_discounts")
-                .update({ used_count: (discount.used_count || 0) + 1 })
-                .eq("id", discount.id);
-              
-              if (updateErr) {
-                console.error("[Platform Webhook] Direct discount update failed:", updateErr.message);
-              } else {
-                console.log("[Platform Webhook] Discount incremented via direct update.");
-              }
+        if (discount) {
+          const canIncrement = !discount.max_uses || discount.used_count < discount.max_uses;
+          if (canIncrement) {
+            const { error: updateErr } = await supabase
+              .from("trainer_discounts")
+              .update({ used_count: (discount.used_count || 0) + 1 })
+              .eq("id", discount.id);
+            
+            if (updateErr) {
+              console.error("[Platform Webhook] Discount update failed:", updateErr.message);
             } else {
-              console.warn("[Platform Webhook] Discount max_uses reached, skipping increment.");
+              console.log("[Platform Webhook] Discount used_count incremented successfully.");
             }
           } else {
-            console.error("[Platform Webhook] Discount code not found for direct update.");
+            console.warn("[Platform Webhook] Discount max_uses reached, skipping increment.");
           }
         } else {
-          console.log("[Platform Webhook] Discount incremented via RPC.");
+          console.error("[Platform Webhook] Discount code not found for increment.");
         }
       }
 
@@ -343,38 +330,28 @@ export async function POST(request: Request) {
       if (discountCode && trainerId) {
         console.log(`[Platform Webhook] Attempting discount increment for code: ${discountCode}, trainer: ${trainerId}`);
         
-        const { error: rpcErr } = await supabase.rpc("increment_discount_usage", { 
-          t_id: trainerId, 
-          d_code: discountCode 
-        });
+        // Priamy update (RPC increment_discount_usage je 404)
+        const { data: discount } = await supabase
+          .from("trainer_discounts")
+          .select("id, used_count, max_uses")
+          .eq("trainer_id", trainerId)
+          .eq("code", discountCode)
+          .maybeSingle();
 
-        if (rpcErr) {
-          console.warn("[Platform Webhook] RPC increment failed, trying direct update:", rpcErr.message);
-          
-          const { data: discount } = await supabase
-            .from("trainer_discounts")
-            .select("id, used_count, max_uses")
-            .eq("trainer_id", trainerId)
-            .eq("code", discountCode)
-            .maybeSingle();
-
-          if (discount) {
-            const canIncrement = !discount.max_uses || discount.used_count < discount.max_uses;
-            if (canIncrement) {
-              const { error: updateErr } = await supabase
-                .from("trainer_discounts")
-                .update({ used_count: (discount.used_count || 0) + 1 })
-                .eq("id", discount.id);
-              
-              if (updateErr) {
-                console.error("[Platform Webhook] Direct discount update failed:", updateErr.message);
-              } else {
-                console.log("[Platform Webhook] Discount incremented via direct update.");
-              }
+        if (discount) {
+          const canIncrement = !discount.max_uses || discount.used_count < discount.max_uses;
+          if (canIncrement) {
+            const { error: updateErr } = await supabase
+              .from("trainer_discounts")
+              .update({ used_count: (discount.used_count || 0) + 1 })
+              .eq("id", discount.id);
+            
+            if (updateErr) {
+              console.error("[Platform Webhook] Discount update failed:", updateErr.message);
+            } else {
+              console.log("[Platform Webhook] Discount used_count incremented successfully.");
             }
           }
-        } else {
-          console.log("[Platform Webhook] Discount incremented via RPC.");
         }
       }
 
@@ -467,38 +444,28 @@ export async function POST(request: Request) {
       if (discountCode && trainerId) {
         console.log(`[Platform Webhook] Attempting discount increment for code: ${discountCode}, trainer: ${trainerId} (Update Flow)`);
         
-        const { error: rpcErr } = await supabase.rpc("increment_discount_usage", { 
-          t_id: trainerId, 
-          d_code: discountCode 
-        });
+        // Priamy update (RPC increment_discount_usage je 404)
+        const { data: discount } = await supabase
+          .from("trainer_discounts")
+          .select("id, used_count, max_uses")
+          .eq("trainer_id", trainerId)
+          .eq("code", discountCode)
+          .maybeSingle();
 
-        if (rpcErr) {
-          console.warn("[Platform Webhook] RPC increment failed (Update Flow), trying direct update:", rpcErr.message);
-          
-          const { data: discount } = await supabase
-            .from("trainer_discounts")
-            .select("id, used_count, max_uses")
-            .eq("trainer_id", trainerId)
-            .eq("code", discountCode)
-            .maybeSingle();
-
-          if (discount) {
-            const canIncrement = !discount.max_uses || discount.used_count < discount.max_uses;
-            if (canIncrement) {
-              const { error: updateErr } = await supabase
-                .from("trainer_discounts")
-                .update({ used_count: (discount.used_count || 0) + 1 })
-                .eq("id", discount.id);
-              
-              if (updateErr) {
-                console.error("[Platform Webhook] Direct discount update failed (Update Flow):", updateErr.message);
-              } else {
-                console.log("[Platform Webhook] Discount incremented via direct update (Update Flow).");
-              }
+        if (discount) {
+          const canIncrement = !discount.max_uses || discount.used_count < discount.max_uses;
+          if (canIncrement) {
+            const { error: updateErr } = await supabase
+              .from("trainer_discounts")
+              .update({ used_count: (discount.used_count || 0) + 1 })
+              .eq("id", discount.id);
+            
+            if (updateErr) {
+              console.error("[Platform Webhook] Discount update failed (Update Flow):", updateErr.message);
+            } else {
+              console.log("[Platform Webhook] Discount used_count incremented successfully (Update Flow).");
             }
           }
-        } else {
-          console.log("[Platform Webhook] Discount incremented via RPC (Update Flow).");
         }
       }
 
@@ -654,38 +621,28 @@ export async function POST(request: Request) {
       if (discountCode && trainerId) {
         console.log(`[Platform Webhook] Attempting discount increment for code: ${discountCode}, trainer: ${trainerId}`);
         
-        const { error: rpcErr } = await supabase.rpc("increment_discount_usage", { 
-          t_id: trainerId, 
-          d_code: discountCode 
-        });
+        // Priamy update (RPC increment_discount_usage je 404)
+        const { data: discount } = await supabase
+          .from("trainer_discounts")
+          .select("id, used_count, max_uses")
+          .eq("trainer_id", trainerId)
+          .eq("code", discountCode)
+          .maybeSingle();
 
-        if (rpcErr) {
-          console.warn("[Platform Webhook] RPC increment failed, trying direct update:", rpcErr.message);
-          
-          const { data: discount } = await supabase
-            .from("trainer_discounts")
-            .select("id, used_count, max_uses")
-            .eq("trainer_id", trainerId)
-            .eq("code", discountCode)
-            .maybeSingle();
-
-          if (discount) {
-            const canIncrement = !discount.max_uses || discount.used_count < discount.max_uses;
-            if (canIncrement) {
-              const { error: updateErr } = await supabase
-                .from("trainer_discounts")
-                .update({ used_count: (discount.used_count || 0) + 1 })
-                .eq("id", discount.id);
-              
-              if (updateErr) {
-                console.error("[Platform Webhook] Direct discount update failed:", updateErr.message);
-              } else {
-                console.log("[Platform Webhook] Discount incremented via direct update.");
-              }
+        if (discount) {
+          const canIncrement = !discount.max_uses || discount.used_count < discount.max_uses;
+          if (canIncrement) {
+            const { error: updateErr } = await supabase
+              .from("trainer_discounts")
+              .update({ used_count: (discount.used_count || 0) + 1 })
+              .eq("id", discount.id);
+            
+            if (updateErr) {
+              console.error("[Platform Webhook] Discount update failed:", updateErr.message);
+            } else {
+              console.log("[Platform Webhook] Discount used_count incremented successfully.");
             }
           }
-        } else {
-          console.log("[Platform Webhook] Discount incremented via RPC.");
         }
       }
 
