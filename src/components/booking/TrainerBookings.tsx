@@ -317,7 +317,6 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
                 <tr>
                   <th className="px-6 py-4">Meno klienta</th>
                   <th className="px-6 py-4">Termín</th>
-                  <th className="px-6 py-4">Kontakt</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right"></th>
                 </tr>
@@ -353,14 +352,6 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
                           </div>
                         </>
                       )}
-                    </td>
-                    <td className="px-6 py-4 text-zinc-400">
-                      {booking.clientNote ? (
-                        <div className="text-xs opacity-60 mt-1">{booking.clientNote}</div>
-                      ) : booking.clientNote === null ? (
-                        // Fallback pre staršie záznamy ktoré môžu používať 'note' namiesto 'client_note'
-                        <div className="text-xs opacity-60 mt-1">{(booking as any).note}</div>
-                      ) : null}
                     </td>
                     <td className="px-6 py-4">
                       {(() => {
