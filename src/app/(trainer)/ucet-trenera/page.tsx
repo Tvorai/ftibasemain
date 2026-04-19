@@ -93,6 +93,7 @@ type TrainerRow = {
   price_personal_cents?: number | null;
   price_online_cents?: number | null;
   price_meal_plan_cents?: number | null;
+  price_meal_plan_30_days_cents?: number | null;
   platform_fee_percent?: number | null;
 };
 
@@ -296,6 +297,7 @@ export default function TrainerDashboardPage() {
   const [pricePersonalEuro, setPricePersonalEuro] = useState("");
   const [priceOnlineEuro, setPriceOnlineEuro] = useState("");
   const [priceMealPlanEuro, setPriceMealPlanEuro] = useState("");
+  const [priceMealPlan30DaysEuro, setPriceMealPlan30DaysEuro] = useState("");
   const [platformFeePercent, setPlatformFeePercent] = useState("10");
 
   const getEarningsText = (priceStr: string) => {
@@ -422,7 +424,7 @@ export default function TrainerDashboardPage() {
 
       const { data: trainer, error } = await supabase
         .from("trainers")
-        .select("id, slug, bio, city, images, brands, services, stripe_account_id, stripe_onboarding_completed, stripe_charges_enabled, stripe_payouts_enabled, price_personal_cents, price_online_cents, price_meal_plan_cents, platform_fee_percent, profiles(full_name, phone_number)")
+        .select("id, slug, bio, city, images, brands, services, stripe_account_id, stripe_onboarding_completed, stripe_charges_enabled, stripe_payouts_enabled, price_personal_cents, price_online_cents, price_meal_plan_cents, price_meal_plan_30_days_cents, platform_fee_percent, profiles(full_name, phone_number)")
         .eq("profile_id", user.id)
         .maybeSingle<TrainerRow>();
 
@@ -463,9 +465,11 @@ export default function TrainerDashboardPage() {
         const pPersonal = typeof (trainer as TrainerRow).price_personal_cents === "number" ? (trainer as TrainerRow).price_personal_cents : null;
         const pOnline = typeof (trainer as TrainerRow).price_online_cents === "number" ? (trainer as TrainerRow).price_online_cents : null;
         const pMealPlan = (trainer as TrainerRow).price_meal_plan_cents;
+        const pMealPlan30 = (trainer as TrainerRow).price_meal_plan_30_days_cents;
         setPricePersonalEuro(pPersonal && pPersonal > 0 ? (pPersonal / 100).toFixed(2) : "");
         setPriceOnlineEuro(pOnline && pOnline > 0 ? (pOnline / 100).toFixed(2) : "");
         setPriceMealPlanEuro(typeof pMealPlan === "number" && pMealPlan > 0 ? (pMealPlan / 100).toFixed(2) : "");
+        setPriceMealPlan30DaysEuro(typeof pMealPlan30 === "number" && pMealPlan30 > 0 ? (pMealPlan30 / 100).toFixed(2) : "");
         setPlatformFeePercent(String((trainer as TrainerRow).platform_fee_percent ?? 10));
 
         // Spustiť načítanie ostatných dát na pozadí
@@ -715,11 +719,13 @@ export default function TrainerDashboardPage() {
       const personalCents = toCents(pricePersonalEuro);
       const onlineCents = toCents(priceOnlineEuro);
       const mealPlanCents = toCents(priceMealPlanEuro);
+      const mealPlan30Cents = toCents(priceMealPlan30DaysEuro);
 
       const payload: Record<string, number | null> = {
         price_personal_cents: personalCents,
         price_online_cents: onlineCents,
-        price_meal_plan_cents: mealPlanCents
+        price_meal_plan_cents: mealPlanCents,
+        price_meal_plan_30_days_cents: mealPlan30Cents
       };
       const { error } = await supabase
         .from("trainers")
@@ -1073,7 +1079,7 @@ export default function TrainerDashboardPage() {
         label = "Online konzultácia";
         break;
       case "meal_plan":
-        label = "AI jedálniček";
+        label = "Jedálniček na 7 dní";
         break;
       case "transformation":
         label = "Mesačná premena";
@@ -2005,7 +2011,7 @@ export default function TrainerDashboardPage() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest">Jedálniček na mieru (EUR)</label>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest">Jedálniček na 7 dní (EUR)</label>
                     <input
                       value={priceMealPlanEuro}
                       onChange={(e) => setPriceMealPlanEuro(e.target.value)}
@@ -2018,10 +2024,25 @@ export default function TrainerDashboardPage() {
                         {getEarningsText(priceMealPlanEuro)}
                       </div>
                     )}
-                    <div className="text-[10px] text-zinc-500 italic mt-1 ml-1">
-                      provízia platforme je {platformFeePercent}% z každej úspešne prijatej tranzakcie
-                    </div>
                   </div>
+                  <div className="space-y-2">
+                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest">Jedálniček na 30 dní (EUR)</label>
+                    <input
+                      value={priceMealPlan30DaysEuro}
+                      onChange={(e) => setPriceMealPlan30DaysEuro(e.target.value)}
+                      inputMode="decimal"
+                      className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600"
+                      placeholder="120.00"
+                    />
+                    {getEarningsText(priceMealPlan30DaysEuro) && (
+                      <div className="text-[10px] text-zinc-500 italic mt-1 ml-1">
+                        {getEarningsText(priceMealPlan30DaysEuro)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="text-[10px] text-zinc-500 italic mt-1 ml-1">
+                  provízia platforme je {platformFeePercent}% z každej úspešne prijatej tranzakcie
                 </div>
                 <div className="flex justify-end">
                   <button
@@ -2070,7 +2091,7 @@ export default function TrainerDashboardPage() {
                         >
                           <option value="personal">Osobný tréning</option>
                           <option value="online">Online konzultácia</option>
-                          <option value="meal_plan">Jedálniček na mieru</option>
+                          <option value="meal_plan">Jedálniček na 7 dní</option>
                           <option value="transformation">Mesačná premena</option>
                         </select>
                         <input
