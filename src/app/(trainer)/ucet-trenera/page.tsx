@@ -388,11 +388,15 @@ export default function TrainerDashboardPage() {
   }, []);
 
   const loadProfile = useCallback(async () => {
-    if (fetchLockRef.current['profile']) return;
-    fetchLockRef.current['profile'] = true;
-
+    // Ak už načítavame alebo sme už načítali, nepúšťame znova
+    if (fetchLockRef.current['profile_loading'] || fetchLockRef.current['profile_done']) {
+      return;
+    }
+    
+    fetchLockRef.current['profile_loading'] = true;
     setProfileLoading(true);
-    console.log("[FETCH ONCE]", "trainers");
+    console.log("[FETCH ONCE] trainer - loading full profile");
+
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -409,11 +413,12 @@ export default function TrainerDashboardPage() {
 
       if (error) {
         console.error("[FETCH ERROR] trainers:", error);
-        fetchLockRef.current['profile'] = false; // Povoliť retry pri errore
+        fetchLockRef.current['profile_loading'] = false;
         return;
       }
 
       if (trainer) {
+        fetchLockRef.current['profile_done'] = true;
         setTrainerId(trainer.id);
         setUsername(trainer.slug || "");
         setFullName(trainer.profiles?.full_name || "");
@@ -453,10 +458,11 @@ export default function TrainerDashboardPage() {
       }
     } catch (err) {
       console.error("[TRAINER DASHBOARD] error loading profile:", err);
-      fetchLockRef.current['profile'] = false;
+      fetchLockRef.current['profile_loading'] = false;
     } finally {
       setProfileLoading(false);
       setAuthChecking(false);
+      fetchLockRef.current['profile_loading'] = false;
     }
   }, [router, loadDeferredData]);
 
@@ -563,7 +569,7 @@ export default function TrainerDashboardPage() {
       return;
     }
 
-    console.log("[FETCH LOOP CHECK] /ucet-trenera useEffect [loadProfile, router]");
+    console.log("[FETCH LOOP CHECK] /ucet-trenera useEffect []");
     console.log("[UCET-TRENERA] Initializing auth check...");
     
     // 1. Okamžitá kontrola session
@@ -586,7 +592,7 @@ export default function TrainerDashboardPage() {
               loadProfile();
             }
           });
-        }, 1000); // Skrátené na 1s
+        }, 1000); 
         return () => clearTimeout(timer);
       }
     });
@@ -600,7 +606,7 @@ export default function TrainerDashboardPage() {
     });
 
     return () => subscription.unsubscribe();
-  }, [loadProfile, router]);
+  }, []);
 
   useEffect(() => {
     if (activeTab !== "nastavenia") return;
@@ -957,7 +963,7 @@ export default function TrainerDashboardPage() {
       const val = parseInt(newDiscount.value);
       const mx = newDiscount.max_uses ? parseInt(newDiscount.max_uses) : null;
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("trainer_discounts")
         .insert({
           trainer_id: trainerId,
@@ -965,16 +971,21 @@ export default function TrainerDashboardPage() {
           type: newDiscount.type,
           value: val,
           service_type: newDiscount.service_type,
-          max_uses: mx
-        });
+          max_uses: mx,
+          used_count: 0,
+          is_active: true
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      console.log("[DISCOUNTS UI] create success, refreshing list");
+      console.log("[LOCAL UPDATE] discounts - added new code");
+      if (data) {
+        setDiscounts(prev => [data as Discount, ...prev]);
+      }
       setNewDiscount({ code: "", type: "percent", value: "", service_type: "personal", max_uses: "" });
-      fetchLockRef.current['deferred'] = false; // Umožniť refetch po pridaní
-      fetchLockRef.current['profile'] = false; // Umožniť refetch profilu
-      loadProfile();
+      alert("Zľavový kód bol úspešne pridaný.");
     } catch (err: unknown) {
       console.error(err);
       alert(err instanceof Error ? err.message : "Chyba pri pridávaní zľavy.");
@@ -990,13 +1001,14 @@ export default function TrainerDashboardPage() {
         .from("trainer_discounts")
         .update({ is_active: !current })
         .eq("id", id);
+      
       if (error) throw error;
-      console.log("[DISCOUNTS UI] update success, refreshing list");
-      fetchLockRef.current['deferred'] = false;
-      fetchLockRef.current['profile'] = false;
-      loadProfile();
+      
+      console.log("[LOCAL UPDATE] discounts - toggled active state");
+      setDiscounts(prev => prev.map(d => d.id === id ? { ...d, is_active: !current } : d));
     } catch (err: unknown) {
       console.error(err);
+      alert("Chyba pri zmene stavu kódu.");
     } finally {
       setSaving(false);
     }
@@ -1010,13 +1022,14 @@ export default function TrainerDashboardPage() {
         .from("trainer_discounts")
         .delete()
         .eq("id", id);
+      
       if (error) throw error;
-      console.log("[DISCOUNTS UI] delete success, refreshing list");
-      fetchLockRef.current['deferred'] = false;
-      fetchLockRef.current['profile'] = false;
-      loadProfile();
+      
+      console.log("[LOCAL UPDATE] discounts - removed code");
+      setDiscounts(prev => prev.filter(d => d.id !== id));
     } catch (err: unknown) {
       console.error(err);
+      alert("Chyba pri mazaní.");
     } finally {
       setSaving(false);
     }
