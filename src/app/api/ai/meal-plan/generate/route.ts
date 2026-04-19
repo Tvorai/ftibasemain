@@ -103,15 +103,10 @@ export async function POST(request: Request) {
     ];
 
     let finalContent = "";
-    let attempts = 0;
-    const maxAttempts = duration === 30 ? 1 : 2; // Only 1 attempt for 30 days to avoid timeout
     let lastAiContent = "";
 
-    while (attempts < maxAttempts) {
-      attempts++;
-      
-      // --- STEP 1: GENERATE PROFESSIONAL PLAN ---
-      const systemPrompt = `Si špičkový nutričný poradca a profesionálny osobný tréner. Tvojou úlohou je vygenerovať DOKONALÝ draft jedálnička na ${duration} dní.
+    // --- STEP 1: GENERATE PROFESSIONAL PLAN ---
+    const systemPrompt = `Si špičkový nutričný poradca a profesionálny osobný tréner. Tvojou úlohou je vygenerovať DOKONALÝ draft jedálnička na ${duration} dní.
 VÝSTUP MUSÍ BYŤ V ČISTOM TEXTE (NIE JSON).
 JAZYK: ČISTÁ SPISOVNÁ SLOVENČINA (bez gramatických chýb, bez čechizmov).
 
@@ -129,12 +124,10 @@ STRIKTNÉ PRAVIDLÁ:
      [ Deň 8 ] ... [ Deň 14 ]
      atď. až po Deň 30.
 
-PRAVIDLÁ PRE 30-DŇOVÝ PLÁN:
-- RÔZNORODOSŤ: Jedlá sa NESMÚ opakovať viac ako 2x za celý plán. Každý týždeň musí byť iný.
-- ROTÁCIA PROTEÍNOV: Striedaj zdroje (kuracie, hovädzie, morčacie, ryby, vajíčka, rastlinné proteíny).
-- ROTÁCIA PRÍLOH: Striedaj prílohy (ryža, zemiaky, batáty, quinoa, celozrnné cestoviny, bulgur, kuskus).
-- TYPY JEDÁL: Striedaj klasické teplé jedlá, rýchle snacky a studené šaláty/obložené misy.
-- KREATIVITA: Nevytváraj len drobné variácie. Každý deň musí pôsobiť ako unikátny reálny jedálniček.
+PRAVIDLÁ PRE ROZMANITOSŤ:
+- Jedlá sa nesmú opakovať viac ako 2x za celý plán.
+- Rotuj zdroje bielkovín (mäso, ryby, vajcia) a príloh (ryža, zemiaky, quinoa).
+- Každý deň musí byť unikátny a reálny.
 
 FORMÁT VÝSTUPU:
 JEDÁLNIČEK NA ${duration} DNÍ:
@@ -148,72 +141,27 @@ ${duration === 30 ? "# TÝŽDEŇ 1\n" : ""}[ ${duration === 7 ? "Pondelok" : "De
 
 (prázdny riadok medzi dňami)`;
 
-      const userPrompt = `Prosím o vygenerovanie špičkového draftu jedálnička na ${duration} dní:
+    const userPrompt = `Prosím o vygenerovanie špičkového draftu jedálnička na ${duration} dní:
 - Cieľ: ${mealPlanRequest.goal}
 - Parametre: ${mealPlanRequest.gender === "male" ? "Muž" : "Žena"}, ${mealPlanRequest.age} r., ${mealPlanRequest.height_cm} cm
 - Alergény (ABSOLÚTNY ZÁKAZ): ${expandedAllergens.length > 0 ? expandedAllergens.join(", ") : "Žiadne"}
 - Obľúbené jedlá: ${mealPlanRequest.favorite_foods || "Žiadne"}
 - Poznámky: ${trainerNotes || "Žiadne"}`;
 
-      const completion = await openai.chat.completions.create({
-        model: model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
-        ],
-        temperature: 0.3,
-        max_tokens: duration === 30 ? 12000 : 4096 // Increased tokens for 30 days
-      });
+    const completion = await openai.chat.completions.create({
+      model: model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      temperature: 0.2, // Lower temperature for more consistent and faster output
+      max_tokens: duration === 30 ? 8000 : 3000 // Optimized token limits
+    });
 
-      lastAiContent = completion.choices[0].message.content || "";
+    finalContent = completion.choices[0].message.content || "";
 
-      // For 30 days, skip extra validation step to prevent timeouts
-      if (duration === 30) {
-        finalContent = lastAiContent;
-        break;
-      }
-
-      // --- STEP 2: VALIDATE + CLEANUP (Only for 7 days) ---
-      const validationPrompt = `Skontroluj a oprav nasledujúci jedálniček.
-CIEĽ: 100% bezpečnosť (alergény) a 100% gramatická správnosť.
-PRAVIDLÁ:
-1. Obsahuje ZAKÁZANÉ POTRAVINY? (${expandedAllergens.join(", ")}) Ak áno, nahraď celé jedlo bezpečnou alternatívou.
-2. Sú tam gramatické chyby, čechizmy alebo "undefined"? Ak áno, oprav ich.
-3. Má každé jedlo kcal v zátvorke?
-Vráť LEN finálny opravený text jedálnička bez komentára.
-
-TEXT NA KONTROLU:
-${lastAiContent}`;
-
-      const validationCompletion = await openai.chat.completions.create({
-        model: model,
-        messages: [
-          { role: "system", content: "Si prísny revízor a editor jedálničkov. Vždy vraciaš len finálny text." },
-          { role: "user", content: validationPrompt }
-        ],
-        temperature: 0.1,
-        max_tokens: 4096
-      });
-
-      const validatedContent = validationCompletion.choices[0].message.content || lastAiContent;
-
-      // --- STEP 3: PROGRAMMATIC QUALITY CHECK ---
-      const hasForbiddenExpressions = FORBIDDEN_EXPRESSIONS.some(expr => 
-        validatedContent.toLowerCase().includes(expr.toLowerCase())
-      );
-      
-      const hasAllergens = containsForbidden(validatedContent, expandedAllergens);
-      const hasNulls = validatedContent.toLowerCase().includes("undefined") || validatedContent.toLowerCase().includes("null");
-
-      if (!hasForbiddenExpressions && !hasAllergens && !hasNulls) {
-        finalContent = validatedContent;
-        break;
-      }
-      
-      console.warn(`[AI Generate] Attempt ${attempts} failed quality check. Retrying...`);
-      if (attempts === maxAttempts) {
-        finalContent = validatedContent;
-      }
+    if (!finalContent) {
+      throw new Error("AI nevrátila žiadny obsah.");
     }
 
     // Consistency wrapper for storage
@@ -230,8 +178,8 @@ ${lastAiContent}`;
         ai_generated_plan: aiData,
         ai_prompt_input: {
           trainer_notes: trainerNotes,
-          validation_step: true,
-          attempts: attempts
+          validation_step: false,
+          attempts: 1
         },
         ai_generated_at: new Date().toISOString()
       })
