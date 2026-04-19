@@ -95,7 +95,7 @@ export default function UserRegistrationPage() {
               </button>
             </div>
 
-            <h1 className="font-display text-4xl leading-[0.9] tracking-wide whitespace-nowrap md:text-6xl">
+            <h1 className="font-display text-4xl leading-[0.9] tracking-wide whitespace-normal md:whitespace-nowrap md:text-6xl">
               {(authMode === "trainer" ? messages.pages.trainerRegistration.title : messages.pages.userRegistration.title).toUpperCase()}
             </h1>
             <p className="mt-3 text-sm italic text-white/70 md:text-base">
