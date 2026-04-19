@@ -298,6 +298,21 @@ export default function TrainerDashboardPage() {
   const [priceMealPlanEuro, setPriceMealPlanEuro] = useState("");
   const [platformFeePercent, setPlatformFeePercent] = useState("10");
 
+  const getEarningsText = (priceStr: string) => {
+    const feeRaw = parseFloat(platformFeePercent);
+    const fee = isNaN(feeRaw) ? 10 : feeRaw;
+    const priceValue = parseFloat(priceStr.replace(",", ".")) || 0;
+    if (priceValue <= 0) return null;
+
+    const feeAmount = priceValue * (fee / 100);
+    const netEarnings = priceValue - feeAmount;
+
+    const formattedNet = netEarnings.toLocaleString("sk-SK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formattedFee = feeAmount.toLocaleString("sk-SK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    return `Váš zárobok bude: ${formattedNet} € po odpočítaní poplatku ${formattedFee} €`;
+  };
+
   // State pre "Mesačná premena"
   const [transformation, setTransformation] = useState<TrainerTransformation>({
     trainer_id: "",
@@ -1968,6 +1983,11 @@ export default function TrainerDashboardPage() {
                       className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600"
                       placeholder="50.00"
                     />
+                    {getEarningsText(pricePersonalEuro) && (
+                      <div className="text-[10px] text-zinc-500 italic mt-1 ml-1">
+                        {getEarningsText(pricePersonalEuro)}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest">Online konzultácia (EUR)</label>
@@ -1978,6 +1998,11 @@ export default function TrainerDashboardPage() {
                       className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600"
                       placeholder="30.00"
                     />
+                    {getEarningsText(priceOnlineEuro) && (
+                      <div className="text-[10px] text-zinc-500 italic mt-1 ml-1">
+                        {getEarningsText(priceOnlineEuro)}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest">Jedálniček na mieru (EUR)</label>
@@ -1988,8 +2013,13 @@ export default function TrainerDashboardPage() {
                       className="w-full p-3 bg-zinc-800 border border-zinc-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-white placeholder:text-zinc-600"
                       placeholder="40.00"
                     />
+                    {getEarningsText(priceMealPlanEuro) && (
+                      <div className="text-[10px] text-zinc-500 italic mt-1 ml-1">
+                        {getEarningsText(priceMealPlanEuro)}
+                      </div>
+                    )}
                     <div className="text-[10px] text-zinc-500 italic mt-1 ml-1">
-                      provízia platforme je 10% z každej úspešne prijatej tranzakcie
+                      provízia platforme je {platformFeePercent}% z každej úspešne prijatej tranzakcie
                     </div>
                   </div>
                 </div>
