@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   // Fetch meal plan request
   const { data: mealPlanRequest, error: fetchError } = await supabase
     .from("meal_plan_requests")
-    .select("id, trainer_id, name, goal, height_cm, age, gender, allergens, favorite_foods")
+    .select("id, trainer_id, name, goal, height_cm, age, gender, allergens, favorite_foods, duration_days")
     .eq("id", mealPlanRequestId)
     .eq("trainer_id", trainer.id)
     .maybeSingle();
@@ -67,7 +67,7 @@ export async function POST(request: Request) {
   console.log("[FETCH AUDIT] api/ai/meal-plan/generate = POST");
   console.log("[FETCH AUDIT] table = meal_plan_requests");
   console.log("[FETCH AUDIT] old select = *");
-  console.log("[FETCH AUDIT] new select = id, trainer_id, name, goal, height_cm, age, gender, allergens, favorite_foods");
+  console.log("[FETCH AUDIT] new select = id, trainer_id, name, goal, height_cm, age, gender, allergens, favorite_foods, duration_days");
 
   if (fetchError || !mealPlanRequest) {
     return NextResponse.json({ message: "Meal plan request not found or access denied." }, { status: 404 });
@@ -109,8 +109,10 @@ export async function POST(request: Request) {
     while (attempts < maxAttempts) {
       attempts++;
       
+      const duration = mealPlanRequest.duration_days || 7;
+      
       // --- STEP 1: GENERATE PROFESSIONAL PLAN (Combined Generation & Style) ---
-      const systemPrompt = `Si špičkový nutričný poradca a profesionálny osobný tréner. Tvojou úlohou je vygenerovať DOKONALÝ draft jedálnička.
+      const systemPrompt = `Si špičkový nutričný poradca a profesionálny osobný tréner. Tvojou úlohou je vygenerovať DOKONALÝ draft jedálnička na ${duration} dní.
 VÝSTUP MUSÍ BYŤ V ČISTOM TEXTE (NIE JSON).
 JAZYK: ČISTÁ SPISOVNÁ SLOVENČINA (bez gramatických chýb, bez čechizmov).
 
@@ -119,11 +121,14 @@ STRIKTNÉ PRAVIDLÁ:
 2. NUTRIČNÁ LOGIKA: Jedlá musia byť realistické, sýte a profesionálne. Žiadne divné kombinácie (mäso s ovocím v jednej desiate a pod.).
 3. ŠTÝL: Text musí pôsobiť ako platený produkt od prémiového trénera. Používaj gramáž a jednoduchý popis.
 4. FORMÁT: Každé jedlo MUSÍ mať kalórie v zátvorke (napr. 350 kcal).
+5. DĹŽKA PLÁNU: Vygeneruj presne ${duration} dní.
+   - Ak je dĺžka 7 dní, použi formát: [ Pondelok ], [ Utorok ], ..., [ Nedeľa ].
+   - Ak je dĺžka 30 dní, použi formát: [ Deň 1 ], [ Deň 2 ], ..., [ Deň 30 ]. Môžeš to rozdeliť do týždňov, ale každý deň musí byť jasne označený.
 
 FORMÁT VÝSTUPU:
-JEDÁLNIČEK:
+JEDÁLNIČEK NA ${duration} DNÍ:
 
-[ Pondelok ]
+[ ${duration === 7 ? "Pondelok" : "Deň 1"} ]
 - **Raňajky (350 kcal)**: ...
 - **Desiata (200 kcal)**: ...
 - **Obed (450 kcal)**: ...
@@ -132,7 +137,7 @@ JEDÁLNIČEK:
 
 (prázdny riadok medzi dňami)`;
 
-      const userPrompt = `Prosím o vygenerovanie špičkového draftu jedálnička:
+      const userPrompt = `Prosím o vygenerovanie špičkového draftu jedálnička na ${duration} dní:
 - Cieľ: ${mealPlanRequest.goal}
 - Parametre: ${mealPlanRequest.gender === "male" ? "Muž" : "Žena"}, ${mealPlanRequest.age} r., ${mealPlanRequest.height_cm} cm
 - Alergény (ABSOLÚTNY ZÁKAZ): ${expandedAllergens.length > 0 ? expandedAllergens.join(", ") : "Žiadne"}

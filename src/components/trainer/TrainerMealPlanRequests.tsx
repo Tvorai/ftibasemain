@@ -22,6 +22,7 @@ interface MealPlanRequest {
   status: string;
   payment_status: string | null;
   price_cents: number | null;
+  duration_days: number | null;
   created_at: string;
 }
 
@@ -42,7 +43,7 @@ export default function TrainerMealPlanRequests({ trainerId }: TrainerMealPlanRe
     try {
       const { data, error } = await supabase
         .from("meal_plan_requests")
-        .select("id, name, email, phone, goal, height_cm, age, gender, allergens, favorite_foods, status, payment_status, price_cents, created_at")
+        .select("id, name, email, phone, goal, height_cm, age, gender, allergens, favorite_foods, status, payment_status, price_cents, duration_days, created_at")
         .eq("trainer_id", trainerId)
         .in("status", ["confirmed", "in_progress"])
         .order("created_at", { ascending: false });
@@ -50,7 +51,7 @@ export default function TrainerMealPlanRequests({ trainerId }: TrainerMealPlanRe
       console.log("[FETCH AUDIT] TrainerMealPlanRequests = fetchRequests");
       console.log("[FETCH AUDIT] table = meal_plan_requests");
       console.log("[FETCH AUDIT] old select = *");
-      console.log("[FETCH AUDIT] new select = id, name, email, phone, goal, height_cm, age, gender, allergens, favorite_foods, status, payment_status, price_cents, created_at");
+      console.log("[FETCH AUDIT] new select = id, name, email, phone, goal, height_cm, age, gender, allergens, favorite_foods, status, payment_status, price_cents, duration_days, created_at");
 
       if (error) throw error;
       setRequests((data as any) || []);
@@ -109,7 +110,7 @@ export default function TrainerMealPlanRequests({ trainerId }: TrainerMealPlanRe
           <tr>
             <th className="px-6 py-4">Klient</th>
             <th className="px-6 py-4">Cieľ a parametre</th>
-            <th className="px-6 py-4">Preferencie</th>
+            <th className="px-6 py-4">Dĺžka</th>
             <th className="px-6 py-4">Cena</th>
             <th className="px-6 py-4">Status</th>
             <th className="px-6 py-4">Dátum</th>
@@ -130,20 +131,10 @@ export default function TrainerMealPlanRequests({ trainerId }: TrainerMealPlanRe
                   {request.gender === "male" ? "Muž" : "Žena"}, {request.age} r., {request.height_cm} cm
                 </div>
               </td>
-              <td className="px-6 py-4 text-zinc-400 max-w-xs">
-                {request.allergens && (
-                  <div className="mb-1">
-                    <span className="text-red-400/80 font-bold text-[10px] uppercase">Alergény:</span>
-                    <div className="text-xs">{request.allergens}</div>
-                  </div>
-                )}
-                {request.favorite_foods && (
-                  <div>
-                    <span className="text-emerald-500/80 font-bold text-[10px] uppercase">Obľúbené jedlá:</span>
-                    <div className="text-xs">{request.favorite_foods}</div>
-                  </div>
-                )}
-                {!request.allergens && !request.favorite_foods && <span className="italic">Žiadne špeciálne požiadavky</span>}
+              <td className="px-6 py-4">
+                <span className="px-2 py-1 bg-zinc-800 border border-zinc-700 rounded-full text-[10px] font-bold text-zinc-300">
+                  {request.duration_days || 7} dní
+                </span>
               </td>
               <td className="px-6 py-4 text-white font-bold">
                 {request.price_cents ? `${(request.price_cents / 100).toFixed(2)} €` : "—"}

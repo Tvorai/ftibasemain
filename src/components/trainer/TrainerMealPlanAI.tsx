@@ -48,6 +48,7 @@ interface MealPlanRequest {
   status: string;
   payment_status: string | null;
   price_cents: number | null;
+  duration_days: number | null;
   created_at: string;
   ai_generation_status: "idle" | "generating" | "ready" | "failed";
   ai_generated_plan: AiMealPlan | null;
@@ -76,15 +77,15 @@ export default function TrainerMealPlanAI({ trainerId }: TrainerMealPlanAIProps)
     try {
       const { data, error } = await supabase
         .from("meal_plan_requests")
-        .select("id, name, goal, created_at, status, ai_generation_status, ai_generated_plan, trainer_edited_plan, ai_last_error, ai_generated_at")
+        .select("id, name, email, phone, goal, height_cm, age, gender, allergens, favorite_foods, status, payment_status, price_cents, duration_days, created_at, ai_generation_status, ai_generated_plan, trainer_edited_plan, ai_last_error, ai_generated_at")
         .eq("trainer_id", trainerId)
-        .in("status", ["confirmed", "in_progress", "completed"])
+        .in("status", ["confirmed", "in_progress"])
         .order("created_at", { ascending: false });
 
       console.log("[FETCH AUDIT] TrainerMealPlanAI = fetchRequests");
       console.log("[FETCH AUDIT] table = meal_plan_requests");
       console.log("[FETCH AUDIT] old select = *");
-      console.log("[FETCH AUDIT] new select = id, name, goal, created_at, status, ai_generation_status, ai_generated_plan, trainer_edited_plan, ai_last_error, ai_generated_at");
+      console.log("[FETCH AUDIT] new select = id, name, email, phone, goal, height_cm, age, gender, allergens, favorite_foods, status, payment_status, price_cents, duration_days, created_at, ai_generation_status, ai_generated_plan, trainer_edited_plan, ai_last_error, ai_generated_at");
 
       if (error) throw error;
       setRequests((data as any) || []);
@@ -282,7 +283,10 @@ export default function TrainerMealPlanAI({ trainerId }: TrainerMealPlanAIProps)
                   <h2 className="text-2xl font-bold text-white">{selectedRequest.name}</h2>
                   <p className="text-xs text-zinc-500 font-bold uppercase tracking-widest mt-1">{selectedRequest.email} • {selectedRequest.phone}</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-3">
+                  <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                    Typ: {selectedRequest.duration_days || 7} dní
+                  </span>
                   <button
                     onClick={handleGenerate}
                     disabled={isGenerating}

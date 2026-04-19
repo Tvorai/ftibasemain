@@ -71,6 +71,7 @@ export async function createMealPlanRequestAction(
         gender: form.gender,
         allergens: form.allergens || null,
         favorite_foods: form.favorite_foods || null,
+        duration_days: form.duration_days,
         status: "confirmed",
       })
       .select("id")
@@ -84,13 +85,25 @@ export async function createMealPlanRequestAction(
     try {
       const { data: trainerData } = await supabase
         .from("trainers")
-        .select("price_meal_plan_cents")
+        .select("price_meal_plan_cents, price_meal_plan_30_days_cents")
         .eq("id", trainer_id)
         .maybeSingle();
       
-      const priceStr = trainerData?.price_meal_plan_cents 
-        ? `${(trainerData.price_meal_plan_cents / 100).toFixed(2)} €` 
+      const priceCents = form.duration_days === 30 
+        ? (trainerData?.price_meal_plan_30_days_cents || 0)
+        : (trainerData?.price_meal_plan_cents || 0);
+
+      const priceStr = priceCents > 0 
+        ? `${(priceCents / 100).toFixed(2)} €` 
         : "neuvedená";
+
+      // Aktualizovať price_cents priamo v požiadavke ak sme ju práve vytvorili
+      if (priceCents > 0 && insertRes.data?.id) {
+        await supabase
+          .from("meal_plan_requests")
+          .update({ price_cents: priceCents })
+          .eq("id", insertRes.data.id);
+      }
 
       await notifyBookingCreated({
         supabase,
