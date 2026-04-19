@@ -317,6 +317,7 @@ export default function TrainerBookings({ trainerId }: TrainerBookingsProps) {
                 <tr>
                   <th className="px-6 py-4">Meno klienta</th>
                   <th className="px-6 py-4">Termín</th>
+                  {activeCategory === "transformation" && <th className="px-6 py-4">Položky v pláne</th>}
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right"></th>
                 </tr>
