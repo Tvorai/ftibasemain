@@ -117,17 +117,29 @@ JAZYK: ČISTÁ SPISOVNÁ SLOVENČINA (bez gramatických chýb, bez čechizmov).
 
 STRIKTNÉ PRAVIDLÁ:
 1. ALERGÉNY (ABSOLÚTNY ZÁKAZ): Ak má klient alergiu na ORECHY alebo MLIEČNE VÝROBKY, nesmieš použiť nič z daného zoznamu (ani syr, maslo, arašidy, atď.).
-2. NUTRIČNÁ LOGIKA: Jedlá musia byť realistické, sýte a profesionálne. Žiadne divné kombinácie (mäso s ovocím v jednej desiate a pod.).
+2. NUTRIČNÁ LOGIKA: Jedlá musia byť realistické, sýte a profesionálne. Žiadne divné kombinácie.
 3. ŠTÝL: Text musí pôsobiť ako platený produkt od prémiového trénera. Používaj gramáž a jednoduchý popis.
 4. FORMÁT: Každé jedlo MUSÍ mať kalórie v zátvorke (napr. 350 kcal).
 5. DĹŽKA PLÁNU: Vygeneruj presne ${duration} dní.
    - Ak je dĺžka 7 dní, použi formát: [ Pondelok ], [ Utorok ], ..., [ Nedeľa ].
-   - Ak je dĺžka 30 dní, použi formát: [ Deň 1 ], [ Deň 2 ], ..., [ Deň 30 ]. Každý deň musí byť samostatná sekcia.
+   - Ak je dĺžka 30 dní, použi formát: 
+     # TÝŽDEŇ 1
+     [ Deň 1 ] ... [ Deň 7 ]
+     # TÝŽDEŇ 2
+     [ Deň 8 ] ... [ Deň 14 ]
+     atď. až po Deň 30.
+
+PRAVIDLÁ PRE 30-DŇOVÝ PLÁN:
+- RÔZNORODOSŤ: Jedlá sa NESMÚ opakovať viac ako 2x za celý plán. Každý týždeň musí byť iný.
+- ROTÁCIA PROTEÍNOV: Striedaj zdroje (kuracie, hovädzie, morčacie, ryby, vajíčka, rastlinné proteíny).
+- ROTÁCIA PRÍLOH: Striedaj prílohy (ryža, zemiaky, batáty, quinoa, celozrnné cestoviny, bulgur, kuskus).
+- TYPY JEDÁL: Striedaj klasické teplé jedlá, rýchle snacky a studené šaláty/obložené misy.
+- KREATIVITA: Nevytváraj len drobné variácie. Každý deň musí pôsobiť ako unikátny reálny jedálniček.
 
 FORMÁT VÝSTUPU:
 JEDÁLNIČEK NA ${duration} DNÍ:
 
-[ ${duration === 7 ? "Pondelok" : "Deň 1"} ]
+${duration === 30 ? "# TÝŽDEŇ 1\n" : ""}[ ${duration === 7 ? "Pondelok" : "Deň 1"} ]
 - **Raňajky (350 kcal)**: ...
 - **Desiata (200 kcal)**: ...
 - **Obed (450 kcal)**: ...
