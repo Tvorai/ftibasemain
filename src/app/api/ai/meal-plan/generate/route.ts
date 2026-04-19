@@ -89,11 +89,12 @@ export async function POST(request: Request) {
     });
 
     const model = process.env.NOVITA_MODEL || "qwen/qwen3.5-35b-a3b";
+    const duration = mealPlanRequest.duration_days || 7;
 
     // Prepare allergens for validation
     const rawAllergens = mealPlanRequest.allergens ? mealPlanRequest.allergens.split(",").map((a: string) => a.trim()) : [];
     const expandedAllergens = expandAllergens(rawAllergens);
-    console.log("EXPANDED ALLERGENS:", expandedAllergens);
+    console.log(`[AI Generate] Generating ${duration} days for ${mealPlanRequest.name}. Allergens:`, expandedAllergens);
 
     const FORBIDDEN_EXPRESSIONS = [
       "omeléta", "jedno pomaranč", "salát", "kuracia guláš", "mliečneho omáčkovej",
@@ -103,15 +104,13 @@ export async function POST(request: Request) {
 
     let finalContent = "";
     let attempts = 0;
-    const maxAttempts = 2; // Reduced to prevent timeouts
+    const maxAttempts = duration === 30 ? 1 : 2; // Only 1 attempt for 30 days to avoid timeout
     let lastAiContent = "";
 
     while (attempts < maxAttempts) {
       attempts++;
       
-      const duration = mealPlanRequest.duration_days || 7;
-      
-      // --- STEP 1: GENERATE PROFESSIONAL PLAN (Combined Generation & Style) ---
+      // --- STEP 1: GENERATE PROFESSIONAL PLAN ---
       const systemPrompt = `Si špičkový nutričný poradca a profesionálny osobný tréner. Tvojou úlohou je vygenerovať DOKONALÝ draft jedálnička na ${duration} dní.
 VÝSTUP MUSÍ BYŤ V ČISTOM TEXTE (NIE JSON).
 JAZYK: ČISTÁ SPISOVNÁ SLOVENČINA (bez gramatických chýb, bez čechizmov).
@@ -123,7 +122,7 @@ STRIKTNÉ PRAVIDLÁ:
 4. FORMÁT: Každé jedlo MUSÍ mať kalórie v zátvorke (napr. 350 kcal).
 5. DĹŽKA PLÁNU: Vygeneruj presne ${duration} dní.
    - Ak je dĺžka 7 dní, použi formát: [ Pondelok ], [ Utorok ], ..., [ Nedeľa ].
-   - Ak je dĺžka 30 dní, použi formát: [ Deň 1 ], [ Deň 2 ], ..., [ Deň 30 ]. Môžeš to rozdeliť do týždňov, ale každý deň musí byť jasne označený.
+   - Ak je dĺžka 30 dní, použi formát: [ Deň 1 ], [ Deň 2 ], ..., [ Deň 30 ]. Každý deň musí byť samostatná sekcia.
 
 FORMÁT VÝSTUPU:
 JEDÁLNIČEK NA ${duration} DNÍ:
@@ -150,20 +149,25 @@ JEDÁLNIČEK NA ${duration} DNÍ:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
-        temperature: 0.3 // Balanced for quality and consistency
+        temperature: 0.3,
+        max_tokens: duration === 30 ? 12000 : 4096 // Increased tokens for 30 days
       });
 
       lastAiContent = completion.choices[0].message.content || "";
 
-      // --- STEP 2: VALIDATE + CLEANUP (Single pass for everything) ---
+      // For 30 days, skip extra validation step to prevent timeouts
+      if (duration === 30) {
+        finalContent = lastAiContent;
+        break;
+      }
+
+      // --- STEP 2: VALIDATE + CLEANUP (Only for 7 days) ---
       const validationPrompt = `Skontroluj a oprav nasledujúci jedálniček.
 CIEĽ: 100% bezpečnosť (alergény) a 100% gramatická správnosť.
-
 PRAVIDLÁ:
 1. Obsahuje ZAKÁZANÉ POTRAVINY? (${expandedAllergens.join(", ")}) Ak áno, nahraď celé jedlo bezpečnou alternatívou.
-2. Sú tam gramatické chyby, čechizmy alebo "undefined"? Ak áno, oprav ich do spisovnej slovenčiny.
+2. Sú tam gramatické chyby, čechizmy alebo "undefined"? Ak áno, oprav ich.
 3. Má každé jedlo kcal v zátvorke?
-
 Vráť LEN finálny opravený text jedálnička bez komentára.
 
 TEXT NA KONTROLU:
@@ -175,7 +179,8 @@ ${lastAiContent}`;
           { role: "system", content: "Si prísny revízor a editor jedálničkov. Vždy vraciaš len finálny text." },
           { role: "user", content: validationPrompt }
         ],
-        temperature: 0.1 // High precision
+        temperature: 0.1,
+        max_tokens: 4096
       });
 
       const validatedContent = validationCompletion.choices[0].message.content || lastAiContent;
@@ -193,7 +198,7 @@ ${lastAiContent}`;
         break;
       }
       
-      console.warn(`[AI Generate] Attempt ${attempts} failed quality check. Expressions: ${hasForbiddenExpressions}, Allergens: ${hasAllergens}, Nulls: ${hasNulls}. Retrying...`);
+      console.warn(`[AI Generate] Attempt ${attempts} failed quality check. Retrying...`);
       if (attempts === maxAttempts) {
         finalContent = validatedContent;
       }
@@ -226,7 +231,7 @@ ${lastAiContent}`;
     });
 
   } catch (error: unknown) {
-    console.error("[AI Generate] error:", error);
+    console.error("[AI Generate] CRITICAL ERROR:", error);
     const errorMessage = error instanceof Error ? error.message : "An error occurred during AI generation.";
     
     await supabase

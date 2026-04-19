@@ -183,7 +183,10 @@ export default function TrainerMealPlanAI({ trainerId }: TrainerMealPlanAIProps)
         result = JSON.parse(responseText);
       } catch (e) {
         console.error("Failed to parse AI response as JSON:", responseText);
-        throw new Error("AI generovanie zlyhalo (neplatná odpoveď zo servera). Skúste to znova.");
+        if (response.status === 504 || response.status === 502) {
+          throw new Error("Serveru to trvá príliš dlho (timeout). Skúste to prosím znova, AI generovanie niekedy potrebuje viac času.");
+        }
+        throw new Error(`AI generovanie zlyhalo (neplatná odpoveď zo servera ${response.status}). Skúste to znova.`);
       }
 
       if (!response.ok) throw new Error(result.message || "Chyba pri generovaní.");
