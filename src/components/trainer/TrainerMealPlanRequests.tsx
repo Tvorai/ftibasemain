@@ -110,6 +110,7 @@ export default function TrainerMealPlanRequests({ trainerId }: TrainerMealPlanRe
           <tr>
             <th className="px-6 py-4">Klient</th>
             <th className="px-6 py-4">Cieľ a parametre</th>
+            <th className="px-6 py-4">Preferencie</th>
             <th className="px-6 py-4">Dĺžka</th>
             <th className="px-6 py-4">Cena</th>
             <th className="px-6 py-4">Status</th>
@@ -130,6 +131,21 @@ export default function TrainerMealPlanRequests({ trainerId }: TrainerMealPlanRe
                 <div className="text-xs">
                   {request.gender === "male" ? "Muž" : "Žena"}, {request.age} r., {request.height_cm} cm
                 </div>
+              </td>
+              <td className="px-6 py-4 text-zinc-400 max-w-xs">
+                {request.allergens && (
+                  <div className="mb-1">
+                    <span className="text-red-400/80 font-bold text-[10px] uppercase">Alergény:</span>
+                    <div className="text-xs">{request.allergens}</div>
+                  </div>
+                )}
+                {request.favorite_foods && (
+                  <div>
+                    <span className="text-emerald-500/80 font-bold text-[10px] uppercase">Obľúbené jedlá:</span>
+                    <div className="text-xs">{request.favorite_foods}</div>
+                  </div>
+                )}
+                {!request.allergens && !request.favorite_foods && <span className="italic">Žiadne špeciálne požiadavky</span>}
               </td>
               <td className="px-6 py-4">
                 <span className="px-2 py-1 bg-zinc-800 border border-zinc-700 rounded-full text-[10px] font-bold text-zinc-300">
