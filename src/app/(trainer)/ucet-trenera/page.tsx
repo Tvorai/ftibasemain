@@ -171,8 +171,8 @@ const TrainerReviewsTab = React.memo(function TrainerReviewsTab() {
       setLoadingReviews(true);
       setReviewsError(null);
       try {
-        const sessionRes = await supabase.auth.getSession();
-        const accessToken = sessionRes.data.session?.access_token;
+        const { data: { session } } = await supabase.auth.getSession();
+        const accessToken = session?.access_token;
         if (!accessToken) {
           throw new Error("Pre zobrazenie recenzií sa musíte prihlásiť.");
         }
@@ -1516,7 +1516,7 @@ export default function TrainerDashboardPage() {
       case "recenzie":
         return (
           <div className="flex flex-col gap-6 w-full max-w-[760px] ml-auto">
-            <h2 className="text-4xl font-display uppercase tracking-wider mb-4">Recenzie</h2>
+            <h2 className="text-4xl font-display uppercase tracking-wider mb-4 text-white">Recenzie</h2>
             <TrainerReviewsTab />
           </div>
         );
