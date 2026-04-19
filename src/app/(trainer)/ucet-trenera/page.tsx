@@ -1079,7 +1079,7 @@ export default function TrainerDashboardPage() {
         label = "Online konzultácia";
         break;
       case "meal_plan":
-        label = "Jedálniček na 7 dní";
+        label = "Jedálniček";
         break;
       case "transformation":
         label = "Mesačná premena";
@@ -2013,7 +2013,7 @@ export default function TrainerDashboardPage() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest">Jedálniček na 7 dní (EUR)</label>
+                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-widest">Jedálniček (EUR)</label>
                     <input
                       value={priceMealPlanEuro}
                       onChange={(e) => setPriceMealPlanEuro(e.target.value)}
@@ -2093,7 +2093,7 @@ export default function TrainerDashboardPage() {
                         >
                           <option value="personal">Osobný tréning</option>
                           <option value="online">Online konzultácia</option>
-                          <option value="meal_plan">Jedálniček na 7 dní</option>
+                          <option value="meal_plan">Jedálniček</option>
                           <option value="transformation">Mesačná premena</option>
                         </select>
                         <input
