@@ -48,7 +48,7 @@ const settingsTabs: { id: SettingsTabId; label: string }[] = [
 
 type Brand = {
   id: string;
-  logo: string;
+  logo: string | null;
   code: string;
   url?: string;
 };
@@ -791,8 +791,8 @@ export default function TrainerDashboardPage() {
    };
 
   const handleSaveBrand = async () => {
-    if (!newBrandLogo || !newBrandCode.trim()) {
-      alert("Nahrajte logo a zadajte kód.");
+    if (!newBrandCode.trim()) {
+      alert("Zadajte kód.");
       return;
     }
 
@@ -1561,7 +1561,7 @@ export default function TrainerDashboardPage() {
               <div className="bg-zinc-900/30 border border-emerald-500/30 rounded-[30px] p-8 backdrop-blur-sm max-w-[500px]">
                 <div className="space-y-6">
                   <div className="space-y-3">
-                    <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold ml-2">Logo značky</span>
+                    <span className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold ml-2">Logo značky (nepovinné)</span>
                     <div 
                       onClick={() => brandLogoInputRef.current?.click()}
                       className="w-full aspect-[2/1] border border-emerald-500/50 border-dashed rounded-2xl flex items-center justify-center cursor-pointer hover:bg-emerald-500/5 transition-colors overflow-hidden relative group"
@@ -1631,9 +1631,11 @@ export default function TrainerDashboardPage() {
                 ) : (
                   brands.map((brand) => (
                     <div key={brand.id} className="bg-zinc-900/30 border border-emerald-500/30 rounded-[25px] p-5 backdrop-blur-sm group hover:border-emerald-500/50 transition-colors flex flex-col gap-4">
-                      <div className="relative aspect-[2/1] bg-zinc-950/40 rounded-xl overflow-hidden border border-zinc-800 flex items-center justify-center">
-                        <Image src={brand.logo} alt="Logo" fill className="object-contain p-4" />
-                      </div>
+                      {brand.logo && (
+                        <div className="relative aspect-[2/1] bg-zinc-950/40 rounded-xl overflow-hidden border border-zinc-800 flex items-center justify-center">
+                          <Image src={brand.logo} alt="Logo" fill className="object-contain p-4" />
+                        </div>
+                      )}
                       
                       <div className="flex items-center justify-between px-1">
                         <div className="space-y-1">
