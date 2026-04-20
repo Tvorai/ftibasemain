@@ -336,17 +336,25 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
     if (activeImageIndex > images.length - 1) setActiveImageIndex(0);
   }, [activeImageIndex, images.length]);
 
-  const goPrev = useCallback(() => {
-    if (suppressClickRef.current) return;
+  const handlePrev = useCallback(() => {
     if (images.length <= 1) return;
     setActiveImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   }, [images.length]);
 
-  const goNext = useCallback(() => {
-    if (suppressClickRef.current) return;
+  const handleNext = useCallback(() => {
     if (images.length <= 1) return;
     setActiveImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   }, [images.length]);
+
+  const goPrev = useCallback(() => {
+    if (suppressClickRef.current) return;
+    handlePrev();
+  }, [handlePrev]);
+
+  const goNext = useCallback(() => {
+    if (suppressClickRef.current) return;
+    handleNext();
+  }, [handleNext]);
 
   const finishSwipe = () => {
     const state = swipeRef.current;
@@ -358,6 +366,8 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
 
     const absX = Math.abs(dx);
     const absY = Math.abs(dy);
+    
+    // Sensitivity threshold (40px) and must be horizontal
     if (absX < 40 || absX <= absY) return;
 
     suppressClickRef.current = true;
@@ -365,8 +375,8 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
       suppressClickRef.current = false;
     }, 250);
 
-    if (dx < 0) goNext();
-    else goPrev();
+    if (dx < 0) handleNext();
+    else handlePrev();
   };
 
   const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
