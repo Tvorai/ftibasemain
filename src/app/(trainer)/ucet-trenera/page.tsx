@@ -287,10 +287,8 @@ export default function TrainerDashboardPage() {
   const [stripeOnboardingCompleted, setStripeOnboardingCompleted] = useState(false);
   const [stripeChargesEnabled, setStripeChargesEnabled] = useState(false);
   const [stripePayoutsEnabled, setStripePayoutsEnabled] = useState(false);
-  const [stripeBusy, setStripeBusy] = useState<null | "connect" | "onboarding" | "dashboard" | "balance">(null);
+  const [stripeBusy, setStripeBusy] = useState<null | "connect" | "onboarding" | "dashboard">(null);
   const [stripeError, setStripeError] = useState<string | null>(null);
-  const [availableBalance, setAvailableBalance] = useState<number | null>(null);
-  const [pendingBalance, setPendingBalance] = useState<number | null>(null);
 
   const displaySiteUrl = typeof window !== "undefined" && window.location.hostname === "localhost" ? "https://fitbase.sk" : siteUrl;
   const profileUrl = `${displaySiteUrl.replace(/\/$/, "")}/${toSlug(username)}`;
@@ -522,24 +520,6 @@ export default function TrainerDashboardPage() {
     await fetch("/api/stripe/connect/sync-account", { method: "POST", headers });
   }, [getAuthHeaders]);
 
-  const loadStripeBalance = useCallback(async () => {
-    if (!stripeAccountId || !stripeOnboardingCompleted) return;
-    setStripeBusy("balance");
-    try {
-      const headers = await getAuthHeaders();
-      const res = await fetch("/api/trainer/balance", { method: "GET", headers });
-      const payload: unknown = await res.json().catch(() => null);
-      if (res.ok && isRecord(payload) && payload.ok && payload.has_account) {
-        setAvailableBalance(typeof payload.available_amount === "number" ? payload.available_amount : 0);
-        setPendingBalance(typeof payload.pending_amount === "number" ? payload.pending_amount : 0);
-      }
-    } catch (err) {
-      console.error("Error loading stripe balance:", err);
-    } finally {
-      setStripeBusy(null);
-    }
-  }, [getAuthHeaders, stripeAccountId, stripeOnboardingCompleted]);
-
   const handleStripeConnect = useCallback(async () => {
     if (stripeBusy) return;
     setStripeError(null);
@@ -648,30 +628,18 @@ export default function TrainerDashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === "nastavenia" && activeSettingsTab === "payment_account" && stripeAccountId && stripeOnboardingCompleted) {
-      loadStripeBalance();
-    }
-  }, [activeTab, activeSettingsTab, stripeAccountId, stripeOnboardingCompleted, loadStripeBalance]);
-
-  useEffect(() => {
     if (activeTab !== "nastavenia") return;
     if (activeSettingsTab !== "payment_account") return;
     const onFocus = () => {
       syncStripeAccount()
         .catch(() => {})
-        .finally(() => {
-          loadProfile();
-          loadStripeBalance();
-        });
+        .finally(() => loadProfile());
     };
     const onVisibility = () => {
       if (document.hidden) return;
       syncStripeAccount()
         .catch(() => {})
-        .finally(() => {
-          loadProfile();
-          loadStripeBalance();
-        });
+        .finally(() => loadProfile());
     };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
@@ -1918,23 +1886,6 @@ export default function TrainerDashboardPage() {
                     </div>
                   </div>
                 </div>
-
-                {stripeOnboardingCompleted && (
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-5 py-4">
-                      <div className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold">Dostupné prostriedky</div>
-                      <div className="text-2xl font-display text-white tracking-wide">
-                        {availableBalance !== null ? `${availableBalance.toFixed(2)} €` : "— €"}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1 rounded-2xl border border-white/5 bg-black/20 px-5 py-4">
-                      <div className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold">Čakajúce prostriedky</div>
-                      <div className="text-2xl font-display text-zinc-400 tracking-wide">
-                        {pendingBalance !== null ? `${pendingBalance.toFixed(2)} €` : "— €"}
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
