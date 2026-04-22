@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseUrl, supabaseAnonKey } from "@/lib/config";
 
-export default function AdminImpersonatePage() {
+function ImpersonateContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -67,11 +67,24 @@ export default function AdminImpersonatePage() {
   }
 
   return (
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      <p className="text-zinc-500 font-display uppercase tracking-widest">Pripravujem prístup...</p>
+    </div>
+  );
+}
+
+export default function AdminImpersonatePage() {
+  return (
     <div className="min-h-screen bg-black flex items-center justify-center text-white">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-zinc-500 font-display uppercase tracking-widest">Pripravujem prístup...</p>
-      </div>
+      <Suspense fallback={
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-zinc-500 font-display uppercase tracking-widest">Načítavam...</p>
+        </div>
+      }>
+        <ImpersonateContent />
+      </Suspense>
     </div>
   );
 }
