@@ -90,6 +90,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Tréner neexistuje." }, { status: 404 });
   }
 
+  const stripeAccountId = trainerRes.data.stripe_account_id;
+  console.log(`[STRIPE CHECKOUT] trainer: ${input.trainer_id}, stripe_account_id: ${stripeAccountId}`);
+  
+  if (!stripeAccountId) {
+    return NextResponse.json({ message: "Tréner nemá prepojený Stripe účet." }, { status: 400 });
+  }
+
   let priceCents = 0;
   if (input.service_type === "online") {
     priceCents = trainerRes.data.price_online_cents || 0;
@@ -299,7 +306,8 @@ export async function POST(request: Request) {
   }
   metadata.final_price_cents = String(finalPriceCents);
 
-  const session = await stripe.checkout.sessions.create({
+  try {
+    const session = await stripe.checkout.sessions.create({
     mode: "payment",
     line_items: [
       {
@@ -330,5 +338,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Stripe session.url nie je dostupné." }, { status: 500 });
   }
 
-  return NextResponse.json({ url: session.url });
+  return NextResponse.json({ ok: true, url: session.url });
+  } catch (err: any) {
+    console.error("[STRIPE CHECKOUT ERROR]", err);
+    
+    // Špecifická pomoc pre chybu s destination account
+    if (err.code === "resource_missing" && err.param?.includes("destination")) {
+      return NextResponse.json({ 
+        message: `Stripe účet trénera (${stripeAccountId}) nebol nájdený v aktuálnom prostredí. Pravdepodobne ide o nesúlad medzi TEST a LIVE režimom.` 
+      }, { status: 400 });
+    }
+
+    return NextResponse.json({ message: err.message || "Nepodarilo sa vytvoriť platbu." }, { status: 500 });
+  }
 }
