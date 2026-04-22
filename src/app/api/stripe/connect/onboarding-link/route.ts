@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { siteUrl } from "@/lib/config";
+import { stripe } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -16,15 +17,6 @@ function getBearerToken(request: Request): string | null {
   return match?.[1] || null;
 }
 
-function pickStripeSecretKey(): string | null {
-  return (
-    process.env.STRIPE_SECRET_KEY ||
-    process.env.STRIPE_API_KEY ||
-    process.env.STRIPE_SECRET ||
-    null
-  );
-}
-
 function stripeErrorMessage(payload: unknown): string | null {
   if (!isRecord(payload)) return null;
   const err = payload.error;
@@ -36,13 +28,9 @@ function stripeErrorMessage(payload: unknown): string | null {
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const stripeSecretKey = pickStripeSecretKey();
 
   if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json({ ok: false, message: "Chýba konfigurácia Supabase." }, { status: 500 });
-  }
-  if (!stripeSecretKey) {
-    return NextResponse.json({ ok: false, message: "Chýba STRIPE_SECRET_KEY." }, { status: 500 });
   }
 
   const token = getBearerToken(request);
@@ -80,37 +68,17 @@ export async function POST(request: Request) {
   returnUrl.searchParams.set("stripe", "return");
   refreshUrl.searchParams.set("stripe", "refresh");
 
-  const form = new URLSearchParams();
-  form.set("account", stripeAccountId);
-  form.set("type", "account_onboarding");
-  form.set("return_url", returnUrl.toString());
-  form.set("refresh_url", refreshUrl.toString());
+  try {
+    const accountLink = await stripe.accountLinks.create({
+      account: stripeAccountId,
+      type: "account_onboarding",
+      return_url: returnUrl.toString(),
+      refresh_url: refreshUrl.toString(),
+    });
 
-  const stripeRes = await fetch("https://api.stripe.com/v1/account_links", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${stripeSecretKey}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: form.toString(),
-  });
-
-  const stripePayload: unknown = await stripeRes.json().catch(() => null);
-  if (!stripeRes.ok) {
-    return NextResponse.json(
-      { ok: false, message: stripeErrorMessage(stripePayload) || "Stripe error." },
-      { status: 500 }
-    );
+    return NextResponse.json({ ok: true, url: accountLink.url });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Stripe error.";
+    return NextResponse.json({ ok: false, message }, { status: 500 });
   }
-
-  const url =
-    isRecord(stripePayload) && typeof stripePayload.url === "string" && stripePayload.url.trim()
-      ? stripePayload.url
-      : null;
-
-  if (!url) {
-    return NextResponse.json({ ok: false, message: "Stripe nevrátil onboarding url." }, { status: 500 });
-  }
-
-  return NextResponse.json({ ok: true, url });
 }

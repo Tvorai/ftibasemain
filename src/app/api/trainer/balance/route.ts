@@ -5,10 +5,6 @@ import { stripe } from "@/lib/stripe";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
 function getBearerToken(request: Request): string | null {
   const auth = request.headers.get("authorization");
   if (!auth) return null;
@@ -16,15 +12,7 @@ function getBearerToken(request: Request): string | null {
   return match?.[1] || null;
 }
 
-function stripeErrorMessage(payload: unknown): string | null {
-  if (!isRecord(payload)) return null;
-  const err = payload.error;
-  if (!isRecord(err)) return null;
-  const msg = err.message;
-  return typeof msg === "string" && msg.trim() ? msg : null;
-}
-
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -54,45 +42,49 @@ export async function POST(request: Request) {
     .maybeSingle<{ id: string; stripe_account_id: string | null }>();
 
   if (trainerRes.error) {
+    console.error("[STRIPE BALANCE ERROR] DB error:", trainerRes.error.message);
     return NextResponse.json({ ok: false, message: trainerRes.error.message }, { status: 500 });
   }
-  if (!trainerRes.data?.id) {
-    return NextResponse.json({ ok: false, message: "Používateľ nie je tréner." }, { status: 403 });
-  }
 
-  if (trainerRes.data.stripe_account_id) {
-    return NextResponse.json({ ok: true, stripe_account_id: trainerRes.data.stripe_account_id });
+  const stripeAccountId = trainerRes.data?.stripe_account_id;
+  console.log("[STRIPE BALANCE] account id:", stripeAccountId);
+
+  if (!stripeAccountId) {
+    return NextResponse.json({ 
+      ok: false, 
+      message: "Stripe účet nie je vytvorený.",
+      available_amount: 0,
+      pending_amount: 0
+    });
   }
 
   try {
-    const account = await stripe.accounts.create({
-      type: "express",
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-      email: user.email?.trim(),
+    const balance = await stripe.balance.retrieve({
+      stripeAccount: stripeAccountId,
     });
 
-    const accountId = account.id;
+    const available = balance.available.reduce((sum, b) => sum + (b.currency === "eur" ? b.amount : 0), 0);
+    const pending = balance.pending.reduce((sum, b) => sum + (b.currency === "eur" ? b.amount : 0), 0);
 
-    const updateRes = await supabase
-      .from("trainers")
-      .update({
-        stripe_account_id: accountId,
-        stripe_onboarding_completed: false,
-        stripe_charges_enabled: false,
-        stripe_payouts_enabled: false,
-      })
-      .eq("id", trainerRes.data.id);
+    const available_eur = available / 100;
+    const pending_eur = pending / 100;
 
-    if (updateRes.error) {
-      return NextResponse.json({ ok: false, message: updateRes.error.message }, { status: 500 });
-    }
+    console.log(`[STRIPE BALANCE] available: ${available_eur} EUR / pending: ${pending_eur} EUR`);
 
-    return NextResponse.json({ ok: true, stripe_account_id: accountId });
+    return NextResponse.json({
+      ok: true,
+      available_amount: available_eur,
+      pending_amount: pending_eur,
+      currency: "EUR"
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Stripe error.";
-    return NextResponse.json({ ok: false, message }, { status: 500 });
+    console.error("[STRIPE BALANCE ERROR] Stripe error:", message);
+    return NextResponse.json({ 
+      ok: false, 
+      message: "Nepodarilo sa načítať zostatok zo Stripe.",
+      available_amount: 0,
+      pending_amount: 0
+    }, { status: 500 });
   }
 }

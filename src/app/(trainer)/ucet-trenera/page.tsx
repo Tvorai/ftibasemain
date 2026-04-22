@@ -290,6 +290,10 @@ export default function TrainerDashboardPage() {
   const [stripeBusy, setStripeBusy] = useState<null | "connect" | "onboarding" | "dashboard">(null);
   const [stripeError, setStripeError] = useState<string | null>(null);
 
+  const [availableBalance, setAvailableBalance] = useState<number | null>(null);
+  const [pendingBalance, setPendingBalance] = useState<number | null>(null);
+  const [loadingBalance, setLoadingBalance] = useState(false);
+
   const displaySiteUrl = typeof window !== "undefined" && window.location.hostname === "localhost" ? "https://fitbase.sk" : siteUrl;
   const profileUrl = `${displaySiteUrl.replace(/\/$/, "")}/${toSlug(username)}`;
   const locationText = [city.trim(), gymName.trim()].filter(Boolean).join(" - ");
@@ -581,6 +585,38 @@ export default function TrainerDashboardPage() {
       router.push("/prihlasenie");
     }
   };
+
+  const loadStripeBalance = useCallback(async () => {
+    if (!stripeAccountId || !stripeOnboardingCompleted) return;
+    
+    setLoadingBalance(true);
+    try {
+      const sessionRes = await supabase.auth.getSession();
+      const session = sessionRes.data.session;
+      if (!session) return;
+
+      const headers = { Authorization: `Bearer ${session.access_token}` };
+      const res = await fetch("/api/trainer/balance", { headers });
+      const data = await res.json().catch(() => ({ ok: false, message: "Invalid JSON response" }));
+
+      if (data.ok) {
+        setAvailableBalance(data.available_amount);
+        setPendingBalance(data.pending_amount);
+      } else {
+        console.error("[STRIPE BALANCE] Error:", data.message);
+      }
+    } catch (err) {
+      console.error("[STRIPE BALANCE] Critical error:", err);
+    } finally {
+      setLoadingBalance(false);
+    }
+  }, [stripeAccountId, stripeOnboardingCompleted]);
+
+  useEffect(() => {
+    if (activeTab === "nastavenia" && activeSettingsTab === "payment_account") {
+      loadStripeBalance();
+    }
+  }, [activeTab, activeSettingsTab, loadStripeBalance]);
 
   useEffect(() => {
     if (!supabase) {
@@ -1936,6 +1972,26 @@ export default function TrainerDashboardPage() {
                 <div className="mt-4 text-[11px] text-zinc-500 leading-relaxed">
                   Onboarding je overenie a nastavenie vášho Stripe účtu. Bez dokončenia onboardingu Stripe nezapne prijímanie platieb ani výplaty.
                 </div>
+
+                {stripeOnboardingCompleted && (
+                  <div className="mt-8 pt-8 border-t border-white/5">
+                    <div className="text-white font-bold text-lg mb-4 uppercase tracking-wider">Zostatok na Stripe</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-6 py-5">
+                        <div className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold mb-1">Dostupné prostriedky</div>
+                        <div className="text-2xl font-display text-emerald-500">
+                          {loadingBalance ? "..." : `${availableBalance !== null ? availableBalance.toFixed(2) : "0.00"} €`}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 px-6 py-5">
+                        <div className="text-zinc-400 text-[10px] uppercase tracking-widest font-bold mb-1">Čakajúce prostriedky</div>
+                        <div className="text-2xl font-display text-zinc-300">
+                          {loadingBalance ? "..." : `${pendingBalance !== null ? pendingBalance.toFixed(2) : "0.00"} €`}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {stripeError && (
                   <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-red-200 text-sm">

@@ -1003,7 +1003,7 @@ export default function TrainerProfilePage({ params }: { params: { trainerSlug: 
                 <div>
                   <div className="text-white font-bold">{formatName(r.client_name)}</div>
                   <div className="text-zinc-500 text-[10px] uppercase tracking-widest font-bold mt-1">
-                    {new Date(r.created_at).toLocaleDateString("sk-SK")}
+                    {new Date(r.created_at).toLocaleDateString("sk-SK", { timeZone: "Europe/Bratislava" })}
                   </div>
                 </div>
                 <div className="flex text-yellow-400">
