@@ -1155,7 +1155,7 @@ export default function TrainerDashboardPage() {
             <div className="flex items-center justify-between gap-3 border border-emerald-500/30 rounded-2xl bg-zinc-900/30 backdrop-blur-sm px-4 py-3">
               <div className="min-w-0">
                 <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Link vášho profilu</div>
-                <div className="text-white font-bold truncate">{profileUrl}</div>
+                <div className="text-white font-bold truncate">{profileUrl.replace(/^https?:\/\//, "")}</div>
               </div>
               <button
                 type="button"
