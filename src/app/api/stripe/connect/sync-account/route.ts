@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { stripe } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,37 +16,12 @@ function getBearerToken(request: Request): string | null {
   return match?.[1] || null;
 }
 
-function pickStripeSecretKey(): string | null {
-  return (
-    process.env.STRIPE_SECRET_KEY ||
-    process.env.STRIPE_API_KEY ||
-    process.env.STRIPE_SECRET ||
-    null
-  );
-}
-
-function stripeErrorMessage(payload: unknown): string | null {
-  if (!isRecord(payload)) return null;
-  const err = payload.error;
-  if (!isRecord(err)) return null;
-  const msg = err.message;
-  return typeof msg === "string" && msg.trim() ? msg : null;
-}
-
-function getBoolean(value: unknown): boolean | null {
-  return typeof value === "boolean" ? value : null;
-}
-
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const stripeSecretKey = pickStripeSecretKey();
 
   if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json({ ok: false, message: "Chýba konfigurácia Supabase." }, { status: 500 });
-  }
-  if (!stripeSecretKey) {
-    return NextResponse.json({ ok: false, message: "Chýba STRIPE_SECRET_KEY." }, { status: 500 });
   }
 
   const token = getBearerToken(request);
@@ -81,51 +57,36 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, synced: false, message: "Stripe účet nie je vytvorený." });
   }
 
-  const stripeRes = await fetch(`https://api.stripe.com/v1/accounts/${encodeURIComponent(stripeAccountId)}`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${stripeSecretKey}`,
-    },
-  });
+  try {
+    const account = await stripe.accounts.retrieve(stripeAccountId);
 
-  const stripePayload: unknown = await stripeRes.json().catch(() => null);
-  if (!stripeRes.ok) {
-    return NextResponse.json(
-      { ok: false, message: stripeErrorMessage(stripePayload) || "Stripe error." },
-      { status: 500 }
-    );
-  }
+    const stripe_onboarding_completed = account.details_submitted;
+    const stripe_charges_enabled = account.charges_enabled;
+    const stripe_payouts_enabled = account.payouts_enabled;
 
-  const chargesEnabled =
-    isRecord(stripePayload) ? getBoolean(stripePayload.charges_enabled) : null;
-  const payoutsEnabled =
-    isRecord(stripePayload) ? getBoolean(stripePayload.payouts_enabled) : null;
-  const detailsSubmitted =
-    isRecord(stripePayload) ? getBoolean(stripePayload.details_submitted) : null;
+    const updateRes = await supabase
+      .from("trainers")
+      .update({
+        stripe_onboarding_completed,
+        stripe_charges_enabled,
+        stripe_payouts_enabled,
+      })
+      .eq("id", trainerRes.data.id);
 
-  const stripe_onboarding_completed = Boolean(detailsSubmitted);
-  const stripe_charges_enabled = Boolean(chargesEnabled);
-  const stripe_payouts_enabled = Boolean(payoutsEnabled);
+    if (updateRes.error) {
+      return NextResponse.json({ ok: false, message: updateRes.error.message }, { status: 500 });
+    }
 
-  const updateRes = await supabase
-    .from("trainers")
-    .update({
+    return NextResponse.json({
+      ok: true,
+      synced: true,
       stripe_onboarding_completed,
       stripe_charges_enabled,
       stripe_payouts_enabled,
-    })
-    .eq("id", trainerRes.data.id);
-
-  if (updateRes.error) {
-    return NextResponse.json({ ok: false, message: updateRes.error.message }, { status: 500 });
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Stripe error.";
+    return NextResponse.json({ ok: false, message }, { status: 500 });
   }
-
-  return NextResponse.json({
-    ok: true,
-    synced: true,
-    stripe_onboarding_completed,
-    stripe_charges_enabled,
-    stripe_payouts_enabled,
-  });
 }
 

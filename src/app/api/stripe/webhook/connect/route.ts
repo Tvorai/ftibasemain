@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
+import { stripe } from "@/lib/stripe";
+import { stripeConnectWebhookSecret } from "@/lib/config";
+import type Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
@@ -13,13 +15,12 @@ function getBoolean(value: unknown): boolean | null {
 }
 
 export async function POST(request: Request) {
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  const webhookSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET;
+  const webhookSecret = stripeConnectWebhookSecret;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!stripeSecretKey || !webhookSecret) {
-    return NextResponse.json({ message: "Chýba Stripe Connect konfigurácia." }, { status: 500 });
+  if (!webhookSecret) {
+    return NextResponse.json({ message: "Chýba Stripe Connect webhook konfigurácia." }, { status: 500 });
   }
   if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json({ message: "Chýba Supabase konfigurácia." }, { status: 500 });
@@ -31,7 +32,6 @@ export async function POST(request: Request) {
   }
 
   const rawBody = Buffer.from(await request.arrayBuffer());
-  const stripe = new Stripe(stripeSecretKey);
 
   let event: Stripe.Event;
   try {

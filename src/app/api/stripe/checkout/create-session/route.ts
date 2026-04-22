@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
+import { stripe } from "@/lib/stripe";
 import { z } from "zod";
 import { createClient } from "@supabase/supabase-js";
 import { siteUrl } from "@/lib/config";
@@ -42,13 +42,9 @@ function getServiceLabel(serviceType: "personal" | "online"): string {
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
     return NextResponse.json({ message: "Server nie je správne nakonfigurovaný." }, { status: 500 });
-  }
-  if (!stripeSecretKey) {
-    return NextResponse.json({ message: "Chýba STRIPE_SECRET_KEY." }, { status: 500 });
   }
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
@@ -129,8 +125,6 @@ export async function POST(request: Request) {
   if (!trainerRes.data?.stripe_account_id) {
     return NextResponse.json({ message: "Tréner nemá prepojený Stripe účet." }, { status: 400 });
   }
-
-  const stripe = new Stripe(stripeSecretKey);
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
