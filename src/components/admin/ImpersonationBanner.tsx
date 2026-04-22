@@ -17,34 +17,44 @@ export function ImpersonationBanner() {
   }, []);
 
   const handleReturnToAdmin = async () => {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    
-    // 1. Audit log návratu
-    const adminId = localStorage.getItem("impersonator_admin_id");
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    
-    if (adminId && currentUser) {
-      await fetch("/api/admin/impersonate-audit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          admin_id: adminId,
-          target_id: currentUser.id,
-          action: "returned"
-        }),
-      });
-    }
+    try {
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      
+      // 1. Audit log návratu (nepovinný, neblokujúci)
+      const adminId = localStorage.getItem("impersonator_admin_id");
+      
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (adminId && currentUser) {
+          fetch("/api/admin/impersonate-audit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              admin_id: adminId,
+              target_id: currentUser.id,
+              action: "returned"
+            }),
+          }).catch(() => {}); // Ignorujeme chyby auditu
+        }
+      } catch (e) {
+        console.warn("Audit log failed", e);
+      }
 
-    // 2. Odhlásime sa z target usera
-    await supabase.auth.signOut();
-    
-    // 3. Vyčistíme localStorage
-    localStorage.removeItem("impersonator_admin_id");
-    
-    // 4. Presmerujeme na prihlásenie (admin sa musí znova prihlásiť pre bezpečnosť)
-    // Alternatíva: Ak by sme mali uložený refresh token admina, mohli by sme ho použiť,
-    // ale to je menej bezpečné. Najistejšie je nové prihlásenie.
-    router.replace("/prihlasenie");
+      // 2. Odhlásime sa z target usera
+      await supabase.auth.signOut();
+      
+      // 3. Vyčistíme localStorage
+      localStorage.removeItem("impersonator_admin_id");
+      setIsAdminMode(false);
+      
+      // 4. Presmerujeme na prihlásenie
+      window.location.href = "/prihlasenie";
+    } catch (err) {
+      console.error("Return to admin failed", err);
+      // Núdzové vyčistenie a redirect
+      localStorage.removeItem("impersonator_admin_id");
+      window.location.href = "/prihlasenie";
+    }
   };
 
   if (!isAdminMode) return null;
