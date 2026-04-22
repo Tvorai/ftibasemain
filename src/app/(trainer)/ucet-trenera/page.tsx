@@ -1159,7 +1159,7 @@ export default function TrainerDashboardPage() {
               </div>
               <button
                 type="button"
-                onClick={() => navigator.clipboard.writeText(profileUrl)}
+                onClick={() => navigator.clipboard.writeText(profileUrl.replace(/^https?:\/\//, ""))}
                 className="shrink-0 px-4 py-2 rounded-full bg-emerald-500 text-black text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-400 transition-colors"
               >
                 Kopírovať
