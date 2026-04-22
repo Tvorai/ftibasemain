@@ -131,7 +131,7 @@ export async function POST(request: Request) {
       case "personal_training": return "Osobný tréning";
       case "online":
       case "online_consultation": return "Online konzultácia";
-      case "meal_plan": return "AI jedálniček";
+      case "meal_plan": return "Jedálniček na mieru";
       case "transformation": return "Mesačná premena";
       default: return type;
     }
