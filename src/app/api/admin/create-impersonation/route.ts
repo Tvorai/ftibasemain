@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { crypto } from "crypto";
+import crypto from "crypto";
 
 export const runtime = "nodejs";
 
@@ -39,8 +39,8 @@ export async function POST(request: Request) {
   }
 
   // 2. Generovanie bezpečného tokenu
-  const token = require("crypto").randomBytes(32).toString("hex");
-  const tokenHash = require("crypto").createHash("sha256").update(token).digest("hex");
+  const token = crypto.randomBytes(32).toString("hex");
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minút
 
   // 3. Uloženie tokenu a audit log

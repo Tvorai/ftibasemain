@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import crypto from "crypto";
 
 export const runtime = "nodejs";
 
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  const tokenHash = require("crypto").createHash("sha256").update(token).digest("hex");
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
   // 1. Nájdeme platný a nepoužitý token
   const { data: tokenData, error: tokenError } = await supabase
