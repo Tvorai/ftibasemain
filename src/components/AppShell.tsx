@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -48,11 +49,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     isPublicTrainerProfile;
 
   if (hideChrome) {
-    return <main>{children}</main>;
+    return (
+      <>
+        <ImpersonationBanner />
+        <main>{children}</main>
+      </>
+    );
   }
 
   return (
     <>
+      <ImpersonationBanner />
       <Header />
       <main className="min-h-[60vh]">{children}</main>
       <Footer />
